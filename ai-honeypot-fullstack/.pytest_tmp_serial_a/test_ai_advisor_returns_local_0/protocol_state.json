@@ -1,0 +1,19 @@
+{
+  "updated_at": "2026-03-07T16:36:04.033988+00:00",
+  "modules": {
+    "ssh": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 63965,
+      "running": false,
+      "profile": "auto"
+    },
+    "mysql": {
+      "enabled": true,
+      "host": "0.0.0.0",
+      "port": 63966,
+      "running": false,
+      "profile": "auto"
+    }
+  }
+}

@@ -1,0 +1,120 @@
+services:
+  db:
+    image: mariadb:10.11
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: honeypot_db
+      MARIADB_USER: user
+      MARIADB_PASSWORD: password
+    volumes:
+      - mariadb_data:/var/lib/mysql
+
+  backend:
+    build: ./backend
+    expose:
+      - "5000"
+    environment:
+      - APP_ENV=${APP_ENV:-development}
+      - DATABASE_URL=mysql+pymysql://user:password@db:3306/honeypot_db
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver}
+      - FORCE_HTTPS_REDIRECT=${FORCE_HTTPS_REDIRECT:-false}
+      - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
+      - SECURITY_HSTS_SECONDS=${SECURITY_HSTS_SECONDS:-31536000}
+      - SECURITY_CONTENT_SECURITY_POLICY=${SECURITY_CONTENT_SECURITY_POLICY:-}
+      - DECOY_COOKIE_SECURE=${DECOY_COOKIE_SECURE:-false}
+      - DECOY_COOKIE_SAMESITE=${DECOY_COOKIE_SAMESITE:-lax}
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=llama3
+      - OLLAMA_REQUEST_TIMEOUT_SECONDS=${OLLAMA_REQUEST_TIMEOUT_SECONDS:-45}
+      - AI_GENERATION_TIMEOUT_SECONDS=${AI_GENERATION_TIMEOUT_SECONDS:-25}
+      - AI_BREAKER_FAILURE_THRESHOLD=${AI_BREAKER_FAILURE_THRESHOLD:-1}
+      - AI_BREAKER_COOLDOWN_SECONDS=${AI_BREAKER_COOLDOWN_SECONDS:-60}
+      - THREAT_ANALYSIS_AI_TIMEOUT_SECONDS=${THREAT_ANALYSIS_AI_TIMEOUT_SECONDS:-8}
+      - SHELL_RESPONSE_AI_TIMEOUT_SECONDS=${SHELL_RESPONSE_AI_TIMEOUT_SECONDS:-8}
+      - SECRET_KEY=${SECRET_KEY}
+      - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
+      - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-}
+      - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-}
+      - PROTOCOL_SSH_AUTH_TRAP_ENABLED=${PROTOCOL_SSH_AUTH_TRAP_ENABLED:-true}
+      - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-}
+      - PROTOCOL_MYSQL_AUTH_TRAP_ENABLED=${PROTOCOL_MYSQL_AUTH_TRAP_ENABLED:-true}
+      - PROTOCOL_MYSQL_TRAP_CREDENTIALS=${PROTOCOL_MYSQL_TRAP_CREDENTIALS:-}
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    ports:
+      - "80:80"
+    volumes:
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - backend
+
+  tls-gateway:
+    image: nginx:alpine
+    profiles:
+      - tls
+    depends_on:
+      - frontend
+    ports:
+      - "443:443"
+    environment:
+      - TLS_DOMAIN=${TLS_DOMAIN}
+    volumes:
+      - ./deploy/nginx/https-gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - certbot_conf:/etc/letsencrypt:ro
+    command: >
+      /bin/sh -c "envsubst '$$TLS_DOMAIN' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
+      && nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot:latest
+    profiles:
+      - tls
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles:
+      - cloudflare
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
+
+  cloudflared-quick:
+    image: cloudflare/cloudflared:latest
+    profiles:
+      - quick-tunnel
+    restart: unless-stopped
+    depends_on:
+      - frontend
+    command: tunnel --no-autoupdate --url http://frontend:80
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    restart: always
+    profiles:
+      - dev-tools
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      - PMA_ARBITRARY=1
+      - PMA_HOST=db
+    depends_on:
+      - db
+
+volumes:
+  mariadb_data:
+  certbot_www:
+  certbot_conf:

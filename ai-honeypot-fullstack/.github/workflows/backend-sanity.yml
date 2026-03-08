@@ -1,0 +1,206 @@
+name: Backend Sanity
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-sanity.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-sanity.yml"
+  workflow_dispatch:
+
+jobs:
+  sanity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: python -m pip install -r backend/requirements.txt
+
+      - name: Compile critical backend modules
+        run: |
+          python -m py_compile backend/main.py
+          python -m py_compile backend/services/replay_store.py
+          python -m py_compile backend/services/session_orchestrator.py
+          python -m py_compile backend/services/protocol_observability.py
+          python -m py_compile backend/services/interaction_isolation.py
+          python -m py_compile backend/services/protocols/base.py
+          python -m py_compile backend/services/protocols/registry.py
+          python -m py_compile backend/services/protocols/mysql_interaction.py
+          python -m py_compile backend/services/protocols/ssh_interaction.py
+
+      - name: Startup import sanity
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import socket
+          import sys
+          import time
+
+          state_file = os.path.abspath("backend/.protocol_runtime_state_ci.json")
+          transcripts_dir = os.path.abspath("backend/.session_transcripts_ci")
+          if os.path.exists(state_file):
+              os.remove(state_file)
+          os.environ["PROTOCOL_STATE_FILE"] = state_file
+          os.environ["PROTOCOL_TRANSCRIPTS_DIR"] = transcripts_dir
+          os.environ["PROTOCOL_SSH_PORT"] = "0"
+          os.environ["PROTOCOL_SSH_AUTH_TRAP_ENABLED"] = "false"
+          os.environ["PROTOCOL_MYSQL_ENABLED"] = "true"
+          os.environ["PROTOCOL_MYSQL_PORT"] = "0"
+          os.environ["PROTOCOL_MYSQL_AUTH_TRAP_ENABLED"] = "false"
+
+          sys.path.insert(0, os.path.abspath("backend"))
+          from fastapi.testclient import TestClient
+          from main import app, protocol_registry
+
+          snapshot = protocol_registry.status_snapshot()
+          assert "ssh" in snapshot, "missing ssh module registration"
+          assert "mysql" in snapshot, "missing mysql module registration"
+          with TestClient(app) as client:
+              resp = client.get("/protocols/status")
+              assert resp.status_code == 200, "protocol status endpoint failed"
+              payload = resp.json()
+              assert "modules" in payload, "missing modules in protocol status response"
+              assert payload.get("persistence", {}).get("state_file"), "missing persistence metadata"
+              metrics_resp = client.get("/protocols/metrics")
+              assert metrics_resp.status_code == 200, "protocol metrics endpoint failed"
+              assert "protocols" in metrics_resp.json().get("metrics", {}), "missing metrics payload"
+              alerts_resp = client.get("/protocols/alerts")
+              assert alerts_resp.status_code == 200, "protocol alerts endpoint failed"
+              isolation_resp = client.get("/protocols/isolation")
+              assert isolation_resp.status_code == 200, "protocol isolation endpoint failed"
+              assert set(isolation_resp.json().get("policies", {}).keys()) >= {"ssh", "mysql"}, "isolation policies missing"
+              ssh_mod = payload["modules"]["ssh"]
+              ssh_port = int(ssh_mod["port"])
+              assert ssh_mod.get("running") is True, "ssh listener is not running"
+              with socket.create_connection(("127.0.0.1", ssh_port), timeout=3.0) as sock:
+                  sock.settimeout(3.0)
+                  banner = sock.recv(4096).decode("utf-8", errors="ignore")
+                  assert "SSH-2.0-OpenSSH" in banner, "missing ssh banner"
+                  sock.sendall(b"whoami\\n")
+                  time.sleep(0.1)
+                  shell_output = sock.recv(4096).decode("utf-8", errors="ignore")
+                  assert any(user in shell_output for user in ("admin", "root", "dbops")), "whoami response missing"
+                  sock.sendall(b"exit\\n")
+
+              toggled_off = client.post("/protocols/ssh/toggle", json={"enabled": False})
+              assert toggled_off.status_code == 200, "ssh disable toggle failed"
+              assert toggled_off.json()["module"]["enabled"] is False, "ssh did not disable"
+              toggled_on = client.post("/protocols/ssh/toggle", json={"enabled": True})
+              assert toggled_on.status_code == 200, "ssh enable toggle failed"
+              assert toggled_on.json()["module"]["enabled"] is True, "ssh did not enable"
+              profile_set = client.post("/protocols/ssh/profile", json={"profile": "ubuntu_web"})
+              assert profile_set.status_code == 200, "ssh profile set failed"
+              assert profile_set.json().get("profile", {}).get("current") == "ubuntu_web", "ssh profile mismatch"
+              sim = client.post(
+                  "/protocols/ssh/simulate-session",
+                  json={"commands": ["whoami", "ls", "uname -a"]},
+              )
+              assert sim.status_code == 200, "ssh simulate endpoint failed"
+              sim_payload = sim.json().get("result", {})
+              transcript_resp = client.get(f"/sessions/{sim_payload.get('session_id')}/transcript")
+              assert transcript_resp.status_code == 200, "transcript endpoint failed"
+              status_again = client.get("/protocols/status").json()
+              assert status_again.get("recent_sessions"), "missing recent session records"
+              transcript = status_again["recent_sessions"][-1].get("transcript_artifact")
+              assert transcript and transcript.get("artifact_path"), "missing transcript artifact metadata"
+
+              mysql_mod = payload["modules"]["mysql"]
+              mysql_port = int(mysql_mod["port"])
+              assert mysql_mod.get("running") is True, "mysql listener is not running"
+              with socket.create_connection(("127.0.0.1", mysql_port), timeout=3.0) as sock:
+                  sock.settimeout(3.0)
+                  banner = sock.recv(4096).decode("utf-8", errors="ignore")
+                  assert "MySQL monitor" in banner or "Server version" in banner, "missing mysql banner"
+                  sock.sendall(b"show databases;\\n")
+                  time.sleep(0.1)
+                  mysql_output = sock.recv(4096).decode("utf-8", errors="ignore")
+                  assert "information_schema" in mysql_output, "mysql query response missing"
+                  sock.sendall(b"quit;\\n")
+
+              mysql_profile = client.post("/protocols/mysql/profile", json={"profile": "mariadb_legacy"})
+              assert mysql_profile.status_code == 200, "mysql profile set failed"
+              assert mysql_profile.json().get("profile", {}).get("current") == "mariadb_legacy", "mysql profile mismatch"
+              mysql_sim = client.post(
+                  "/protocols/mysql/simulate-session",
+                  json={"commands": ["show databases;", "select version();", "drop table users;"]},
+              )
+              assert mysql_sim.status_code == 200, "mysql simulate endpoint failed"
+              mysql_payload = mysql_sim.json().get("result", {})
+              mysql_transcript = client.get(f"/sessions/{mysql_payload.get('session_id')}/transcript")
+              assert mysql_transcript.status_code == 200, "mysql transcript endpoint failed"
+              mysql_responses = mysql_payload.get("responses", [])
+              assert any(item.get("classification") == "destructive" for item in mysql_responses), "mysql destructive classification missing"
+
+              stix_resp = client.get("/export/stix", params={"limit": 10})
+              assert stix_resp.status_code == 200, "stix export endpoint failed"
+              stix_payload = stix_resp.json()
+              assert stix_payload.get("type") == "bundle", "stix export type mismatch"
+              assert isinstance(stix_payload.get("objects"), list), "stix objects missing"
+              generated_at = stix_payload.get("x_generated_at")
+              assert generated_at, "stix generated timestamp missing"
+
+              stix_added_after = client.get(
+                  "/export/stix",
+                  params={"limit": 5, "added_after": generated_at},
+              )
+              assert stix_added_after.status_code == 200, "stix added_after filter failed"
+              stix_bad_after = client.get("/export/stix", params={"added_after": "bad-ts"})
+              assert stix_bad_after.status_code == 400, "invalid stix added_after was not rejected"
+
+              taxii_discovery = client.get("/taxii2/")
+              assert taxii_discovery.status_code == 200, "taxii discovery failed"
+              assert "/taxii2/api/" in taxii_discovery.json().get("api_roots", []), "taxii api root missing"
+
+              taxii_api = client.get("/taxii2/api/")
+              assert taxii_api.status_code == 200, "taxii api root failed"
+              assert "taxii-2.1" in taxii_api.json().get("versions", []), "taxii version missing"
+
+              taxii_collections = client.get("/taxii2/api/collections/")
+              assert taxii_collections.status_code == 200, "taxii collections failed"
+              collections = taxii_collections.json().get("collections", [])
+              assert any(c.get("id") == "honeypot-intel" for c in collections), "taxii collection missing"
+
+              taxii_objects = client.get(
+                  "/taxii2/api/collections/honeypot-intel/objects/",
+                  params={"limit": 10},
+              )
+              assert taxii_objects.status_code == 200, "taxii objects endpoint failed"
+              taxii_payload = taxii_objects.json()
+              assert taxii_payload.get("type") == "bundle", "taxii objects bundle mismatch"
+
+              taxii_bad_collection = client.get("/taxii2/api/collections/not-found/objects/")
+              assert taxii_bad_collection.status_code == 404, "missing taxii collection did not return 404"
+          assert os.path.exists(state_file), "protocol state file was not written"
+          with open(state_file, "r", encoding="utf-8") as fh:
+              persisted = json.load(fh)
+          assert persisted.get("modules", {}).get("ssh", {}).get("enabled") is True, "persisted ssh state mismatch"
+          assert persisted.get("modules", {}).get("mysql", {}).get("enabled") is True, "persisted mysql state mismatch"
+          os.remove(state_file)
+          if os.path.isdir(transcripts_dir):
+              for root, _dirs, files in os.walk(transcripts_dir, topdown=False):
+                  for file_name in files:
+                      os.remove(os.path.join(root, file_name))
+                  if root != transcripts_dir:
+                      os.rmdir(root)
+              os.rmdir(transcripts_dir)
+          print("backend_startup_sanity_ok")
+          PY
+
+      - name: Run backend pytest suite
+        run: python -m pytest backend/tests -q
+
+      - name: Run protocol load and red-team scripts
+        run: |
+          python backend/tests/scripts/load_protocol_sim.py --rounds 24 --workers 8
+          python backend/tests/scripts/red_team_scenarios.py

@@ -1,0 +1,631 @@
+{
+  "cells": [
+    {
+      "kind": 2,
+      "value": "Philemon 1",
+      "languageId": "html",
+      "metadata": {
+        "id": "7c3d7949-d3ac-4da6-b36b-5bd6e2bdbdc0",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Παῦλος δέσμιος Χριστοῦ Ἰησοῦ καὶ Τιμόθεος ὁ ἀδελφὸς Φιλήμονι τῷ ἀγαπητῷ καὶ συνεργῷ ἡμῶν",
+      "languageId": "html",
+      "metadata": {
+        "id": "4f18cad0-d5b7-4556-9143-fe1fcba568c2",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:1",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Παῦλος δέσμιος Χριστοῦ Ἰησοῦ καὶ Τιμόθεος ὁ ἀδελφὸς Φιλήμονι τῷ ἀγαπητῷ καὶ συνεργῷ ἡμῶν",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Παῦλος δέσμιος Χριστοῦ Ἰησοῦ καὶ Τιμόθεος ὁ ἀδελφὸς Φιλήμονι τῷ ἀγαπητῷ καὶ συνεργῷ ἡμῶν",
+          "globalReferences": [
+            "PHM 1:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "καὶ Ἀπφίᾳ τῇ ἀδελφῇ καὶ Ἀρχίππῳ τῷ συστρατιώτῃ ἡμῶν καὶ τῇ κατ’ οἶκόν σου ἐκκλησίᾳ·",
+      "languageId": "html",
+      "metadata": {
+        "id": "49c1565c-8675-4354-a64d-18134251d231",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:2",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "καὶ Ἀπφίᾳ τῇ ἀδελφῇ καὶ Ἀρχίππῳ τῷ συστρατιώτῃ ἡμῶν καὶ τῇ κατ’ οἶκόν σου ἐκκλησίᾳ·",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "καὶ Ἀπφίᾳ τῇ ἀδελφῇ καὶ Ἀρχίππῳ τῷ συστρατιώτῃ ἡμῶν καὶ τῇ κατ’ οἶκόν σου ἐκκλησίᾳ·",
+          "globalReferences": [
+            "PHM 1:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "χάρις ὑμῖν καὶ εἰρήνη ἀπὸ θεοῦ πατρὸς ἡμῶν καὶ κυρίου Ἰησοῦ Χριστοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "56bfafe9-3e44-4fc6-90e7-df92502e8a9c",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:3",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "χάρις ὑμῖν καὶ εἰρήνη ἀπὸ θεοῦ πατρὸς ἡμῶν καὶ κυρίου Ἰησοῦ Χριστοῦ.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "χάρις ὑμῖν καὶ εἰρήνη ἀπὸ θεοῦ πατρὸς ἡμῶν καὶ κυρίου Ἰησοῦ Χριστοῦ.",
+          "globalReferences": [
+            "PHM 1:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Εὐχαριστῶ τῷ θεῷ μου πάντοτε μνείαν σου ποιούμενος ἐπὶ τῶν προσευχῶν μου,",
+      "languageId": "html",
+      "metadata": {
+        "id": "edbef802-5588-4b44-af3d-d1a43cff97db",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:4",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "Εὐχαριστῶ τῷ θεῷ μου πάντοτε μνείαν σου ποιούμενος ἐπὶ τῶν προσευχῶν μου,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Εὐχαριστῶ τῷ θεῷ μου πάντοτε μνείαν σου ποιούμενος ἐπὶ τῶν προσευχῶν μου,",
+          "globalReferences": [
+            "PHM 1:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀκούων σου τὴν ἀγάπην καὶ τὴν πίστιν ἣν ἔχεις πρὸς τὸν κύριον Ἰησοῦν καὶ εἰς πάντας τοὺς ἁγίους,",
+      "languageId": "html",
+      "metadata": {
+        "id": "7694e16a-f515-4c38-b64b-5db8a679c52b",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:5",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "ἀκούων σου τὴν ἀγάπην καὶ τὴν πίστιν ἣν ἔχεις πρὸς τὸν κύριον Ἰησοῦν καὶ εἰς πάντας τοὺς ἁγίους,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ἀκούων σου τὴν ἀγάπην καὶ τὴν πίστιν ἣν ἔχεις πρὸς τὸν κύριον Ἰησοῦν καὶ εἰς πάντας τοὺς ἁγίους,",
+          "globalReferences": [
+            "PHM 1:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὅπως ἡ κοινωνία τῆς πίστεώς σου ἐνεργὴς γένηται ἐν ἐπιγνώσει παντὸς ἀγαθοῦ τοῦ ἐν ἡμῖν εἰς Χριστόν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "4673d0fa-9584-45fe-95ae-b0038fd85b6a",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:6",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "ὅπως ἡ κοινωνία τῆς πίστεώς σου ἐνεργὴς γένηται ἐν ἐπιγνώσει παντὸς ἀγαθοῦ τοῦ ἐν ἡμῖν εἰς Χριστόν·",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὅπως ἡ κοινωνία τῆς πίστεώς σου ἐνεργὴς γένηται ἐν ἐπιγνώσει παντὸς ἀγαθοῦ τοῦ ἐν ἡμῖν εἰς Χριστόν·",
+          "globalReferences": [
+            "PHM 1:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "χαρὰν γὰρ πολλὴν ἔσχον καὶ παράκλησιν ἐπὶ τῇ ἀγάπῃ σου, ὅτι τὰ σπλάγχνα τῶν ἁγίων ἀναπέπαυται διὰ σοῦ, ἀδελφέ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "e5086da5-8551-417f-a9ed-fd7bcacd9d6c",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:7",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "χαρὰν γὰρ πολλὴν ἔσχον καὶ παράκλησιν ἐπὶ τῇ ἀγάπῃ σου, ὅτι τὰ σπλάγχνα τῶν ἁγίων ἀναπέπαυται διὰ σοῦ, ἀδελφέ.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "χαρὰν γὰρ πολλὴν ἔσχον καὶ παράκλησιν ἐπὶ τῇ ἀγάπῃ σου, ὅτι τὰ σπλάγχνα τῶν ἁγίων ἀναπέπαυται διὰ σοῦ, ἀδελφέ.",
+          "globalReferences": [
+            "PHM 1:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Διό, πολλὴν ἐν Χριστῷ παρρησίαν ἔχων ἐπιτάσσειν σοι τὸ ἀνῆκον,",
+      "languageId": "html",
+      "metadata": {
+        "id": "4ead646e-73c2-4bf7-b33a-b2638c0fb1d7",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:8",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "Διό, πολλὴν ἐν Χριστῷ παρρησίαν ἔχων ἐπιτάσσειν σοι τὸ ἀνῆκον,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Διό, πολλὴν ἐν Χριστῷ παρρησίαν ἔχων ἐπιτάσσειν σοι τὸ ἀνῆκον,",
+          "globalReferences": [
+            "PHM 1:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "διὰ τὴν ἀγάπην μᾶλλον παρακαλῶ, τοιοῦτος ὢν ὡς Παῦλος πρεσβύτης νυνὶ δὲ καὶ δέσμιος Χριστοῦ Ἰησοῦ",
+      "languageId": "html",
+      "metadata": {
+        "id": "1617bbfe-e549-4453-afac-e5b487e75285",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:9",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "διὰ τὴν ἀγάπην μᾶλλον παρακαλῶ, τοιοῦτος ὢν ὡς Παῦλος πρεσβύτης νυνὶ δὲ καὶ δέσμιος Χριστοῦ Ἰησοῦ",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "διὰ τὴν ἀγάπην μᾶλλον παρακαλῶ, τοιοῦτος ὢν ὡς Παῦλος πρεσβύτης νυνὶ δὲ καὶ δέσμιος Χριστοῦ Ἰησοῦ",
+          "globalReferences": [
+            "PHM 1:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "παρακαλῶ σε περὶ τοῦ ἐμοῦ τέκνου, ὃν ἐγέννησα ἐν τοῖς δεσμοῖς Ὀνήσιμον,",
+      "languageId": "html",
+      "metadata": {
+        "id": "77cf47aa-26cf-44e0-91cb-b5a7b91a5673",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:10",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "παρακαλῶ σε περὶ τοῦ ἐμοῦ τέκνου, ὃν ἐγέννησα ἐν τοῖς δεσμοῖς Ὀνήσιμον,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "παρακαλῶ σε περὶ τοῦ ἐμοῦ τέκνου, ὃν ἐγέννησα ἐν τοῖς δεσμοῖς Ὀνήσιμον,",
+          "globalReferences": [
+            "PHM 1:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τόν ποτέ σοι ἄχρηστον νυνὶ δὲ σοὶ καὶ ἐμοὶ εὔχρηστον,",
+      "languageId": "html",
+      "metadata": {
+        "id": "49955065-53b8-47a5-828b-3129e53f038a",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:11",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "τόν ποτέ σοι ἄχρηστον νυνὶ δὲ σοὶ καὶ ἐμοὶ εὔχρηστον,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "τόν ποτέ σοι ἄχρηστον νυνὶ δὲ σοὶ καὶ ἐμοὶ εὔχρηστον,",
+          "globalReferences": [
+            "PHM 1:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὃν ἀνέπεμψά σοι αὐτόν, τοῦτ’ ἔστιν τὰ ἐμὰ σπλάγχνα·",
+      "languageId": "html",
+      "metadata": {
+        "id": "262601d7-df5d-4c8b-9d73-1572f1910b99",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:12",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "ὃν ἀνέπεμψά σοι αὐτόν, τοῦτ’ ἔστιν τὰ ἐμὰ σπλάγχνα·",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὃν ἀνέπεμψά σοι αὐτόν, τοῦτ’ ἔστιν τὰ ἐμὰ σπλάγχνα·",
+          "globalReferences": [
+            "PHM 1:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὃν ἐγὼ ἐβουλόμην πρὸς ἐμαυτὸν κατέχειν, ἵνα ὑπὲρ σοῦ μοι διακονῇ ἐν τοῖς δεσμοῖς τοῦ εὐαγγελίου,",
+      "languageId": "html",
+      "metadata": {
+        "id": "0f30ad13-b2f1-4b2b-b0a0-b2329590a830",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:13",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "ὃν ἐγὼ ἐβουλόμην πρὸς ἐμαυτὸν κατέχειν, ἵνα ὑπὲρ σοῦ μοι διακονῇ ἐν τοῖς δεσμοῖς τοῦ εὐαγγελίου,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὃν ἐγὼ ἐβουλόμην πρὸς ἐμαυτὸν κατέχειν, ἵνα ὑπὲρ σοῦ μοι διακονῇ ἐν τοῖς δεσμοῖς τοῦ εὐαγγελίου,",
+          "globalReferences": [
+            "PHM 1:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "χωρὶς δὲ τῆς σῆς γνώμης οὐδὲν ἠθέλησα ποιῆσαι, ἵνα μὴ ὡς κατὰ ἀνάγκην τὸ ἀγαθόν σου ᾖ ἀλλὰ κατὰ ἑκούσιον·",
+      "languageId": "html",
+      "metadata": {
+        "id": "b1749b0a-2f8a-4198-8395-baf5ec36b2c5",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:14",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "χωρὶς δὲ τῆς σῆς γνώμης οὐδὲν ἠθέλησα ποιῆσαι, ἵνα μὴ ὡς κατὰ ἀνάγκην τὸ ἀγαθόν σου ᾖ ἀλλὰ κατὰ ἑκούσιον·",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "χωρὶς δὲ τῆς σῆς γνώμης οὐδὲν ἠθέλησα ποιῆσαι, ἵνα μὴ ὡς κατὰ ἀνάγκην τὸ ἀγαθόν σου ᾖ ἀλλὰ κατὰ ἑκούσιον·",
+          "globalReferences": [
+            "PHM 1:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τάχα γὰρ διὰ τοῦτο ἐχωρίσθη πρὸς ὥραν ἵνα αἰώνιον αὐτὸν ἀπέχῃς,",
+      "languageId": "html",
+      "metadata": {
+        "id": "71be72f7-f4c0-494e-874d-11aa9d3a38d3",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:15",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "τάχα γὰρ διὰ τοῦτο ἐχωρίσθη πρὸς ὥραν ἵνα αἰώνιον αὐτὸν ἀπέχῃς,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "τάχα γὰρ διὰ τοῦτο ἐχωρίσθη πρὸς ὥραν ἵνα αἰώνιον αὐτὸν ἀπέχῃς,",
+          "globalReferences": [
+            "PHM 1:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "οὐκέτι ὡς δοῦλον ἀλλὰ ὑπὲρ δοῦλον, ἀδελφὸν ἀγαπητόν, μάλιστα ἐμοί, πόσῳ δὲ μᾶλλον σοὶ καὶ ἐν σαρκὶ καὶ ἐν κυρίῳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "9546f7c6-9274-4a9d-8a72-2fab1a636568",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:16",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "οὐκέτι ὡς δοῦλον ἀλλὰ ὑπὲρ δοῦλον, ἀδελφὸν ἀγαπητόν, μάλιστα ἐμοί, πόσῳ δὲ μᾶλλον σοὶ καὶ ἐν σαρκὶ καὶ ἐν κυρίῳ.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "οὐκέτι ὡς δοῦλον ἀλλὰ ὑπὲρ δοῦλον, ἀδελφὸν ἀγαπητόν, μάλιστα ἐμοί, πόσῳ δὲ μᾶλλον σοὶ καὶ ἐν σαρκὶ καὶ ἐν κυρίῳ.",
+          "globalReferences": [
+            "PHM 1:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Εἰ οὖν με ἔχεις κοινωνόν, προσλαβοῦ αὐτὸν ὡς ἐμέ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "990bce0d-8648-4755-a091-9640f473b73e",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:17",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "17",
+        "cellLabel": "17",
+        "originalText": "Εἰ οὖν με ἔχεις κοινωνόν, προσλαβοῦ αὐτὸν ὡς ἐμέ.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Εἰ οὖν με ἔχεις κοινωνόν, προσλαβοῦ αὐτὸν ὡς ἐμέ.",
+          "globalReferences": [
+            "PHM 1:17"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰ δέ τι ἠδίκησέν σε ἢ ὀφείλει, τοῦτο ἐμοὶ ἐλλόγα·",
+      "languageId": "html",
+      "metadata": {
+        "id": "2ffa002b-f8bc-4a13-ac50-9b7ef41c92de",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:18",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "18",
+        "cellLabel": "18",
+        "originalText": "εἰ δέ τι ἠδίκησέν σε ἢ ὀφείλει, τοῦτο ἐμοὶ ἐλλόγα·",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "εἰ δέ τι ἠδίκησέν σε ἢ ὀφείλει, τοῦτο ἐμοὶ ἐλλόγα·",
+          "globalReferences": [
+            "PHM 1:18"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἐγὼ Παῦλος ἔγραψα τῇ ἐμῇ χειρί, ἐγὼ ἀποτίσω· ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις.",
+      "languageId": "html",
+      "metadata": {
+        "id": "abece854-6133-40aa-b728-0d1c68e10c6f",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:19",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "19",
+        "cellLabel": "19",
+        "originalText": "ἐγὼ Παῦλος ἔγραψα τῇ ἐμῇ χειρί, ἐγὼ ἀποτίσω· ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ἐγὼ Παῦλος ἔγραψα τῇ ἐμῇ χειρί, ἐγὼ ἀποτίσω· ἵνα μὴ λέγω σοι ὅτι καὶ σεαυτόν μοι προσοφείλεις.",
+          "globalReferences": [
+            "PHM 1:19"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ναί, ἀδελφέ, ἐγώ σου ὀναίμην ἐν κυρίῳ· ἀνάπαυσόν μου τὰ σπλάγχνα ἐν Χριστῷ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "8dcc5746-a6ac-407f-94a3-72329014c2f8",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:20",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "20",
+        "cellLabel": "20",
+        "originalText": "ναί, ἀδελφέ, ἐγώ σου ὀναίμην ἐν κυρίῳ· ἀνάπαυσόν μου τὰ σπλάγχνα ἐν Χριστῷ.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ναί, ἀδελφέ, ἐγώ σου ὀναίμην ἐν κυρίῳ· ἀνάπαυσόν μου τὰ σπλάγχνα ἐν Χριστῷ.",
+          "globalReferences": [
+            "PHM 1:20"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "πεποιθὼς τῇ ὑπακοῇ σου ἔγραψά σοι, εἰδὼς ὅτι καὶ ὑπὲρ ἃ λέγω ποιήσεις.",
+      "languageId": "html",
+      "metadata": {
+        "id": "fa6439ed-8a44-49e2-900f-a61c2d80fa8f",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:21",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "21",
+        "cellLabel": "21",
+        "originalText": "πεποιθὼς τῇ ὑπακοῇ σου ἔγραψά σοι, εἰδὼς ὅτι καὶ ὑπὲρ ἃ λέγω ποιήσεις.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "πεποιθὼς τῇ ὑπακοῇ σου ἔγραψά σοι, εἰδὼς ὅτι καὶ ὑπὲρ ἃ λέγω ποιήσεις.",
+          "globalReferences": [
+            "PHM 1:21"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἅμα δὲ καὶ ἑτοίμαζέ μοι ξενίαν, ἐλπίζω γὰρ ὅτι διὰ τῶν προσευχῶν ὑμῶν χαρισθήσομαι ὑμῖν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "fb1aab2f-78f7-4d87-9103-01310eb8f276",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:22",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "22",
+        "cellLabel": "22",
+        "originalText": "ἅμα δὲ καὶ ἑτοίμαζέ μοι ξενίαν, ἐλπίζω γὰρ ὅτι διὰ τῶν προσευχῶν ὑμῶν χαρισθήσομαι ὑμῖν.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ἅμα δὲ καὶ ἑτοίμαζέ μοι ξενίαν, ἐλπίζω γὰρ ὅτι διὰ τῶν προσευχῶν ὑμῶν χαρισθήσομαι ὑμῖν.",
+          "globalReferences": [
+            "PHM 1:22"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ἀσπάζεταί σε Ἐπαφρᾶς ὁ συναιχμάλωτός μου ἐν Χριστῷ Ἰησοῦ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "0fa0481d-8fee-4f5f-9f11-9765d90732ad",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:23",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "23",
+        "cellLabel": "23",
+        "originalText": "Ἀσπάζεταί σε Ἐπαφρᾶς ὁ συναιχμάλωτός μου ἐν Χριστῷ Ἰησοῦ,",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Ἀσπάζεταί σε Ἐπαφρᾶς ὁ συναιχμάλωτός μου ἐν Χριστῷ Ἰησοῦ,",
+          "globalReferences": [
+            "PHM 1:23"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Μᾶρκος, Ἀρίσταρχος, Δημᾶς, Λουκᾶς, οἱ συνεργοί μου.",
+      "languageId": "html",
+      "metadata": {
+        "id": "d0072147-7097-412d-b1a7-19c613dbac0c",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:24",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "24",
+        "cellLabel": "24",
+        "originalText": "Μᾶρκος, Ἀρίσταρχος, Δημᾶς, Λουκᾶς, οἱ συνεργοί μου.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Μᾶρκος, Ἀρίσταρχος, Δημᾶς, Λουκᾶς, οἱ συνεργοί μου.",
+          "globalReferences": [
+            "PHM 1:24"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ἡ χάρις τοῦ κυρίου Ἰησοῦ Χριστοῦ μετὰ τοῦ πνεύματος ὑμῶν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "895039b9-ae47-4c89-bf27-645bc64d1018",
+        "type": "text",
+        "edits": [],
+        "vref": "PHM 1:25",
+        "bookCode": "PHM",
+        "chapter": 1,
+        "verse": "25",
+        "cellLabel": "25",
+        "originalText": "Ἡ χάρις τοῦ κυρίου Ἰησοῦ Χριστοῦ μετὰ τοῦ πνεύματος ὑμῶν.",
+        "fileName": "PHM.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Ἡ χάρις τοῦ κυρίου Ἰησοῦ Χριστοῦ μετὰ τοῦ πνεύματος ὑμῶν.",
+          "globalReferences": [
+            "PHM 1:25"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "textDirection": "ltr",
+    "videoUrl": "",
+    "lineNumbersEnabled": true,
+    "lineNumbersEnabledSource": "global",
+    "edits": [],
+    "id": "Greek Philemon",
+    "originalName": "Philemon.macula",
+    "sourceFsPath": "c:\\Users\\padig\\Downloads\\ai-honeypot-fullstack\\.project\\sourceTexts\\PHM.source",
+    "codexFsPath": "c:\\Users\\padig\\Downloads\\ai-honeypot-fullstack\\files\\target\\PHM.codex",
+    "navigation": [],
+    "sourceCreatedAt": "2026-02-23T14:13:55.120Z",
+    "corpusMarker": "Greek Bible",
+    "fileDisplayName": "Greek Philemon",
+    "importerType": "macula"
+  }
+}

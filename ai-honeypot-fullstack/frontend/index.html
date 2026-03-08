@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="AI-enhanced dynamic deception platform for modern cyber defense. Deploy adaptive high-interaction decoys, classify attacker behavior, and analyze threats in real time." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="CyberSentinel AI | AI-Enhanced Dynamic Deception Platform" />
+  <meta property="og:description"
+    content="Adaptive deception for modern cyber defense with high-interaction decoys, real-time telemetry, and AI analyst summaries." />
+  <meta property="og:url" content="https://cybersentinel.ai/" />
+  <meta property="og:image" content="/pwa-512x512.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CyberSentinel AI | AI-Enhanced Dynamic Deception Platform" />
+  <meta name="twitter:description"
+    content="Adaptive deception for modern cyber defense with high-interaction decoys, real-time telemetry, and AI analyst summaries." />
+  <meta name="twitter:image" content="/pwa-512x512.png" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="alternate icon" href="/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <title>CyberSentinel AI | AI-Enhanced Dynamic Deception Platform</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script>
+    // Clear stale service workers/caches so old chunk maps do not break new deploys.
+    (() => {
+      const wipeLegacyPwa = async () => {
+        if ("serviceWorker" in navigator) {
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map((reg) => reg.unregister()));
+          } catch (err) {
+            console.warn("Service worker cleanup failed:", err);
+          }
+        }
+        if ("caches" in window) {
+          try {
+            const cacheNames = await caches.keys();
+            await Promise.all(cacheNames.map((name) => caches.delete(name)));
+          } catch (err) {
+            console.warn("Cache cleanup failed:", err);
+          }
+        }
+      };
+      wipeLegacyPwa();
+    })();
+  </script>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

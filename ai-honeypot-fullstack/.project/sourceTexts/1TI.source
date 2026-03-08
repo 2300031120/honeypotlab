@@ -1,0 +1,2798 @@
+{
+  "cells": [
+    {
+      "kind": 2,
+      "value": "1 Timothy 1",
+      "languageId": "html",
+      "metadata": {
+        "id": "37d0484c-fd83-44ab-ac91-3db33e734623",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Παῦλος ἀπόστολος Χριστοῦ Ἰησοῦ κατ’ ἐπιταγὴν θεοῦ σωτῆρος ἡμῶν καὶ Χριστοῦ Ἰησοῦ τῆς ἐλπίδος ἡμῶν",
+      "languageId": "html",
+      "metadata": {
+        "id": "169f7762-128b-4812-8955-bde658d3de6b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:1",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Παῦλος ἀπόστολος Χριστοῦ Ἰησοῦ κατ’ ἐπιταγὴν θεοῦ σωτῆρος ἡμῶν καὶ Χριστοῦ Ἰησοῦ τῆς ἐλπίδος ἡμῶν",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Παῦλος ἀπόστολος Χριστοῦ Ἰησοῦ κατ’ ἐπιταγὴν θεοῦ σωτῆρος ἡμῶν καὶ Χριστοῦ Ἰησοῦ τῆς ἐλπίδος ἡμῶν",
+          "globalReferences": [
+            "1TI 1:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Τιμοθέῳ γνησίῳ τέκνῳ ἐν πίστει· χάρις, ἔλεος, εἰρήνη ἀπὸ θεοῦ πατρὸς καὶ Χριστοῦ Ἰησοῦ τοῦ κυρίου ἡμῶν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "a7d7516e-8813-4b07-8acb-96d116bbc4ed",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:2",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "Τιμοθέῳ γνησίῳ τέκνῳ ἐν πίστει· χάρις, ἔλεος, εἰρήνη ἀπὸ θεοῦ πατρὸς καὶ Χριστοῦ Ἰησοῦ τοῦ κυρίου ἡμῶν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Τιμοθέῳ γνησίῳ τέκνῳ ἐν πίστει· χάρις, ἔλεος, εἰρήνη ἀπὸ θεοῦ πατρὸς καὶ Χριστοῦ Ἰησοῦ τοῦ κυρίου ἡμῶν.",
+          "globalReferences": [
+            "1TI 1:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Καθὼς παρεκάλεσά σε προσμεῖναι ἐν Ἐφέσῳ, πορευόμενος εἰς Μακεδονίαν, ἵνα παραγγείλῃς τισὶν μὴ ἑτεροδιδασκαλεῖν",
+      "languageId": "html",
+      "metadata": {
+        "id": "530c4eca-4917-48da-bec2-19081b6df035",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:3",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "Καθὼς παρεκάλεσά σε προσμεῖναι ἐν Ἐφέσῳ, πορευόμενος εἰς Μακεδονίαν, ἵνα παραγγείλῃς τισὶν μὴ ἑτεροδιδασκαλεῖν",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Καθὼς παρεκάλεσά σε προσμεῖναι ἐν Ἐφέσῳ, πορευόμενος εἰς Μακεδονίαν, ἵνα παραγγείλῃς τισὶν μὴ ἑτεροδιδασκαλεῖν",
+          "globalReferences": [
+            "1TI 1:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μηδὲ προσέχειν μύθοις καὶ γενεαλογίαις ἀπεράντοις, αἵτινες ἐκζητήσεις παρέχουσι μᾶλλον ἢ οἰκονομίαν θεοῦ τὴν ἐν πίστει",
+      "languageId": "html",
+      "metadata": {
+        "id": "2910602c-3e51-4ff6-9e1c-12e16c1742c7",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:4",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "μηδὲ προσέχειν μύθοις καὶ γενεαλογίαις ἀπεράντοις, αἵτινες ἐκζητήσεις παρέχουσι μᾶλλον ἢ οἰκονομίαν θεοῦ τὴν ἐν πίστει",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "μηδὲ προσέχειν μύθοις καὶ γενεαλογίαις ἀπεράντοις, αἵτινες ἐκζητήσεις παρέχουσι μᾶλλον ἢ οἰκονομίαν θεοῦ τὴν ἐν πίστει",
+          "globalReferences": [
+            "1TI 1:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τὸ δὲ τέλος τῆς παραγγελίας ἐστὶν ἀγάπη ἐκ καθαρᾶς καρδίας καὶ συνειδήσεως ἀγαθῆς καὶ πίστεως ἀνυποκρίτου,",
+      "languageId": "html",
+      "metadata": {
+        "id": "380b6884-e4f3-4de3-92fd-c966b3a5a1d4",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:5",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "τὸ δὲ τέλος τῆς παραγγελίας ἐστὶν ἀγάπη ἐκ καθαρᾶς καρδίας καὶ συνειδήσεως ἀγαθῆς καὶ πίστεως ἀνυποκρίτου,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "τὸ δὲ τέλος τῆς παραγγελίας ἐστὶν ἀγάπη ἐκ καθαρᾶς καρδίας καὶ συνειδήσεως ἀγαθῆς καὶ πίστεως ἀνυποκρίτου,",
+          "globalReferences": [
+            "1TI 1:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὧν τινες ἀστοχήσαντες ἐξετράπησαν εἰς ματαιολογίαν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "9a08ab81-c4e7-4e7f-a3fe-496ccbc1ce97",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:6",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "ὧν τινες ἀστοχήσαντες ἐξετράπησαν εἰς ματαιολογίαν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὧν τινες ἀστοχήσαντες ἐξετράπησαν εἰς ματαιολογίαν,",
+          "globalReferences": [
+            "1TI 1:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "θέλοντες εἶναι νομοδιδάσκαλοι, μὴ νοοῦντες μήτε ἃ λέγουσιν μήτε περὶ τίνων διαβεβαιοῦνται.",
+      "languageId": "html",
+      "metadata": {
+        "id": "d251fb34-9145-48ae-a2a1-8890499b9479",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:7",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "θέλοντες εἶναι νομοδιδάσκαλοι, μὴ νοοῦντες μήτε ἃ λέγουσιν μήτε περὶ τίνων διαβεβαιοῦνται.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "θέλοντες εἶναι νομοδιδάσκαλοι, μὴ νοοῦντες μήτε ἃ λέγουσιν μήτε περὶ τίνων διαβεβαιοῦνται.",
+          "globalReferences": [
+            "1TI 1:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Οἴδαμεν δὲ ὅτι καλὸς ὁ νόμος ἐάν τις αὐτῷ νομίμως χρῆται,",
+      "languageId": "html",
+      "metadata": {
+        "id": "400d20d3-f706-42dd-8fcf-7f75f3b957ff",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:8",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "Οἴδαμεν δὲ ὅτι καλὸς ὁ νόμος ἐάν τις αὐτῷ νομίμως χρῆται,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Οἴδαμεν δὲ ὅτι καλὸς ὁ νόμος ἐάν τις αὐτῷ νομίμως χρῆται,",
+          "globalReferences": [
+            "1TI 1:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰδὼς τοῦτο, ὅτι δικαίῳ νόμος οὐ κεῖται, ἀνόμοις δὲ καὶ ἀνυποτάκτοις, ἀσεβέσι καὶ ἁμαρτωλοῖς, ἀνοσίοις καὶ βεβήλοις, πατρολῴαις καὶ μητρολῴαις, ἀνδροφόνοις,",
+      "languageId": "html",
+      "metadata": {
+        "id": "4376c894-9142-47a7-a414-24c6fbb1c54d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:9",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "εἰδὼς τοῦτο, ὅτι δικαίῳ νόμος οὐ κεῖται, ἀνόμοις δὲ καὶ ἀνυποτάκτοις, ἀσεβέσι καὶ ἁμαρτωλοῖς, ἀνοσίοις καὶ βεβήλοις, πατρολῴαις καὶ μητρολῴαις, ἀνδροφόνοις,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "εἰδὼς τοῦτο, ὅτι δικαίῳ νόμος οὐ κεῖται, ἀνόμοις δὲ καὶ ἀνυποτάκτοις, ἀσεβέσι καὶ ἁμαρτωλοῖς, ἀνοσίοις καὶ βεβήλοις, πατρολῴαις καὶ μητρολῴαις, ἀνδροφόνοις,",
+          "globalReferences": [
+            "1TI 1:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "πόρνοις, ἀρσενοκοίταις, ἀνδραποδισταῖς, ψεύσταις, ἐπιόρκοις, καὶ εἴ τι ἕτερον τῇ ὑγιαινούσῃ διδασκαλίᾳ ἀντίκειται,",
+      "languageId": "html",
+      "metadata": {
+        "id": "68bdc3d9-a140-4fe2-aef6-09bcfd6e5225",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:10",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "πόρνοις, ἀρσενοκοίταις, ἀνδραποδισταῖς, ψεύσταις, ἐπιόρκοις, καὶ εἴ τι ἕτερον τῇ ὑγιαινούσῃ διδασκαλίᾳ ἀντίκειται,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "πόρνοις, ἀρσενοκοίταις, ἀνδραποδισταῖς, ψεύσταις, ἐπιόρκοις, καὶ εἴ τι ἕτερον τῇ ὑγιαινούσῃ διδασκαλίᾳ ἀντίκειται,",
+          "globalReferences": [
+            "1TI 1:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "κατὰ τὸ εὐαγγέλιον τῆς δόξης τοῦ μακαρίου θεοῦ, ὃ ἐπιστεύθην ἐγώ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b0bdf1e9-f903-4eca-a097-e2820d9ca78c",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:11",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "κατὰ τὸ εὐαγγέλιον τῆς δόξης τοῦ μακαρίου θεοῦ, ὃ ἐπιστεύθην ἐγώ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "κατὰ τὸ εὐαγγέλιον τῆς δόξης τοῦ μακαρίου θεοῦ, ὃ ἐπιστεύθην ἐγώ.",
+          "globalReferences": [
+            "1TI 1:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Χάριν ἔχω τῷ ἐνδυναμώσαντί με Χριστῷ Ἰησοῦ τῷ κυρίῳ ἡμῶν, ὅτι πιστόν με ἡγήσατο θέμενος εἰς διακονίαν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "da64a685-a8f5-46eb-9bca-f74304532b8d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:12",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "Χάριν ἔχω τῷ ἐνδυναμώσαντί με Χριστῷ Ἰησοῦ τῷ κυρίῳ ἡμῶν, ὅτι πιστόν με ἡγήσατο θέμενος εἰς διακονίαν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Χάριν ἔχω τῷ ἐνδυναμώσαντί με Χριστῷ Ἰησοῦ τῷ κυρίῳ ἡμῶν, ὅτι πιστόν με ἡγήσατο θέμενος εἰς διακονίαν,",
+          "globalReferences": [
+            "1TI 1:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τὸ πρότερον ὄντα βλάσφημον καὶ διώκτην καὶ ὑβριστήν· ἀλλὰ ἠλεήθην, ὅτι ἀγνοῶν ἐποίησα ἐν ἀπιστίᾳ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "e7d41fcc-cec8-46fa-9edd-f6587aab46ab",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:13",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "τὸ πρότερον ὄντα βλάσφημον καὶ διώκτην καὶ ὑβριστήν· ἀλλὰ ἠλεήθην, ὅτι ἀγνοῶν ἐποίησα ἐν ἀπιστίᾳ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "τὸ πρότερον ὄντα βλάσφημον καὶ διώκτην καὶ ὑβριστήν· ἀλλὰ ἠλεήθην, ὅτι ἀγνοῶν ἐποίησα ἐν ἀπιστίᾳ,",
+          "globalReferences": [
+            "1TI 1:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὑπερεπλεόνασεν δὲ ἡ χάρις τοῦ κυρίου ἡμῶν μετὰ πίστεως καὶ ἀγάπης τῆς ἐν Χριστῷ Ἰησοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "69f49508-d26b-4c80-a119-693486344d1b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:14",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "ὑπερεπλεόνασεν δὲ ἡ χάρις τοῦ κυρίου ἡμῶν μετὰ πίστεως καὶ ἀγάπης τῆς ἐν Χριστῷ Ἰησοῦ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὑπερεπλεόνασεν δὲ ἡ χάρις τοῦ κυρίου ἡμῶν μετὰ πίστεως καὶ ἀγάπης τῆς ἐν Χριστῷ Ἰησοῦ.",
+          "globalReferences": [
+            "1TI 1:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος, ὅτι Χριστὸς Ἰησοῦς ἦλθεν εἰς τὸν κόσμον ἁμαρτωλοὺς σῶσαι· ὧν πρῶτός εἰμι ἐγώ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "168c92ed-7c0b-4212-ac26-e6e9a886603a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:15",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος, ὅτι Χριστὸς Ἰησοῦς ἦλθεν εἰς τὸν κόσμον ἁμαρτωλοὺς σῶσαι· ὧν πρῶτός εἰμι ἐγώ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος, ὅτι Χριστὸς Ἰησοῦς ἦλθεν εἰς τὸν κόσμον ἁμαρτωλοὺς σῶσαι· ὧν πρῶτός εἰμι ἐγώ,",
+          "globalReferences": [
+            "1TI 1:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀλλὰ διὰ τοῦτο ἠλεήθην, ἵνα ἐν ἐμοὶ πρώτῳ ἐνδείξηται Χριστὸς Ἰησοῦς τὴν ἅπασαν μακροθυμίαν, πρὸς ὑποτύπωσιν τῶν μελλόντων πιστεύειν ἐπ’ αὐτῷ εἰς ζωὴν αἰώνιον.",
+      "languageId": "html",
+      "metadata": {
+        "id": "732695db-3032-4313-af35-4042d5b169c6",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:16",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "ἀλλὰ διὰ τοῦτο ἠλεήθην, ἵνα ἐν ἐμοὶ πρώτῳ ἐνδείξηται Χριστὸς Ἰησοῦς τὴν ἅπασαν μακροθυμίαν, πρὸς ὑποτύπωσιν τῶν μελλόντων πιστεύειν ἐπ’ αὐτῷ εἰς ζωὴν αἰώνιον.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ἀλλὰ διὰ τοῦτο ἠλεήθην, ἵνα ἐν ἐμοὶ πρώτῳ ἐνδείξηται Χριστὸς Ἰησοῦς τὴν ἅπασαν μακροθυμίαν, πρὸς ὑποτύπωσιν τῶν μελλόντων πιστεύειν ἐπ’ αὐτῷ εἰς ζωὴν αἰώνιον.",
+          "globalReferences": [
+            "1TI 1:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τῷ δὲ βασιλεῖ τῶν αἰώνων, ἀφθάρτῳ, ἀοράτῳ, μόνῳ θεῷ, τιμὴ καὶ δόξα εἰς τοὺς αἰῶνας τῶν αἰώνων· ἀμήν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "38650cb4-2b2b-4779-b196-c0b387f05306",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:17",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "17",
+        "cellLabel": "17",
+        "originalText": "τῷ δὲ βασιλεῖ τῶν αἰώνων, ἀφθάρτῳ, ἀοράτῳ, μόνῳ θεῷ, τιμὴ καὶ δόξα εἰς τοὺς αἰῶνας τῶν αἰώνων· ἀμήν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "τῷ δὲ βασιλεῖ τῶν αἰώνων, ἀφθάρτῳ, ἀοράτῳ, μόνῳ θεῷ, τιμὴ καὶ δόξα εἰς τοὺς αἰῶνας τῶν αἰώνων· ἀμήν.",
+          "globalReferences": [
+            "1TI 1:17"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ταύτην τὴν παραγγελίαν παρατίθεμαί σοι, τέκνον Τιμόθεε, κατὰ τὰς προαγούσας ἐπὶ σὲ προφητείας, ἵνα στρατεύῃ ἐν αὐταῖς τὴν καλὴν στρατείαν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "bafd9ce9-73c1-46f0-97bd-2ed0323adcb6",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:18",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "18",
+        "cellLabel": "18",
+        "originalText": "Ταύτην τὴν παραγγελίαν παρατίθεμαί σοι, τέκνον Τιμόθεε, κατὰ τὰς προαγούσας ἐπὶ σὲ προφητείας, ἵνα στρατεύῃ ἐν αὐταῖς τὴν καλὴν στρατείαν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "Ταύτην τὴν παραγγελίαν παρατίθεμαί σοι, τέκνον Τιμόθεε, κατὰ τὰς προαγούσας ἐπὶ σὲ προφητείας, ἵνα στρατεύῃ ἐν αὐταῖς τὴν καλὴν στρατείαν,",
+          "globalReferences": [
+            "1TI 1:18"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔχων πίστιν καὶ ἀγαθὴν συνείδησιν, ἥν τινες ἀπωσάμενοι περὶ τὴν πίστιν ἐναυάγησαν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "54c942be-36a5-48fa-9831-d5a3668377fe",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:19",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "19",
+        "cellLabel": "19",
+        "originalText": "ἔχων πίστιν καὶ ἀγαθὴν συνείδησιν, ἥν τινες ἀπωσάμενοι περὶ τὴν πίστιν ἐναυάγησαν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ἔχων πίστιν καὶ ἀγαθὴν συνείδησιν, ἥν τινες ἀπωσάμενοι περὶ τὴν πίστιν ἐναυάγησαν·",
+          "globalReferences": [
+            "1TI 1:19"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὧν ἐστιν Ὑμέναιος καὶ Ἀλέξανδρος, οὓς παρέδωκα τῷ Σατανᾷ ἵνα παιδευθῶσι μὴ βλασφημεῖν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "c62d6987-cc10-4623-8606-6b024cfd1b3b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 1:20",
+        "bookCode": "1TI",
+        "chapter": 1,
+        "verse": "20",
+        "cellLabel": "20",
+        "originalText": "ὧν ἐστιν Ὑμέναιος καὶ Ἀλέξανδρος, οὓς παρέδωκα τῷ Σατανᾷ ἵνα παιδευθῶσι μὴ βλασφημεῖν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "1",
+        "data": {
+          "originalText": "ὧν ἐστιν Ὑμέναιος καὶ Ἀλέξανδρος, οὓς παρέδωκα τῷ Σατανᾷ ἵνα παιδευθῶσι μὴ βλασφημεῖν.",
+          "globalReferences": [
+            "1TI 1:20"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "1 Timothy 2",
+      "languageId": "html",
+      "metadata": {
+        "id": "d7e2c20a-14c3-41b9-bfc9-04f59fed1b80",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Παρακαλῶ οὖν πρῶτον πάντων ποιεῖσθαι δεήσεις, προσευχάς, ἐντεύξεις, εὐχαριστίας, ὑπὲρ πάντων ἀνθρώπων,",
+      "languageId": "html",
+      "metadata": {
+        "id": "01c41401-ba6e-443f-a3f0-33bb14de2253",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:1",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Παρακαλῶ οὖν πρῶτον πάντων ποιεῖσθαι δεήσεις, προσευχάς, ἐντεύξεις, εὐχαριστίας, ὑπὲρ πάντων ἀνθρώπων,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "Παρακαλῶ οὖν πρῶτον πάντων ποιεῖσθαι δεήσεις, προσευχάς, ἐντεύξεις, εὐχαριστίας, ὑπὲρ πάντων ἀνθρώπων,",
+          "globalReferences": [
+            "1TI 2:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὑπὲρ βασιλέων καὶ πάντων τῶν ἐν ὑπεροχῇ ὄντων, ἵνα ἤρεμον καὶ ἡσύχιον βίον διάγωμεν ἐν πάσῃ εὐσεβείᾳ καὶ σεμνότητι.",
+      "languageId": "html",
+      "metadata": {
+        "id": "323b98b0-4ccf-4c81-badb-dea50c9deab0",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:2",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "ὑπὲρ βασιλέων καὶ πάντων τῶν ἐν ὑπεροχῇ ὄντων, ἵνα ἤρεμον καὶ ἡσύχιον βίον διάγωμεν ἐν πάσῃ εὐσεβείᾳ καὶ σεμνότητι.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "ὑπὲρ βασιλέων καὶ πάντων τῶν ἐν ὑπεροχῇ ὄντων, ἵνα ἤρεμον καὶ ἡσύχιον βίον διάγωμεν ἐν πάσῃ εὐσεβείᾳ καὶ σεμνότητι.",
+          "globalReferences": [
+            "1TI 2:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τοῦτο καλὸν καὶ ἀπόδεκτον ἐνώπιον τοῦ σωτῆρος ἡμῶν θεοῦ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "72c0edd8-65e2-4863-843d-cdbe90e21f68",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:3",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "τοῦτο καλὸν καὶ ἀπόδεκτον ἐνώπιον τοῦ σωτῆρος ἡμῶν θεοῦ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "τοῦτο καλὸν καὶ ἀπόδεκτον ἐνώπιον τοῦ σωτῆρος ἡμῶν θεοῦ,",
+          "globalReferences": [
+            "1TI 2:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὃς πάντας ἀνθρώπους θέλει σωθῆναι καὶ εἰς ἐπίγνωσιν ἀληθείας ἐλθεῖν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b019b2e4-c05b-4a24-ae4b-113ea73db158",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:4",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "ὃς πάντας ἀνθρώπους θέλει σωθῆναι καὶ εἰς ἐπίγνωσιν ἀληθείας ἐλθεῖν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "ὃς πάντας ἀνθρώπους θέλει σωθῆναι καὶ εἰς ἐπίγνωσιν ἀληθείας ἐλθεῖν.",
+          "globalReferences": [
+            "1TI 2:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἷς γὰρ θεός, εἷς καὶ μεσίτης θεοῦ καὶ ἀνθρώπων ἄνθρωπος Χριστὸς Ἰησοῦς,",
+      "languageId": "html",
+      "metadata": {
+        "id": "c8edf723-f07d-464e-9de4-f43c0d10887a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:5",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "εἷς γὰρ θεός, εἷς καὶ μεσίτης θεοῦ καὶ ἀνθρώπων ἄνθρωπος Χριστὸς Ἰησοῦς,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "εἷς γὰρ θεός, εἷς καὶ μεσίτης θεοῦ καὶ ἀνθρώπων ἄνθρωπος Χριστὸς Ἰησοῦς,",
+          "globalReferences": [
+            "1TI 2:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὁ δοὺς ἑαυτὸν ἀντίλυτρον ὑπὲρ πάντων, τὸ μαρτύριον καιροῖς ἰδίοις·",
+      "languageId": "html",
+      "metadata": {
+        "id": "5f88cb1a-db5d-4361-8d2c-a07914ab2c96",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:6",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "ὁ δοὺς ἑαυτὸν ἀντίλυτρον ὑπὲρ πάντων, τὸ μαρτύριον καιροῖς ἰδίοις·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "ὁ δοὺς ἑαυτὸν ἀντίλυτρον ὑπὲρ πάντων, τὸ μαρτύριον καιροῖς ἰδίοις·",
+          "globalReferences": [
+            "1TI 2:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰς ὃ ἐτέθην ἐγὼ κῆρυξ καὶ ἀπόστολος ἀλήθειαν λέγω, οὐ ψεύδομαι διδάσκαλος ἐθνῶν ἐν πίστει καὶ ἀληθείᾳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "77d4d3a8-81b8-40b3-b2ad-4999c600c3b2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:7",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "εἰς ὃ ἐτέθην ἐγὼ κῆρυξ καὶ ἀπόστολος ἀλήθειαν λέγω, οὐ ψεύδομαι διδάσκαλος ἐθνῶν ἐν πίστει καὶ ἀληθείᾳ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "εἰς ὃ ἐτέθην ἐγὼ κῆρυξ καὶ ἀπόστολος ἀλήθειαν λέγω, οὐ ψεύδομαι διδάσκαλος ἐθνῶν ἐν πίστει καὶ ἀληθείᾳ.",
+          "globalReferences": [
+            "1TI 2:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Βούλομαι οὖν προσεύχεσθαι τοὺς ἄνδρας ἐν παντὶ τόπῳ, ἐπαίροντας ὁσίους χεῖρας χωρὶς ὀργῆς καὶ διαλογισμοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b7da7332-9cc2-4007-ae8c-868ffa8f378f",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:8",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "Βούλομαι οὖν προσεύχεσθαι τοὺς ἄνδρας ἐν παντὶ τόπῳ, ἐπαίροντας ὁσίους χεῖρας χωρὶς ὀργῆς καὶ διαλογισμοῦ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "Βούλομαι οὖν προσεύχεσθαι τοὺς ἄνδρας ἐν παντὶ τόπῳ, ἐπαίροντας ὁσίους χεῖρας χωρὶς ὀργῆς καὶ διαλογισμοῦ.",
+          "globalReferences": [
+            "1TI 2:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὡσαύτως καὶ γυναῖκας ἐν καταστολῇ κοσμίῳ μετὰ αἰδοῦς καὶ σωφροσύνης κοσμεῖν ἑαυτάς, μὴ ἐν πλέγμασιν καὶ χρυσίῳ ἢ μαργαρίταις ἢ ἱματισμῷ πολυτελεῖ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "b628cf27-0375-495e-bc3a-be22b9c962ac",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:9",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "ὡσαύτως καὶ γυναῖκας ἐν καταστολῇ κοσμίῳ μετὰ αἰδοῦς καὶ σωφροσύνης κοσμεῖν ἑαυτάς, μὴ ἐν πλέγμασιν καὶ χρυσίῳ ἢ μαργαρίταις ἢ ἱματισμῷ πολυτελεῖ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "ὡσαύτως καὶ γυναῖκας ἐν καταστολῇ κοσμίῳ μετὰ αἰδοῦς καὶ σωφροσύνης κοσμεῖν ἑαυτάς, μὴ ἐν πλέγμασιν καὶ χρυσίῳ ἢ μαργαρίταις ἢ ἱματισμῷ πολυτελεῖ,",
+          "globalReferences": [
+            "1TI 2:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀλλ’ ὃ πρέπει γυναιξὶν ἐπαγγελλομέναις θεοσέβειαν, δι’ ἔργων ἀγαθῶν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "052aa60d-399e-4fb3-aa09-bad001070658",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:10",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "ἀλλ’ ὃ πρέπει γυναιξὶν ἐπαγγελλομέναις θεοσέβειαν, δι’ ἔργων ἀγαθῶν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "ἀλλ’ ὃ πρέπει γυναιξὶν ἐπαγγελλομέναις θεοσέβειαν, δι’ ἔργων ἀγαθῶν.",
+          "globalReferences": [
+            "1TI 2:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "γυνὴ ἐν ἡσυχίᾳ μανθανέτω ἐν πάσῃ ὑποταγῇ·",
+      "languageId": "html",
+      "metadata": {
+        "id": "3de39050-1926-4e10-a966-db4b49bb6416",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:11",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "γυνὴ ἐν ἡσυχίᾳ μανθανέτω ἐν πάσῃ ὑποταγῇ·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "γυνὴ ἐν ἡσυχίᾳ μανθανέτω ἐν πάσῃ ὑποταγῇ·",
+          "globalReferences": [
+            "1TI 2:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "διδάσκειν δὲ γυναικὶ οὐκ ἐπιτρέπω, οὐδὲ αὐθεντεῖν ἀνδρός, ἀλλ’ εἶναι ἐν ἡσυχίᾳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "920c301f-0f5a-471c-8a0b-5d2a84685523",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:12",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "διδάσκειν δὲ γυναικὶ οὐκ ἐπιτρέπω, οὐδὲ αὐθεντεῖν ἀνδρός, ἀλλ’ εἶναι ἐν ἡσυχίᾳ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "διδάσκειν δὲ γυναικὶ οὐκ ἐπιτρέπω, οὐδὲ αὐθεντεῖν ἀνδρός, ἀλλ’ εἶναι ἐν ἡσυχίᾳ.",
+          "globalReferences": [
+            "1TI 2:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ἀδὰμ γὰρ πρῶτος ἐπλάσθη, εἶτα Εὕα·",
+      "languageId": "html",
+      "metadata": {
+        "id": "f30e4241-30db-4529-82c2-41b4001eafa2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:13",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "Ἀδὰμ γὰρ πρῶτος ἐπλάσθη, εἶτα Εὕα·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "Ἀδὰμ γὰρ πρῶτος ἐπλάσθη, εἶτα Εὕα·",
+          "globalReferences": [
+            "1TI 2:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "καὶ Ἀδὰμ οὐκ ἠπατήθη, ἡ δὲ γυνὴ ἐξαπατηθεῖσα ἐν παραβάσει γέγονεν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b63dd434-8e8c-4577-a83e-0f17fce56d8b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:14",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "καὶ Ἀδὰμ οὐκ ἠπατήθη, ἡ δὲ γυνὴ ἐξαπατηθεῖσα ἐν παραβάσει γέγονεν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "καὶ Ἀδὰμ οὐκ ἠπατήθη, ἡ δὲ γυνὴ ἐξαπατηθεῖσα ἐν παραβάσει γέγονεν.",
+          "globalReferences": [
+            "1TI 2:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "σωθήσεται δὲ διὰ τῆς τεκνογονίας, ἐὰν μείνωσιν ἐν πίστει καὶ ἀγάπῃ καὶ ἁγιασμῷ μετὰ σωφροσύνης.",
+      "languageId": "html",
+      "metadata": {
+        "id": "bef3370a-6e20-4a1a-92aa-e58d60c4e477",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 2:15",
+        "bookCode": "1TI",
+        "chapter": 2,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "σωθήσεται δὲ διὰ τῆς τεκνογονίας, ἐὰν μείνωσιν ἐν πίστει καὶ ἀγάπῃ καὶ ἁγιασμῷ μετὰ σωφροσύνης.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "2",
+        "data": {
+          "originalText": "σωθήσεται δὲ διὰ τῆς τεκνογονίας, ἐὰν μείνωσιν ἐν πίστει καὶ ἀγάπῃ καὶ ἁγιασμῷ μετὰ σωφροσύνης.",
+          "globalReferences": [
+            "1TI 2:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "1 Timothy 3",
+      "languageId": "html",
+      "metadata": {
+        "id": "461f4de9-b4e0-4e06-9b74-d41ac2ce795e",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Πιστὸς ὁ λόγος· εἴ τις ἐπισκοπῆς ὀρέγεται, καλοῦ ἔργου ἐπιθυμεῖ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "c37e4a4b-daee-4e83-9ea3-16bc11ad0bbb",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:1",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Πιστὸς ὁ λόγος· εἴ τις ἐπισκοπῆς ὀρέγεται, καλοῦ ἔργου ἐπιθυμεῖ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "Πιστὸς ὁ λόγος· εἴ τις ἐπισκοπῆς ὀρέγεται, καλοῦ ἔργου ἐπιθυμεῖ.",
+          "globalReferences": [
+            "1TI 3:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "δεῖ οὖν τὸν ἐπίσκοπον ἀνεπίλημπτον εἶναι, μιᾶς γυναικὸς ἄνδρα, νηφάλιον, σώφρονα, κόσμιον, φιλόξενον, διδακτικόν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "43382066-8039-4b83-a89e-b2b7cc24c7de",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:2",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "δεῖ οὖν τὸν ἐπίσκοπον ἀνεπίλημπτον εἶναι, μιᾶς γυναικὸς ἄνδρα, νηφάλιον, σώφρονα, κόσμιον, φιλόξενον, διδακτικόν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "δεῖ οὖν τὸν ἐπίσκοπον ἀνεπίλημπτον εἶναι, μιᾶς γυναικὸς ἄνδρα, νηφάλιον, σώφρονα, κόσμιον, φιλόξενον, διδακτικόν,",
+          "globalReferences": [
+            "1TI 3:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μὴ πάροινον, μὴ πλήκτην, ἀλλὰ ἐπιεικῆ, ἄμαχον, ἀφιλάργυρον,",
+      "languageId": "html",
+      "metadata": {
+        "id": "9f003ba3-bdc2-44ef-8660-2e49b29387fa",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:3",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "μὴ πάροινον, μὴ πλήκτην, ἀλλὰ ἐπιεικῆ, ἄμαχον, ἀφιλάργυρον,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "μὴ πάροινον, μὴ πλήκτην, ἀλλὰ ἐπιεικῆ, ἄμαχον, ἀφιλάργυρον,",
+          "globalReferences": [
+            "1TI 3:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τοῦ ἰδίου οἴκου καλῶς προϊστάμενον, τέκνα ἔχοντα ἐν ὑποταγῇ μετὰ πάσης σεμνότητος·",
+      "languageId": "html",
+      "metadata": {
+        "id": "2c94fc18-c92d-45a1-8813-82c8beb5f606",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:4",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "τοῦ ἰδίου οἴκου καλῶς προϊστάμενον, τέκνα ἔχοντα ἐν ὑποταγῇ μετὰ πάσης σεμνότητος·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "τοῦ ἰδίου οἴκου καλῶς προϊστάμενον, τέκνα ἔχοντα ἐν ὑποταγῇ μετὰ πάσης σεμνότητος·",
+          "globalReferences": [
+            "1TI 3:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰ δέ τις τοῦ ἰδίου οἴκου προστῆναι οὐκ οἶδεν, πῶς ἐκκλησίας θεοῦ ἐπιμελήσεται",
+      "languageId": "html",
+      "metadata": {
+        "id": "5979b844-a58c-4afe-9f6d-878fef303edc",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:5",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "εἰ δέ τις τοῦ ἰδίου οἴκου προστῆναι οὐκ οἶδεν, πῶς ἐκκλησίας θεοῦ ἐπιμελήσεται",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "εἰ δέ τις τοῦ ἰδίου οἴκου προστῆναι οὐκ οἶδεν, πῶς ἐκκλησίας θεοῦ ἐπιμελήσεται",
+          "globalReferences": [
+            "1TI 3:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μὴ νεόφυτον, ἵνα μὴ τυφωθεὶς εἰς κρίμα ἐμπέσῃ τοῦ διαβόλου.",
+      "languageId": "html",
+      "metadata": {
+        "id": "f50c0723-bf02-4a28-9b17-4d16c10d63af",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:6",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "μὴ νεόφυτον, ἵνα μὴ τυφωθεὶς εἰς κρίμα ἐμπέσῃ τοῦ διαβόλου.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "μὴ νεόφυτον, ἵνα μὴ τυφωθεὶς εἰς κρίμα ἐμπέσῃ τοῦ διαβόλου.",
+          "globalReferences": [
+            "1TI 3:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "δεῖ δὲ καὶ μαρτυρίαν καλὴν ἔχειν ἀπὸ τῶν ἔξωθεν, ἵνα μὴ εἰς ὀνειδισμὸν ἐμπέσῃ καὶ παγίδα τοῦ διαβόλου.",
+      "languageId": "html",
+      "metadata": {
+        "id": "82706e7b-f098-48cb-aa81-a0635c29e52b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:7",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "δεῖ δὲ καὶ μαρτυρίαν καλὴν ἔχειν ἀπὸ τῶν ἔξωθεν, ἵνα μὴ εἰς ὀνειδισμὸν ἐμπέσῃ καὶ παγίδα τοῦ διαβόλου.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "δεῖ δὲ καὶ μαρτυρίαν καλὴν ἔχειν ἀπὸ τῶν ἔξωθεν, ἵνα μὴ εἰς ὀνειδισμὸν ἐμπέσῃ καὶ παγίδα τοῦ διαβόλου.",
+          "globalReferences": [
+            "1TI 3:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Διακόνους ὡσαύτως σεμνούς, μὴ διλόγους, μὴ οἴνῳ πολλῷ προσέχοντας, μὴ αἰσχροκερδεῖς,",
+      "languageId": "html",
+      "metadata": {
+        "id": "d703d898-5da2-4647-b3cd-b16a1cf9f9fa",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:8",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "Διακόνους ὡσαύτως σεμνούς, μὴ διλόγους, μὴ οἴνῳ πολλῷ προσέχοντας, μὴ αἰσχροκερδεῖς,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "Διακόνους ὡσαύτως σεμνούς, μὴ διλόγους, μὴ οἴνῳ πολλῷ προσέχοντας, μὴ αἰσχροκερδεῖς,",
+          "globalReferences": [
+            "1TI 3:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔχοντας τὸ μυστήριον τῆς πίστεως ἐν καθαρᾷ συνειδήσει.",
+      "languageId": "html",
+      "metadata": {
+        "id": "fcc48953-53a5-48bc-95e7-0beedf9cb495",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:9",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "ἔχοντας τὸ μυστήριον τῆς πίστεως ἐν καθαρᾷ συνειδήσει.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "ἔχοντας τὸ μυστήριον τῆς πίστεως ἐν καθαρᾷ συνειδήσει.",
+          "globalReferences": [
+            "1TI 3:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "καὶ οὗτοι δὲ δοκιμαζέσθωσαν πρῶτον, εἶτα διακονείτωσαν ἀνέγκλητοι ὄντες.",
+      "languageId": "html",
+      "metadata": {
+        "id": "068be07a-f8ac-44ad-bfa2-9d0f30a983c5",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:10",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "καὶ οὗτοι δὲ δοκιμαζέσθωσαν πρῶτον, εἶτα διακονείτωσαν ἀνέγκλητοι ὄντες.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "καὶ οὗτοι δὲ δοκιμαζέσθωσαν πρῶτον, εἶτα διακονείτωσαν ἀνέγκλητοι ὄντες.",
+          "globalReferences": [
+            "1TI 3:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "γυναῖκας ὡσαύτως σεμνάς, μὴ διαβόλους, νηφαλίους, πιστὰς ἐν πᾶσιν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "f44bd3c7-06c0-4a92-bae0-d6002b22ff9d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:11",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "γυναῖκας ὡσαύτως σεμνάς, μὴ διαβόλους, νηφαλίους, πιστὰς ἐν πᾶσιν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "γυναῖκας ὡσαύτως σεμνάς, μὴ διαβόλους, νηφαλίους, πιστὰς ἐν πᾶσιν.",
+          "globalReferences": [
+            "1TI 3:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "διάκονοι ἔστωσαν μιᾶς γυναικὸς ἄνδρες, τέκνων καλῶς προϊστάμενοι καὶ τῶν ἰδίων οἴκων·",
+      "languageId": "html",
+      "metadata": {
+        "id": "a9914949-9c9c-4f86-9a5e-5ffc29b4424c",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:12",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "διάκονοι ἔστωσαν μιᾶς γυναικὸς ἄνδρες, τέκνων καλῶς προϊστάμενοι καὶ τῶν ἰδίων οἴκων·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "διάκονοι ἔστωσαν μιᾶς γυναικὸς ἄνδρες, τέκνων καλῶς προϊστάμενοι καὶ τῶν ἰδίων οἴκων·",
+          "globalReferences": [
+            "1TI 3:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "οἱ γὰρ καλῶς διακονήσαντες βαθμὸν ἑαυτοῖς καλὸν περιποιοῦνται καὶ πολλὴν παρρησίαν ἐν πίστει τῇ ἐν Χριστῷ Ἰησοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "db7168e9-b82e-4a16-b053-b400f6425bbd",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:13",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "οἱ γὰρ καλῶς διακονήσαντες βαθμὸν ἑαυτοῖς καλὸν περιποιοῦνται καὶ πολλὴν παρρησίαν ἐν πίστει τῇ ἐν Χριστῷ Ἰησοῦ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "οἱ γὰρ καλῶς διακονήσαντες βαθμὸν ἑαυτοῖς καλὸν περιποιοῦνται καὶ πολλὴν παρρησίαν ἐν πίστει τῇ ἐν Χριστῷ Ἰησοῦ.",
+          "globalReferences": [
+            "1TI 3:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ταῦτά σοι γράφω, ἐλπίζων ἐλθεῖν πρὸς σὲ ἐν τάχει,",
+      "languageId": "html",
+      "metadata": {
+        "id": "c4d0aec8-84bc-4c1d-8654-5facf6e2c638",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:14",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "Ταῦτά σοι γράφω, ἐλπίζων ἐλθεῖν πρὸς σὲ ἐν τάχει,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "Ταῦτά σοι γράφω, ἐλπίζων ἐλθεῖν πρὸς σὲ ἐν τάχει,",
+          "globalReferences": [
+            "1TI 3:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἐὰν δὲ βραδύνω, ἵνα εἰδῇς πῶς δεῖ ἐν οἴκῳ θεοῦ ἀναστρέφεσθαι, ἥτις ἐστὶν ἐκκλησία θεοῦ ζῶντος, στῦλος καὶ ἑδραίωμα τῆς ἀληθείας·",
+      "languageId": "html",
+      "metadata": {
+        "id": "135f5334-8982-4528-8b4c-5d68fb7674c9",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:15",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "ἐὰν δὲ βραδύνω, ἵνα εἰδῇς πῶς δεῖ ἐν οἴκῳ θεοῦ ἀναστρέφεσθαι, ἥτις ἐστὶν ἐκκλησία θεοῦ ζῶντος, στῦλος καὶ ἑδραίωμα τῆς ἀληθείας·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "ἐὰν δὲ βραδύνω, ἵνα εἰδῇς πῶς δεῖ ἐν οἴκῳ θεοῦ ἀναστρέφεσθαι, ἥτις ἐστὶν ἐκκλησία θεοῦ ζῶντος, στῦλος καὶ ἑδραίωμα τῆς ἀληθείας·",
+          "globalReferences": [
+            "1TI 3:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "καὶ ὁμολογουμένως μέγα ἐστὶν τὸ τῆς εὐσεβείας μυστήριον· Ὃς ἐφανερώθη ἐν σαρκί, ἐδικαιώθη ἐν πνεύματι, ὤφθη ἀγγέλοις, ἐκηρύχθη ἐν ἔθνεσιν, ἐπιστεύθη ἐν κόσμῳ, ἀνελήμφθη ἐν δόξῃ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "421d7dfc-f848-4cd4-8d5b-f95e86873aac",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 3:16",
+        "bookCode": "1TI",
+        "chapter": 3,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "καὶ ὁμολογουμένως μέγα ἐστὶν τὸ τῆς εὐσεβείας μυστήριον· Ὃς ἐφανερώθη ἐν σαρκί, ἐδικαιώθη ἐν πνεύματι, ὤφθη ἀγγέλοις, ἐκηρύχθη ἐν ἔθνεσιν, ἐπιστεύθη ἐν κόσμῳ, ἀνελήμφθη ἐν δόξῃ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "3",
+        "data": {
+          "originalText": "καὶ ὁμολογουμένως μέγα ἐστὶν τὸ τῆς εὐσεβείας μυστήριον· Ὃς ἐφανερώθη ἐν σαρκί, ἐδικαιώθη ἐν πνεύματι, ὤφθη ἀγγέλοις, ἐκηρύχθη ἐν ἔθνεσιν, ἐπιστεύθη ἐν κόσμῳ, ἀνελήμφθη ἐν δόξῃ.",
+          "globalReferences": [
+            "1TI 3:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "1 Timothy 4",
+      "languageId": "html",
+      "metadata": {
+        "id": "d268cd00-abfa-4670-8b63-787b4b5f5c2e",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Τὸ δὲ πνεῦμα ῥητῶς λέγει ὅτι ἐν ὑστέροις καιροῖς ἀποστήσονταί τινες τῆς πίστεως, προσέχοντες πνεύμασι πλάνοις καὶ διδασκαλίαις δαιμονίων",
+      "languageId": "html",
+      "metadata": {
+        "id": "314b1d51-ccdf-4967-81d1-69f8b32fabfb",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:1",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Τὸ δὲ πνεῦμα ῥητῶς λέγει ὅτι ἐν ὑστέροις καιροῖς ἀποστήσονταί τινες τῆς πίστεως, προσέχοντες πνεύμασι πλάνοις καὶ διδασκαλίαις δαιμονίων",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "Τὸ δὲ πνεῦμα ῥητῶς λέγει ὅτι ἐν ὑστέροις καιροῖς ἀποστήσονταί τινες τῆς πίστεως, προσέχοντες πνεύμασι πλάνοις καὶ διδασκαλίαις δαιμονίων",
+          "globalReferences": [
+            "1TI 4:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἐν ὑποκρίσει ψευδολόγων, κεκαυστηριασμένων τὴν ἰδίαν συνείδησιν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "d93bc26a-d697-4c11-8864-5d552ea3bc93",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:2",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "ἐν ὑποκρίσει ψευδολόγων, κεκαυστηριασμένων τὴν ἰδίαν συνείδησιν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ἐν ὑποκρίσει ψευδολόγων, κεκαυστηριασμένων τὴν ἰδίαν συνείδησιν,",
+          "globalReferences": [
+            "1TI 4:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "κωλυόντων γαμεῖν, ἀπέχεσθαι βρωμάτων ἃ ὁ θεὸς ἔκτισεν εἰς μετάλημψιν μετὰ εὐχαριστίας τοῖς πιστοῖς καὶ ἐπεγνωκόσι τὴν ἀλήθειαν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "ee2dd9c2-6c57-4959-a7bd-0e31623ef3d6",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:3",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "κωλυόντων γαμεῖν, ἀπέχεσθαι βρωμάτων ἃ ὁ θεὸς ἔκτισεν εἰς μετάλημψιν μετὰ εὐχαριστίας τοῖς πιστοῖς καὶ ἐπεγνωκόσι τὴν ἀλήθειαν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "κωλυόντων γαμεῖν, ἀπέχεσθαι βρωμάτων ἃ ὁ θεὸς ἔκτισεν εἰς μετάλημψιν μετὰ εὐχαριστίας τοῖς πιστοῖς καὶ ἐπεγνωκόσι τὴν ἀλήθειαν.",
+          "globalReferences": [
+            "1TI 4:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὅτι πᾶν κτίσμα θεοῦ καλόν, καὶ οὐδὲν ἀπόβλητον μετὰ εὐχαριστίας λαμβανόμενον,",
+      "languageId": "html",
+      "metadata": {
+        "id": "3df43ea7-2b6d-4df9-ae1d-4f313226c646",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:4",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "ὅτι πᾶν κτίσμα θεοῦ καλόν, καὶ οὐδὲν ἀπόβλητον μετὰ εὐχαριστίας λαμβανόμενον,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ὅτι πᾶν κτίσμα θεοῦ καλόν, καὶ οὐδὲν ἀπόβλητον μετὰ εὐχαριστίας λαμβανόμενον,",
+          "globalReferences": [
+            "1TI 4:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἁγιάζεται γὰρ διὰ λόγου θεοῦ καὶ ἐντεύξεως.",
+      "languageId": "html",
+      "metadata": {
+        "id": "70dbd943-7569-48f3-bcb3-8d974cd615e2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:5",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "ἁγιάζεται γὰρ διὰ λόγου θεοῦ καὶ ἐντεύξεως.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ἁγιάζεται γὰρ διὰ λόγου θεοῦ καὶ ἐντεύξεως.",
+          "globalReferences": [
+            "1TI 4:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ταῦτα ὑποτιθέμενος τοῖς ἀδελφοῖς καλὸς ἔσῃ διάκονος Χριστοῦ Ἰησοῦ, ἐντρεφόμενος τοῖς λόγοις τῆς πίστεως καὶ τῆς καλῆς διδασκαλίας ᾗ παρηκολούθηκας,",
+      "languageId": "html",
+      "metadata": {
+        "id": "b2ddaf28-d076-4fdd-a306-631954692ce2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:6",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "Ταῦτα ὑποτιθέμενος τοῖς ἀδελφοῖς καλὸς ἔσῃ διάκονος Χριστοῦ Ἰησοῦ, ἐντρεφόμενος τοῖς λόγοις τῆς πίστεως καὶ τῆς καλῆς διδασκαλίας ᾗ παρηκολούθηκας,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "Ταῦτα ὑποτιθέμενος τοῖς ἀδελφοῖς καλὸς ἔσῃ διάκονος Χριστοῦ Ἰησοῦ, ἐντρεφόμενος τοῖς λόγοις τῆς πίστεως καὶ τῆς καλῆς διδασκαλίας ᾗ παρηκολούθηκας,",
+          "globalReferences": [
+            "1TI 4:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τοὺς δὲ βεβήλους καὶ γραώδεις μύθους παραιτοῦ. γύμναζε δὲ σεαυτὸν πρὸς εὐσέβειαν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "c178e1c7-45b8-461a-aee2-edeee2955b6f",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:7",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "τοὺς δὲ βεβήλους καὶ γραώδεις μύθους παραιτοῦ. γύμναζε δὲ σεαυτὸν πρὸς εὐσέβειαν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "τοὺς δὲ βεβήλους καὶ γραώδεις μύθους παραιτοῦ. γύμναζε δὲ σεαυτὸν πρὸς εὐσέβειαν·",
+          "globalReferences": [
+            "1TI 4:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἡ γὰρ σωματικὴ γυμνασία πρὸς ὀλίγον ἐστὶν ὠφέλιμος, ἡ δὲ εὐσέβεια πρὸς πάντα ὠφέλιμός ἐστιν, ἐπαγγελίαν ἔχουσα ζωῆς τῆς νῦν καὶ τῆς μελλούσης.",
+      "languageId": "html",
+      "metadata": {
+        "id": "6dd7dd95-e28f-4228-9dfa-aefa3212166b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:8",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "ἡ γὰρ σωματικὴ γυμνασία πρὸς ὀλίγον ἐστὶν ὠφέλιμος, ἡ δὲ εὐσέβεια πρὸς πάντα ὠφέλιμός ἐστιν, ἐπαγγελίαν ἔχουσα ζωῆς τῆς νῦν καὶ τῆς μελλούσης.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ἡ γὰρ σωματικὴ γυμνασία πρὸς ὀλίγον ἐστὶν ὠφέλιμος, ἡ δὲ εὐσέβεια πρὸς πάντα ὠφέλιμός ἐστιν, ἐπαγγελίαν ἔχουσα ζωῆς τῆς νῦν καὶ τῆς μελλούσης.",
+          "globalReferences": [
+            "1TI 4:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος,",
+      "languageId": "html",
+      "metadata": {
+        "id": "bf244aab-5730-49af-b803-65aa5fe2a25d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:9",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "πιστὸς ὁ λόγος καὶ πάσης ἀποδοχῆς ἄξιος,",
+          "globalReferences": [
+            "1TI 4:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰς τοῦτο γὰρ κοπιῶμεν καὶ ὀνειδιζόμεθα, ὅτι ἠλπίκαμεν ἐπὶ θεῷ ζῶντι, ὅς ἐστιν σωτὴρ πάντων ἀνθρώπων, μάλιστα πιστῶν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "0149fd4c-c37c-4808-be7b-59e395af24b1",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:10",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "εἰς τοῦτο γὰρ κοπιῶμεν καὶ ὀνειδιζόμεθα, ὅτι ἠλπίκαμεν ἐπὶ θεῷ ζῶντι, ὅς ἐστιν σωτὴρ πάντων ἀνθρώπων, μάλιστα πιστῶν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "εἰς τοῦτο γὰρ κοπιῶμεν καὶ ὀνειδιζόμεθα, ὅτι ἠλπίκαμεν ἐπὶ θεῷ ζῶντι, ὅς ἐστιν σωτὴρ πάντων ἀνθρώπων, μάλιστα πιστῶν.",
+          "globalReferences": [
+            "1TI 4:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Παράγγελλε ταῦτα καὶ δίδασκε.",
+      "languageId": "html",
+      "metadata": {
+        "id": "e4c8da9e-2c76-4bb8-b9dd-5b15ae7e6abb",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:11",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "Παράγγελλε ταῦτα καὶ δίδασκε.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "Παράγγελλε ταῦτα καὶ δίδασκε.",
+          "globalReferences": [
+            "1TI 4:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μηδείς σου τῆς νεότητος καταφρονείτω, ἀλλὰ τύπος γίνου τῶν πιστῶν ἐν λόγῳ, ἐν ἀναστροφῇ, ἐν ἀγάπῃ, ἐν πίστει, ἐν ἁγνείᾳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "e16050d9-7cad-4b45-a646-1d126de8ad29",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:12",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "μηδείς σου τῆς νεότητος καταφρονείτω, ἀλλὰ τύπος γίνου τῶν πιστῶν ἐν λόγῳ, ἐν ἀναστροφῇ, ἐν ἀγάπῃ, ἐν πίστει, ἐν ἁγνείᾳ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "μηδείς σου τῆς νεότητος καταφρονείτω, ἀλλὰ τύπος γίνου τῶν πιστῶν ἐν λόγῳ, ἐν ἀναστροφῇ, ἐν ἀγάπῃ, ἐν πίστει, ἐν ἁγνείᾳ.",
+          "globalReferences": [
+            "1TI 4:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἕως ἔρχομαι πρόσεχε τῇ ἀναγνώσει, τῇ παρακλήσει, τῇ διδασκαλίᾳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "88ffb7c0-54e1-47f2-a4b1-95fdd6d7be4a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:13",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "ἕως ἔρχομαι πρόσεχε τῇ ἀναγνώσει, τῇ παρακλήσει, τῇ διδασκαλίᾳ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ἕως ἔρχομαι πρόσεχε τῇ ἀναγνώσει, τῇ παρακλήσει, τῇ διδασκαλίᾳ.",
+          "globalReferences": [
+            "1TI 4:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μὴ ἀμέλει τοῦ ἐν σοὶ χαρίσματος, ὃ ἐδόθη σοι διὰ προφητείας μετὰ ἐπιθέσεως τῶν χειρῶν τοῦ πρεσβυτερίου.",
+      "languageId": "html",
+      "metadata": {
+        "id": "4e0a7e35-6e1c-4a97-bb0e-8596c9015e36",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:14",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "μὴ ἀμέλει τοῦ ἐν σοὶ χαρίσματος, ὃ ἐδόθη σοι διὰ προφητείας μετὰ ἐπιθέσεως τῶν χειρῶν τοῦ πρεσβυτερίου.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "μὴ ἀμέλει τοῦ ἐν σοὶ χαρίσματος, ὃ ἐδόθη σοι διὰ προφητείας μετὰ ἐπιθέσεως τῶν χειρῶν τοῦ πρεσβυτερίου.",
+          "globalReferences": [
+            "1TI 4:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ταῦτα μελέτα, ἐν τούτοις ἴσθι, ἵνα σου ἡ προκοπὴ φανερὰ ᾖ πᾶσιν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "d6adce2e-2d00-4c38-9919-036f41c2e093",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:15",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "ταῦτα μελέτα, ἐν τούτοις ἴσθι, ἵνα σου ἡ προκοπὴ φανερὰ ᾖ πᾶσιν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ταῦτα μελέτα, ἐν τούτοις ἴσθι, ἵνα σου ἡ προκοπὴ φανερὰ ᾖ πᾶσιν·",
+          "globalReferences": [
+            "1TI 4:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔπεχε σεαυτῷ καὶ τῇ διδασκαλίᾳ· ἐπίμενε αὐτοῖς· τοῦτο γὰρ ποιῶν καὶ σεαυτὸν σώσεις καὶ τοὺς ἀκούοντάς σου.",
+      "languageId": "html",
+      "metadata": {
+        "id": "489687b7-08f3-4bac-b771-215582a93cfb",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 4:16",
+        "bookCode": "1TI",
+        "chapter": 4,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "ἔπεχε σεαυτῷ καὶ τῇ διδασκαλίᾳ· ἐπίμενε αὐτοῖς· τοῦτο γὰρ ποιῶν καὶ σεαυτὸν σώσεις καὶ τοὺς ἀκούοντάς σου.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "4",
+        "data": {
+          "originalText": "ἔπεχε σεαυτῷ καὶ τῇ διδασκαλίᾳ· ἐπίμενε αὐτοῖς· τοῦτο γὰρ ποιῶν καὶ σεαυτὸν σώσεις καὶ τοὺς ἀκούοντάς σου.",
+          "globalReferences": [
+            "1TI 4:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "1 Timothy 5",
+      "languageId": "html",
+      "metadata": {
+        "id": "e6adb0e4-5193-4f3d-9603-7f6f8cd82e30",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Πρεσβυτέρῳ μὴ ἐπιπλήξῃς, ἀλλὰ παρακάλει ὡς πατέρα, νεωτέρους ὡς ἀδελφούς,",
+      "languageId": "html",
+      "metadata": {
+        "id": "1cb8098c-3de4-44a5-9f36-1043426ffc85",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:1",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Πρεσβυτέρῳ μὴ ἐπιπλήξῃς, ἀλλὰ παρακάλει ὡς πατέρα, νεωτέρους ὡς ἀδελφούς,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "Πρεσβυτέρῳ μὴ ἐπιπλήξῃς, ἀλλὰ παρακάλει ὡς πατέρα, νεωτέρους ὡς ἀδελφούς,",
+          "globalReferences": [
+            "1TI 5:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "πρεσβυτέρας ὡς μητέρας, νεωτέρας ὡς ἀδελφὰς ἐν πάσῃ ἁγνείᾳ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "4d9da86a-3475-48df-8916-15e592f21465",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:2",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "πρεσβυτέρας ὡς μητέρας, νεωτέρας ὡς ἀδελφὰς ἐν πάσῃ ἁγνείᾳ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "πρεσβυτέρας ὡς μητέρας, νεωτέρας ὡς ἀδελφὰς ἐν πάσῃ ἁγνείᾳ.",
+          "globalReferences": [
+            "1TI 5:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Χήρας τίμα τὰς ὄντως χήρας.",
+      "languageId": "html",
+      "metadata": {
+        "id": "85c57fdf-b26f-4428-b24d-d948b352ba01",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:3",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "Χήρας τίμα τὰς ὄντως χήρας.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "Χήρας τίμα τὰς ὄντως χήρας.",
+          "globalReferences": [
+            "1TI 5:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰ δέ τις χήρα τέκνα ἢ ἔκγονα ἔχει, μανθανέτωσαν πρῶτον τὸν ἴδιον οἶκον εὐσεβεῖν καὶ ἀμοιβὰς ἀποδιδόναι τοῖς προγόνοις, τοῦτο γάρ ἐστιν ἀπόδεκτον ἐνώπιον τοῦ θεοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "efd7da07-5b45-4fca-a395-92e98377bf3a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:4",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "εἰ δέ τις χήρα τέκνα ἢ ἔκγονα ἔχει, μανθανέτωσαν πρῶτον τὸν ἴδιον οἶκον εὐσεβεῖν καὶ ἀμοιβὰς ἀποδιδόναι τοῖς προγόνοις, τοῦτο γάρ ἐστιν ἀπόδεκτον ἐνώπιον τοῦ θεοῦ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "εἰ δέ τις χήρα τέκνα ἢ ἔκγονα ἔχει, μανθανέτωσαν πρῶτον τὸν ἴδιον οἶκον εὐσεβεῖν καὶ ἀμοιβὰς ἀποδιδόναι τοῖς προγόνοις, τοῦτο γάρ ἐστιν ἀπόδεκτον ἐνώπιον τοῦ θεοῦ.",
+          "globalReferences": [
+            "1TI 5:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἡ δὲ ὄντως χήρα καὶ μεμονωμένη ἤλπικεν ἐπὶ θεὸν καὶ προσμένει ταῖς δεήσεσιν καὶ ταῖς προσευχαῖς νυκτὸς καὶ ἡμέρας·",
+      "languageId": "html",
+      "metadata": {
+        "id": "d5d877e1-29fc-4688-81af-ac5e5cb16667",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:5",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "ἡ δὲ ὄντως χήρα καὶ μεμονωμένη ἤλπικεν ἐπὶ θεὸν καὶ προσμένει ταῖς δεήσεσιν καὶ ταῖς προσευχαῖς νυκτὸς καὶ ἡμέρας·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἡ δὲ ὄντως χήρα καὶ μεμονωμένη ἤλπικεν ἐπὶ θεὸν καὶ προσμένει ταῖς δεήσεσιν καὶ ταῖς προσευχαῖς νυκτὸς καὶ ἡμέρας·",
+          "globalReferences": [
+            "1TI 5:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἡ δὲ σπαταλῶσα ζῶσα τέθνηκεν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b6f10c92-921c-40df-9aec-673fb2a905e6",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:6",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "ἡ δὲ σπαταλῶσα ζῶσα τέθνηκεν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἡ δὲ σπαταλῶσα ζῶσα τέθνηκεν.",
+          "globalReferences": [
+            "1TI 5:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "καὶ ταῦτα παράγγελλε, ἵνα ἀνεπίλημπτοι ὦσιν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "a06bc857-bfcb-4712-9876-ee072ff1fb39",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:7",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "καὶ ταῦτα παράγγελλε, ἵνα ἀνεπίλημπτοι ὦσιν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "καὶ ταῦτα παράγγελλε, ἵνα ἀνεπίλημπτοι ὦσιν·",
+          "globalReferences": [
+            "1TI 5:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἰ δέ τις τῶν ἰδίων καὶ μάλιστα οἰκείων οὐ προνοεῖ, τὴν πίστιν ἤρνηται καὶ ἔστιν ἀπίστου χείρων.",
+      "languageId": "html",
+      "metadata": {
+        "id": "c5ab3b6b-befe-4fac-b1fc-2a0864b93f0f",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:8",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "εἰ δέ τις τῶν ἰδίων καὶ μάλιστα οἰκείων οὐ προνοεῖ, τὴν πίστιν ἤρνηται καὶ ἔστιν ἀπίστου χείρων.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "εἰ δέ τις τῶν ἰδίων καὶ μάλιστα οἰκείων οὐ προνοεῖ, τὴν πίστιν ἤρνηται καὶ ἔστιν ἀπίστου χείρων.",
+          "globalReferences": [
+            "1TI 5:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Χήρα καταλεγέσθω μὴ ἔλαττον ἐτῶν ἑξήκοντα γεγονυῖα, ἑνὸς ἀνδρὸς γυνή,",
+      "languageId": "html",
+      "metadata": {
+        "id": "ff341b50-4707-460c-ab07-c2ac26acfbda",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:9",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "Χήρα καταλεγέσθω μὴ ἔλαττον ἐτῶν ἑξήκοντα γεγονυῖα, ἑνὸς ἀνδρὸς γυνή,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "Χήρα καταλεγέσθω μὴ ἔλαττον ἐτῶν ἑξήκοντα γεγονυῖα, ἑνὸς ἀνδρὸς γυνή,",
+          "globalReferences": [
+            "1TI 5:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἐν ἔργοις καλοῖς μαρτυρουμένη, εἰ ἐτεκνοτρόφησεν, εἰ ἐξενοδόχησεν, εἰ ἁγίων πόδας ἔνιψεν, εἰ θλιβομένοις ἐπήρκεσεν, εἰ παντὶ ἔργῳ ἀγαθῷ ἐπηκολούθησεν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "afeb6260-e080-4c68-9bd4-b550f67ffaff",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:10",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "ἐν ἔργοις καλοῖς μαρτυρουμένη, εἰ ἐτεκνοτρόφησεν, εἰ ἐξενοδόχησεν, εἰ ἁγίων πόδας ἔνιψεν, εἰ θλιβομένοις ἐπήρκεσεν, εἰ παντὶ ἔργῳ ἀγαθῷ ἐπηκολούθησεν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἐν ἔργοις καλοῖς μαρτυρουμένη, εἰ ἐτεκνοτρόφησεν, εἰ ἐξενοδόχησεν, εἰ ἁγίων πόδας ἔνιψεν, εἰ θλιβομένοις ἐπήρκεσεν, εἰ παντὶ ἔργῳ ἀγαθῷ ἐπηκολούθησεν.",
+          "globalReferences": [
+            "1TI 5:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "νεωτέρας δὲ χήρας παραιτοῦ· ὅταν γὰρ καταστρηνιάσωσιν τοῦ Χριστοῦ, γαμεῖν θέλουσιν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "33518389-8406-48d3-adc6-84f0c5e99cad",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:11",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "νεωτέρας δὲ χήρας παραιτοῦ· ὅταν γὰρ καταστρηνιάσωσιν τοῦ Χριστοῦ, γαμεῖν θέλουσιν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "νεωτέρας δὲ χήρας παραιτοῦ· ὅταν γὰρ καταστρηνιάσωσιν τοῦ Χριστοῦ, γαμεῖν θέλουσιν,",
+          "globalReferences": [
+            "1TI 5:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔχουσαι κρίμα ὅτι τὴν πρώτην πίστιν ἠθέτησαν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "50eafcd1-c16b-4b8d-a979-f51901d56e67",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:12",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "ἔχουσαι κρίμα ὅτι τὴν πρώτην πίστιν ἠθέτησαν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἔχουσαι κρίμα ὅτι τὴν πρώτην πίστιν ἠθέτησαν·",
+          "globalReferences": [
+            "1TI 5:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἅμα δὲ καὶ ἀργαὶ μανθάνουσιν, περιερχόμεναι τὰς οἰκίας, οὐ μόνον δὲ ἀργαὶ ἀλλὰ καὶ φλύαροι καὶ περίεργοι, λαλοῦσαι τὰ μὴ δέοντα.",
+      "languageId": "html",
+      "metadata": {
+        "id": "9383c5dd-bff7-4366-9fc5-c59fc7c0144a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:13",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "ἅμα δὲ καὶ ἀργαὶ μανθάνουσιν, περιερχόμεναι τὰς οἰκίας, οὐ μόνον δὲ ἀργαὶ ἀλλὰ καὶ φλύαροι καὶ περίεργοι, λαλοῦσαι τὰ μὴ δέοντα.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἅμα δὲ καὶ ἀργαὶ μανθάνουσιν, περιερχόμεναι τὰς οἰκίας, οὐ μόνον δὲ ἀργαὶ ἀλλὰ καὶ φλύαροι καὶ περίεργοι, λαλοῦσαι τὰ μὴ δέοντα.",
+          "globalReferences": [
+            "1TI 5:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "βούλομαι οὖν νεωτέρας γαμεῖν, τεκνογονεῖν, οἰκοδεσποτεῖν, μηδεμίαν ἀφορμὴν διδόναι τῷ ἀντικειμένῳ λοιδορίας χάριν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "bb5021e7-bc05-4f93-9c0c-6028242d89ba",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:14",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "βούλομαι οὖν νεωτέρας γαμεῖν, τεκνογονεῖν, οἰκοδεσποτεῖν, μηδεμίαν ἀφορμὴν διδόναι τῷ ἀντικειμένῳ λοιδορίας χάριν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "βούλομαι οὖν νεωτέρας γαμεῖν, τεκνογονεῖν, οἰκοδεσποτεῖν, μηδεμίαν ἀφορμὴν διδόναι τῷ ἀντικειμένῳ λοιδορίας χάριν·",
+          "globalReferences": [
+            "1TI 5:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἤδη γάρ τινες ἐξετράπησαν ὀπίσω τοῦ Σατανᾶ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "fcf9a2fe-1593-42b2-9fd2-f8baed63016b",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:15",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "ἤδη γάρ τινες ἐξετράπησαν ὀπίσω τοῦ Σατανᾶ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ἤδη γάρ τινες ἐξετράπησαν ὀπίσω τοῦ Σατανᾶ.",
+          "globalReferences": [
+            "1TI 5:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἴ τις πιστὴ ἔχει χήρας, ἐπαρκείτω αὐταῖς, καὶ μὴ βαρείσθω ἡ ἐκκλησία, ἵνα ταῖς ὄντως χήραις ἐπαρκέσῃ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "b5b0a0b9-6ff5-43a9-bedc-ad223740e05d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:16",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "εἴ τις πιστὴ ἔχει χήρας, ἐπαρκείτω αὐταῖς, καὶ μὴ βαρείσθω ἡ ἐκκλησία, ἵνα ταῖς ὄντως χήραις ἐπαρκέσῃ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "εἴ τις πιστὴ ἔχει χήρας, ἐπαρκείτω αὐταῖς, καὶ μὴ βαρείσθω ἡ ἐκκλησία, ἵνα ταῖς ὄντως χήραις ἐπαρκέσῃ.",
+          "globalReferences": [
+            "1TI 5:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Οἱ καλῶς προεστῶτες πρεσβύτεροι διπλῆς τιμῆς ἀξιούσθωσαν, μάλιστα οἱ κοπιῶντες ἐν λόγῳ καὶ διδασκαλίᾳ·",
+      "languageId": "html",
+      "metadata": {
+        "id": "89cf2954-ccb7-4bf6-86b7-8428b58bb6e2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:17",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "17",
+        "cellLabel": "17",
+        "originalText": "Οἱ καλῶς προεστῶτες πρεσβύτεροι διπλῆς τιμῆς ἀξιούσθωσαν, μάλιστα οἱ κοπιῶντες ἐν λόγῳ καὶ διδασκαλίᾳ·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "Οἱ καλῶς προεστῶτες πρεσβύτεροι διπλῆς τιμῆς ἀξιούσθωσαν, μάλιστα οἱ κοπιῶντες ἐν λόγῳ καὶ διδασκαλίᾳ·",
+          "globalReferences": [
+            "1TI 5:17"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "λέγει γὰρ ἡ γραφή· Βοῦν ἀλοῶντα οὐ φιμώσεις, καί· Ἄξιος ὁ ἐργάτης τοῦ μισθοῦ αὐτοῦ.",
+      "languageId": "html",
+      "metadata": {
+        "id": "446eb056-7599-4618-bb8e-7007f569c53e",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:18",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "18",
+        "cellLabel": "18",
+        "originalText": "λέγει γὰρ ἡ γραφή· Βοῦν ἀλοῶντα οὐ φιμώσεις, καί· Ἄξιος ὁ ἐργάτης τοῦ μισθοῦ αὐτοῦ.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "λέγει γὰρ ἡ γραφή· Βοῦν ἀλοῶντα οὐ φιμώσεις, καί· Ἄξιος ὁ ἐργάτης τοῦ μισθοῦ αὐτοῦ.",
+          "globalReferences": [
+            "1TI 5:18"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "κατὰ πρεσβυτέρου κατηγορίαν μὴ παραδέχου, ἐκτὸς εἰ μὴ ἐπὶ δύο ἢ τριῶν μαρτύρων·",
+      "languageId": "html",
+      "metadata": {
+        "id": "ce70d308-ba1f-4018-9f6c-257832d4c9c3",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:19",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "19",
+        "cellLabel": "19",
+        "originalText": "κατὰ πρεσβυτέρου κατηγορίαν μὴ παραδέχου, ἐκτὸς εἰ μὴ ἐπὶ δύο ἢ τριῶν μαρτύρων·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "κατὰ πρεσβυτέρου κατηγορίαν μὴ παραδέχου, ἐκτὸς εἰ μὴ ἐπὶ δύο ἢ τριῶν μαρτύρων·",
+          "globalReferences": [
+            "1TI 5:19"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τοὺς ἁμαρτάνοντας ἐνώπιον πάντων ἔλεγχε, ἵνα καὶ οἱ λοιποὶ φόβον ἔχωσιν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "89a265ad-c5a4-4347-ae6c-921c0680df40",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:20",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "20",
+        "cellLabel": "20",
+        "originalText": "τοὺς ἁμαρτάνοντας ἐνώπιον πάντων ἔλεγχε, ἵνα καὶ οἱ λοιποὶ φόβον ἔχωσιν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "τοὺς ἁμαρτάνοντας ἐνώπιον πάντων ἔλεγχε, ἵνα καὶ οἱ λοιποὶ φόβον ἔχωσιν.",
+          "globalReferences": [
+            "1TI 5:20"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "διαμαρτύρομαι ἐνώπιον τοῦ θεοῦ καὶ Χριστοῦ Ἰησοῦ καὶ τῶν ἐκλεκτῶν ἀγγέλων, ἵνα ταῦτα φυλάξῃς χωρὶς προκρίματος, μηδὲν ποιῶν κατὰ πρόσκλισιν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "bd944613-436c-41ed-bc64-7ee0ceeb31ce",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:21",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "21",
+        "cellLabel": "21",
+        "originalText": "διαμαρτύρομαι ἐνώπιον τοῦ θεοῦ καὶ Χριστοῦ Ἰησοῦ καὶ τῶν ἐκλεκτῶν ἀγγέλων, ἵνα ταῦτα φυλάξῃς χωρὶς προκρίματος, μηδὲν ποιῶν κατὰ πρόσκλισιν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "διαμαρτύρομαι ἐνώπιον τοῦ θεοῦ καὶ Χριστοῦ Ἰησοῦ καὶ τῶν ἐκλεκτῶν ἀγγέλων, ἵνα ταῦτα φυλάξῃς χωρὶς προκρίματος, μηδὲν ποιῶν κατὰ πρόσκλισιν.",
+          "globalReferences": [
+            "1TI 5:21"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "χεῖρας ταχέως μηδενὶ ἐπιτίθει, μηδὲ κοινώνει ἁμαρτίαις ἀλλοτρίαις· σεαυτὸν ἁγνὸν τήρει.",
+      "languageId": "html",
+      "metadata": {
+        "id": "5728c305-0356-49d0-9015-0bca103418ac",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:22",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "22",
+        "cellLabel": "22",
+        "originalText": "χεῖρας ταχέως μηδενὶ ἐπιτίθει, μηδὲ κοινώνει ἁμαρτίαις ἀλλοτρίαις· σεαυτὸν ἁγνὸν τήρει.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "χεῖρας ταχέως μηδενὶ ἐπιτίθει, μηδὲ κοινώνει ἁμαρτίαις ἀλλοτρίαις· σεαυτὸν ἁγνὸν τήρει.",
+          "globalReferences": [
+            "1TI 5:22"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "μηκέτι ὑδροπότει, ἀλλὰ οἴνῳ ὀλίγῳ χρῶ διὰ τὸν στόμαχον καὶ τὰς πυκνάς σου ἀσθενείας.",
+      "languageId": "html",
+      "metadata": {
+        "id": "5205bfb7-2790-4e9d-b4de-b4fe735f6553",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:23",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "23",
+        "cellLabel": "23",
+        "originalText": "μηκέτι ὑδροπότει, ἀλλὰ οἴνῳ ὀλίγῳ χρῶ διὰ τὸν στόμαχον καὶ τὰς πυκνάς σου ἀσθενείας.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "μηκέτι ὑδροπότει, ἀλλὰ οἴνῳ ὀλίγῳ χρῶ διὰ τὸν στόμαχον καὶ τὰς πυκνάς σου ἀσθενείας.",
+          "globalReferences": [
+            "1TI 5:23"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Τινῶν ἀνθρώπων αἱ ἁμαρτίαι πρόδηλοί εἰσιν, προάγουσαι εἰς κρίσιν, τισὶν δὲ καὶ ἐπακολουθοῦσιν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "7038e3ed-ae56-44ce-879a-ecc2a10e26ce",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:24",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "24",
+        "cellLabel": "24",
+        "originalText": "Τινῶν ἀνθρώπων αἱ ἁμαρτίαι πρόδηλοί εἰσιν, προάγουσαι εἰς κρίσιν, τισὶν δὲ καὶ ἐπακολουθοῦσιν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "Τινῶν ἀνθρώπων αἱ ἁμαρτίαι πρόδηλοί εἰσιν, προάγουσαι εἰς κρίσιν, τισὶν δὲ καὶ ἐπακολουθοῦσιν·",
+          "globalReferences": [
+            "1TI 5:24"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὡσαύτως καὶ τὰ ἔργα τὰ καλὰ πρόδηλα, καὶ τὰ ἄλλως ἔχοντα κρυβῆναι οὐ δύνανται.",
+      "languageId": "html",
+      "metadata": {
+        "id": "9e4aa64b-8de7-4c37-bd35-fa0bd7b92ef2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 5:25",
+        "bookCode": "1TI",
+        "chapter": 5,
+        "verse": "25",
+        "cellLabel": "25",
+        "originalText": "ὡσαύτως καὶ τὰ ἔργα τὰ καλὰ πρόδηλα, καὶ τὰ ἄλλως ἔχοντα κρυβῆναι οὐ δύνανται.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "5",
+        "data": {
+          "originalText": "ὡσαύτως καὶ τὰ ἔργα τὰ καλὰ πρόδηλα, καὶ τὰ ἄλλως ἔχοντα κρυβῆναι οὐ δύνανται.",
+          "globalReferences": [
+            "1TI 5:25"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "1 Timothy 6",
+      "languageId": "html",
+      "metadata": {
+        "id": "0f790fe3-5ad7-4805-bdb5-86e6c58fdeb8",
+        "type": "milestone",
+        "edits": [],
+        "data": {}
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ὅσοι εἰσὶν ὑπὸ ζυγὸν δοῦλοι, τοὺς ἰδίους δεσπότας πάσης τιμῆς ἀξίους ἡγείσθωσαν, ἵνα μὴ τὸ ὄνομα τοῦ θεοῦ καὶ ἡ διδασκαλία βλασφημῆται.",
+      "languageId": "html",
+      "metadata": {
+        "id": "dcdaa69b-f6f2-4b03-9a38-4feabe76bf01",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:1",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "1",
+        "cellLabel": "1",
+        "originalText": "Ὅσοι εἰσὶν ὑπὸ ζυγὸν δοῦλοι, τοὺς ἰδίους δεσπότας πάσης τιμῆς ἀξίους ἡγείσθωσαν, ἵνα μὴ τὸ ὄνομα τοῦ θεοῦ καὶ ἡ διδασκαλία βλασφημῆται.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "Ὅσοι εἰσὶν ὑπὸ ζυγὸν δοῦλοι, τοὺς ἰδίους δεσπότας πάσης τιμῆς ἀξίους ἡγείσθωσαν, ἵνα μὴ τὸ ὄνομα τοῦ θεοῦ καὶ ἡ διδασκαλία βλασφημῆται.",
+          "globalReferences": [
+            "1TI 6:1"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "οἱ δὲ πιστοὺς ἔχοντες δεσπότας μὴ καταφρονείτωσαν, ὅτι ἀδελφοί εἰσιν· ἀλλὰ μᾶλλον δουλευέτωσαν, ὅτι πιστοί εἰσιν καὶ ἀγαπητοὶ οἱ τῆς εὐεργεσίας ἀντιλαμβανόμενοι. Ταῦτα δίδασκε καὶ παρακάλει.",
+      "languageId": "html",
+      "metadata": {
+        "id": "5a5a7427-48db-49bd-aef8-e9d1306c5169",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:2",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "2",
+        "cellLabel": "2",
+        "originalText": "οἱ δὲ πιστοὺς ἔχοντες δεσπότας μὴ καταφρονείτωσαν, ὅτι ἀδελφοί εἰσιν· ἀλλὰ μᾶλλον δουλευέτωσαν, ὅτι πιστοί εἰσιν καὶ ἀγαπητοὶ οἱ τῆς εὐεργεσίας ἀντιλαμβανόμενοι. Ταῦτα δίδασκε καὶ παρακάλει.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "οἱ δὲ πιστοὺς ἔχοντες δεσπότας μὴ καταφρονείτωσαν, ὅτι ἀδελφοί εἰσιν· ἀλλὰ μᾶλλον δουλευέτωσαν, ὅτι πιστοί εἰσιν καὶ ἀγαπητοὶ οἱ τῆς εὐεργεσίας ἀντιλαμβανόμενοι. Ταῦτα δίδασκε καὶ παρακάλει.",
+          "globalReferences": [
+            "1TI 6:2"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "εἴ τις ἑτεροδιδασκαλεῖ καὶ μὴ προσέρχεται ὑγιαίνουσι λόγοις, τοῖς τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ, καὶ τῇ κατ’ εὐσέβειαν διδασκαλίᾳ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "82d72a3d-63da-4271-969a-9cd21574a29a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:3",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "3",
+        "cellLabel": "3",
+        "originalText": "εἴ τις ἑτεροδιδασκαλεῖ καὶ μὴ προσέρχεται ὑγιαίνουσι λόγοις, τοῖς τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ, καὶ τῇ κατ’ εὐσέβειαν διδασκαλίᾳ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "εἴ τις ἑτεροδιδασκαλεῖ καὶ μὴ προσέρχεται ὑγιαίνουσι λόγοις, τοῖς τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ, καὶ τῇ κατ’ εὐσέβειαν διδασκαλίᾳ,",
+          "globalReferences": [
+            "1TI 6:3"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τετύφωται, μηδὲν ἐπιστάμενος, ἀλλὰ νοσῶν περὶ ζητήσεις καὶ λογομαχίας, ἐξ ὧν γίνεται φθόνος, ἔρις, βλασφημίαι, ὑπόνοιαι πονηραί,",
+      "languageId": "html",
+      "metadata": {
+        "id": "584a1d6e-c512-4467-8f36-713466a89b6d",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:4",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "4",
+        "cellLabel": "4",
+        "originalText": "τετύφωται, μηδὲν ἐπιστάμενος, ἀλλὰ νοσῶν περὶ ζητήσεις καὶ λογομαχίας, ἐξ ὧν γίνεται φθόνος, ἔρις, βλασφημίαι, ὑπόνοιαι πονηραί,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "τετύφωται, μηδὲν ἐπιστάμενος, ἀλλὰ νοσῶν περὶ ζητήσεις καὶ λογομαχίας, ἐξ ὧν γίνεται φθόνος, ἔρις, βλασφημίαι, ὑπόνοιαι πονηραί,",
+          "globalReferences": [
+            "1TI 6:4"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "διαπαρατριβαὶ διεφθαρμένων ἀνθρώπων τὸν νοῦν καὶ ἀπεστερημένων τῆς ἀληθείας, νομιζόντων πορισμὸν εἶναι τὴν εὐσέβειαν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "ad45a05e-7031-4979-8aa5-e5c739b59815",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:5",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "5",
+        "cellLabel": "5",
+        "originalText": "διαπαρατριβαὶ διεφθαρμένων ἀνθρώπων τὸν νοῦν καὶ ἀπεστερημένων τῆς ἀληθείας, νομιζόντων πορισμὸν εἶναι τὴν εὐσέβειαν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "διαπαρατριβαὶ διεφθαρμένων ἀνθρώπων τὸν νοῦν καὶ ἀπεστερημένων τῆς ἀληθείας, νομιζόντων πορισμὸν εἶναι τὴν εὐσέβειαν.",
+          "globalReferences": [
+            "1TI 6:5"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔστιν δὲ πορισμὸς μέγας ἡ εὐσέβεια μετὰ αὐταρκείας·",
+      "languageId": "html",
+      "metadata": {
+        "id": "b539fc6f-66a7-48ef-b86b-48455de19e97",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:6",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "6",
+        "cellLabel": "6",
+        "originalText": "ἔστιν δὲ πορισμὸς μέγας ἡ εὐσέβεια μετὰ αὐταρκείας·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἔστιν δὲ πορισμὸς μέγας ἡ εὐσέβεια μετὰ αὐταρκείας·",
+          "globalReferences": [
+            "1TI 6:6"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "οὐδὲν γὰρ εἰσηνέγκαμεν εἰς τὸν κόσμον, ὅτι οὐδὲ ἐξενεγκεῖν τι δυνάμεθα·",
+      "languageId": "html",
+      "metadata": {
+        "id": "dec772ec-e23d-43b9-8e3a-c828cfae28a1",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:7",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "7",
+        "cellLabel": "7",
+        "originalText": "οὐδὲν γὰρ εἰσηνέγκαμεν εἰς τὸν κόσμον, ὅτι οὐδὲ ἐξενεγκεῖν τι δυνάμεθα·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "οὐδὲν γὰρ εἰσηνέγκαμεν εἰς τὸν κόσμον, ὅτι οὐδὲ ἐξενεγκεῖν τι δυνάμεθα·",
+          "globalReferences": [
+            "1TI 6:7"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἔχοντες δὲ διατροφὰς καὶ σκεπάσματα, τούτοις ἀρκεσθησόμεθα.",
+      "languageId": "html",
+      "metadata": {
+        "id": "2501e472-71e5-4304-9368-0097e364286e",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:8",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "8",
+        "cellLabel": "8",
+        "originalText": "ἔχοντες δὲ διατροφὰς καὶ σκεπάσματα, τούτοις ἀρκεσθησόμεθα.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἔχοντες δὲ διατροφὰς καὶ σκεπάσματα, τούτοις ἀρκεσθησόμεθα.",
+          "globalReferences": [
+            "1TI 6:8"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "οἱ δὲ βουλόμενοι πλουτεῖν ἐμπίπτουσιν εἰς πειρασμὸν καὶ παγίδα καὶ ἐπιθυμίας πολλὰς ἀνοήτους καὶ βλαβεράς, αἵτινες βυθίζουσι τοὺς ἀνθρώπους εἰς ὄλεθρον καὶ ἀπώλειαν·",
+      "languageId": "html",
+      "metadata": {
+        "id": "dcf0a8b4-b443-4f10-b932-643132fea3b0",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:9",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "9",
+        "cellLabel": "9",
+        "originalText": "οἱ δὲ βουλόμενοι πλουτεῖν ἐμπίπτουσιν εἰς πειρασμὸν καὶ παγίδα καὶ ἐπιθυμίας πολλὰς ἀνοήτους καὶ βλαβεράς, αἵτινες βυθίζουσι τοὺς ἀνθρώπους εἰς ὄλεθρον καὶ ἀπώλειαν·",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "οἱ δὲ βουλόμενοι πλουτεῖν ἐμπίπτουσιν εἰς πειρασμὸν καὶ παγίδα καὶ ἐπιθυμίας πολλὰς ἀνοήτους καὶ βλαβεράς, αἵτινες βυθίζουσι τοὺς ἀνθρώπους εἰς ὄλεθρον καὶ ἀπώλειαν·",
+          "globalReferences": [
+            "1TI 6:9"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ῥίζα γὰρ πάντων τῶν κακῶν ἐστιν ἡ φιλαργυρία, ἧς τινες ὀρεγόμενοι ἀπεπλανήθησαν ἀπὸ τῆς πίστεως καὶ ἑαυτοὺς περιέπειραν ὀδύναις πολλαῖς.",
+      "languageId": "html",
+      "metadata": {
+        "id": "a08454e7-d783-4622-b952-cfe356367b67",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:10",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "10",
+        "cellLabel": "10",
+        "originalText": "ῥίζα γὰρ πάντων τῶν κακῶν ἐστιν ἡ φιλαργυρία, ἧς τινες ὀρεγόμενοι ἀπεπλανήθησαν ἀπὸ τῆς πίστεως καὶ ἑαυτοὺς περιέπειραν ὀδύναις πολλαῖς.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ῥίζα γὰρ πάντων τῶν κακῶν ἐστιν ἡ φιλαργυρία, ἧς τινες ὀρεγόμενοι ἀπεπλανήθησαν ἀπὸ τῆς πίστεως καὶ ἑαυτοὺς περιέπειραν ὀδύναις πολλαῖς.",
+          "globalReferences": [
+            "1TI 6:10"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Σὺ δέ, ὦ ἄνθρωπε θεοῦ, ταῦτα φεῦγε· δίωκε δὲ δικαιοσύνην, εὐσέβειαν, πίστιν, ἀγάπην, ὑπομονήν, πραϋπαθίαν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "f7bf0d16-573d-45e4-8cb1-fff921fa8169",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:11",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "11",
+        "cellLabel": "11",
+        "originalText": "Σὺ δέ, ὦ ἄνθρωπε θεοῦ, ταῦτα φεῦγε· δίωκε δὲ δικαιοσύνην, εὐσέβειαν, πίστιν, ἀγάπην, ὑπομονήν, πραϋπαθίαν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "Σὺ δέ, ὦ ἄνθρωπε θεοῦ, ταῦτα φεῦγε· δίωκε δὲ δικαιοσύνην, εὐσέβειαν, πίστιν, ἀγάπην, ὑπομονήν, πραϋπαθίαν.",
+          "globalReferences": [
+            "1TI 6:11"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀγωνίζου τὸν καλὸν ἀγῶνα τῆς πίστεως, ἐπιλαβοῦ τῆς αἰωνίου ζωῆς, εἰς ἣν ἐκλήθης καὶ ὡμολόγησας τὴν καλὴν ὁμολογίαν ἐνώπιον πολλῶν μαρτύρων.",
+      "languageId": "html",
+      "metadata": {
+        "id": "a1432227-804b-4ad9-a41a-bdd93fbdcbce",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:12",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "12",
+        "cellLabel": "12",
+        "originalText": "ἀγωνίζου τὸν καλὸν ἀγῶνα τῆς πίστεως, ἐπιλαβοῦ τῆς αἰωνίου ζωῆς, εἰς ἣν ἐκλήθης καὶ ὡμολόγησας τὴν καλὴν ὁμολογίαν ἐνώπιον πολλῶν μαρτύρων.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἀγωνίζου τὸν καλὸν ἀγῶνα τῆς πίστεως, ἐπιλαβοῦ τῆς αἰωνίου ζωῆς, εἰς ἣν ἐκλήθης καὶ ὡμολόγησας τὴν καλὴν ὁμολογίαν ἐνώπιον πολλῶν μαρτύρων.",
+          "globalReferences": [
+            "1TI 6:12"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "παραγγέλλω σοι ἐνώπιον τοῦ θεοῦ τοῦ ζῳογονοῦντος τὰ πάντα καὶ Χριστοῦ Ἰησοῦ τοῦ μαρτυρήσαντος ἐπὶ Ποντίου Πιλάτου τὴν καλὴν ὁμολογίαν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "0fc222cf-ea98-4247-9f8f-79b532abb165",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:13",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "13",
+        "cellLabel": "13",
+        "originalText": "παραγγέλλω σοι ἐνώπιον τοῦ θεοῦ τοῦ ζῳογονοῦντος τὰ πάντα καὶ Χριστοῦ Ἰησοῦ τοῦ μαρτυρήσαντος ἐπὶ Ποντίου Πιλάτου τὴν καλὴν ὁμολογίαν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "παραγγέλλω σοι ἐνώπιον τοῦ θεοῦ τοῦ ζῳογονοῦντος τὰ πάντα καὶ Χριστοῦ Ἰησοῦ τοῦ μαρτυρήσαντος ἐπὶ Ποντίου Πιλάτου τὴν καλὴν ὁμολογίαν,",
+          "globalReferences": [
+            "1TI 6:13"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "τηρῆσαί σε τὴν ἐντολὴν ἄσπιλον ἀνεπίλημπτον μέχρι τῆς ἐπιφανείας τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ,",
+      "languageId": "html",
+      "metadata": {
+        "id": "24ae1ece-3c9a-4c22-a922-a023364e38bb",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:14",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "14",
+        "cellLabel": "14",
+        "originalText": "τηρῆσαί σε τὴν ἐντολὴν ἄσπιλον ἀνεπίλημπτον μέχρι τῆς ἐπιφανείας τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "τηρῆσαί σε τὴν ἐντολὴν ἄσπιλον ἀνεπίλημπτον μέχρι τῆς ἐπιφανείας τοῦ κυρίου ἡμῶν Ἰησοῦ Χριστοῦ,",
+          "globalReferences": [
+            "1TI 6:14"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἣν καιροῖς ἰδίοις δείξει ὁ μακάριος καὶ μόνος δυνάστης, ὁ βασιλεὺς τῶν βασιλευόντων καὶ κύριος τῶν κυριευόντων,",
+      "languageId": "html",
+      "metadata": {
+        "id": "6baa958a-c1e2-40d7-bb18-45667cfb7f5a",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:15",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "15",
+        "cellLabel": "15",
+        "originalText": "ἣν καιροῖς ἰδίοις δείξει ὁ μακάριος καὶ μόνος δυνάστης, ὁ βασιλεὺς τῶν βασιλευόντων καὶ κύριος τῶν κυριευόντων,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἣν καιροῖς ἰδίοις δείξει ὁ μακάριος καὶ μόνος δυνάστης, ὁ βασιλεὺς τῶν βασιλευόντων καὶ κύριος τῶν κυριευόντων,",
+          "globalReferences": [
+            "1TI 6:15"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ὁ μόνος ἔχων ἀθανασίαν, φῶς οἰκῶν ἀπρόσιτον, ὃν εἶδεν οὐδεὶς ἀνθρώπων οὐδὲ ἰδεῖν δύναται· ᾧ τιμὴ καὶ κράτος αἰώνιον· ἀμήν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "0d56a2e2-fed6-40fa-a24b-3a0ec4ff82ee",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:16",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "16",
+        "cellLabel": "16",
+        "originalText": "ὁ μόνος ἔχων ἀθανασίαν, φῶς οἰκῶν ἀπρόσιτον, ὃν εἶδεν οὐδεὶς ἀνθρώπων οὐδὲ ἰδεῖν δύναται· ᾧ τιμὴ καὶ κράτος αἰώνιον· ἀμήν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ὁ μόνος ἔχων ἀθανασίαν, φῶς οἰκῶν ἀπρόσιτον, ὃν εἶδεν οὐδεὶς ἀνθρώπων οὐδὲ ἰδεῖν δύναται· ᾧ τιμὴ καὶ κράτος αἰώνιον· ἀμήν.",
+          "globalReferences": [
+            "1TI 6:16"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Τοῖς πλουσίοις ἐν τῷ νῦν αἰῶνι παράγγελλε μὴ ὑψηλοφρονεῖν μηδὲ ἠλπικέναι ἐπὶ πλούτου ἀδηλότητι, ἀλλ’ ἐπὶ θεῷ τῷ παρέχοντι ἡμῖν πάντα πλουσίως εἰς ἀπόλαυσιν,",
+      "languageId": "html",
+      "metadata": {
+        "id": "47358ccd-f410-4f96-bcaf-f07756bdd0dd",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:17",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "17",
+        "cellLabel": "17",
+        "originalText": "Τοῖς πλουσίοις ἐν τῷ νῦν αἰῶνι παράγγελλε μὴ ὑψηλοφρονεῖν μηδὲ ἠλπικέναι ἐπὶ πλούτου ἀδηλότητι, ἀλλ’ ἐπὶ θεῷ τῷ παρέχοντι ἡμῖν πάντα πλουσίως εἰς ἀπόλαυσιν,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "Τοῖς πλουσίοις ἐν τῷ νῦν αἰῶνι παράγγελλε μὴ ὑψηλοφρονεῖν μηδὲ ἠλπικέναι ἐπὶ πλούτου ἀδηλότητι, ἀλλ’ ἐπὶ θεῷ τῷ παρέχοντι ἡμῖν πάντα πλουσίως εἰς ἀπόλαυσιν,",
+          "globalReferences": [
+            "1TI 6:17"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀγαθοεργεῖν, πλουτεῖν ἐν ἔργοις καλοῖς, εὐμεταδότους εἶναι, κοινωνικούς,",
+      "languageId": "html",
+      "metadata": {
+        "id": "0404faa2-b094-41a8-b62a-04d8357ae87f",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:18",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "18",
+        "cellLabel": "18",
+        "originalText": "ἀγαθοεργεῖν, πλουτεῖν ἐν ἔργοις καλοῖς, εὐμεταδότους εἶναι, κοινωνικούς,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἀγαθοεργεῖν, πλουτεῖν ἐν ἔργοις καλοῖς, εὐμεταδότους εἶναι, κοινωνικούς,",
+          "globalReferences": [
+            "1TI 6:18"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἀποθησαυρίζοντας ἑαυτοῖς θεμέλιον καλὸν εἰς τὸ μέλλον, ἵνα ἐπιλάβωνται τῆς ὄντως ζωῆς.",
+      "languageId": "html",
+      "metadata": {
+        "id": "577cbb09-a0bd-4286-856f-32047ab49611",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:19",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "19",
+        "cellLabel": "19",
+        "originalText": "ἀποθησαυρίζοντας ἑαυτοῖς θεμέλιον καλὸν εἰς τὸ μέλλον, ἵνα ἐπιλάβωνται τῆς ὄντως ζωῆς.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἀποθησαυρίζοντας ἑαυτοῖς θεμέλιον καλὸν εἰς τὸ μέλλον, ἵνα ἐπιλάβωνται τῆς ὄντως ζωῆς.",
+          "globalReferences": [
+            "1TI 6:19"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "Ὦ Τιμόθεε, τὴν παραθήκην φύλαξον, ἐκτρεπόμενος τὰς βεβήλους κενοφωνίας καὶ ἀντιθέσεις τῆς ψευδωνύμου γνώσεως,",
+      "languageId": "html",
+      "metadata": {
+        "id": "279cfe24-2632-4be2-a621-6ccd29472845",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:20",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "20",
+        "cellLabel": "20",
+        "originalText": "Ὦ Τιμόθεε, τὴν παραθήκην φύλαξον, ἐκτρεπόμενος τὰς βεβήλους κενοφωνίας καὶ ἀντιθέσεις τῆς ψευδωνύμου γνώσεως,",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "Ὦ Τιμόθεε, τὴν παραθήκην φύλαξον, ἐκτρεπόμενος τὰς βεβήλους κενοφωνίας καὶ ἀντιθέσεις τῆς ψευδωνύμου γνώσεως,",
+          "globalReferences": [
+            "1TI 6:20"
+          ]
+        }
+      }
+    },
+    {
+      "kind": 2,
+      "value": "ἥν τινες ἐπαγγελλόμενοι περὶ τὴν πίστιν ἠστόχησαν. Ἡ χάρις μεθ’ ὑμῶν.",
+      "languageId": "html",
+      "metadata": {
+        "id": "a2132fe4-68c2-461a-bba8-794b030cc3b2",
+        "type": "text",
+        "edits": [],
+        "vref": "1TI 6:21",
+        "bookCode": "1TI",
+        "chapter": 6,
+        "verse": "21",
+        "cellLabel": "21",
+        "originalText": "ἥν τινες ἐπαγγελλόμενοι περὶ τὴν πίστιν ἠστόχησαν. Ἡ χάρις μεθ’ ὑμῶν.",
+        "fileName": "1TI.macula",
+        "chapterNumber": "6",
+        "data": {
+          "originalText": "ἥν τινες ἐπαγγελλόμενοι περὶ τὴν πίστιν ἠστόχησαν. Ἡ χάρις μεθ’ ὑμῶν.",
+          "globalReferences": [
+            "1TI 6:21"
+          ]
+        }
+      }
+    }
+  ],
+  "metadata": {
+    "textDirection": "ltr",
+    "videoUrl": "",
+    "lineNumbersEnabled": true,
+    "lineNumbersEnabledSource": "global",
+    "edits": [],
+    "id": "Greek 1 Timothy",
+    "originalName": "1 Timothy.macula",
+    "sourceFsPath": "c:\\Users\\padig\\Downloads\\ai-honeypot-fullstack\\.project\\sourceTexts\\1TI.source",
+    "codexFsPath": "c:\\Users\\padig\\Downloads\\ai-honeypot-fullstack\\files\\target\\1TI.codex",
+    "navigation": [],
+    "sourceCreatedAt": "2026-02-23T14:13:55.118Z",
+    "corpusMarker": "Greek Bible",
+    "fileDisplayName": "Greek 1 Timothy",
+    "importerType": "macula"
+  }
+}

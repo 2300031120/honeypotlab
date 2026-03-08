@@ -1,0 +1,33 @@
+{
+  "type": "Http",
+  "inputs": {
+    "method": "POST",
+    "uri": "https://your-platform-domain/api/ingest",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-API-Key": "hp_replace_with_site_api_key"
+    },
+    "body": {
+      "event_type": "m365_alert",
+      "url_path": "/identity",
+      "http_method": "ALERT",
+      "captured_data": {
+        "source": "m365_logic_app",
+        "provider": "microsoft_365_defender",
+        "alert_id": "@{triggerBody()?['id']}",
+        "alert_title": "@{triggerBody()?['title']}",
+        "severity": "@{triggerBody()?['severity']}",
+        "category": "@{triggerBody()?['category']}",
+        "service_source": "@{triggerBody()?['serviceSource']}",
+        "status": "@{triggerBody()?['status']}",
+        "assigned_to": "@{triggerBody()?['assignedTo']}",
+        "entity_user": "@{first(triggerBody()?['entities'])?['userPrincipalName']}",
+        "entity_ip": "@{first(triggerBody()?['entities'])?['ipAddress']}",
+        "raw": "@{string(triggerBody())}"
+      },
+      "session_id": "@{concat('m365-', triggerBody()?['id'])}"
+    }
+  },
+  "runAfter": {}
+}
+
