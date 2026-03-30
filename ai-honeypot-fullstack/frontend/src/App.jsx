@@ -2,41 +2,28 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { AUTH_CHANGED_EVENT, clearAuthSession, isAuthenticated } from "./utils/auth";
-import "./styles.css";
+import Home from "./Home.jsx";
 
-const Terminal = lazy(() => import("./Terminal.jsx"));
-const Dashboard = lazy(() => import("./Dashboard.jsx"));
 const Login = lazy(() => import("./Login.jsx"));
 const Signup = lazy(() => import("./Signup.jsx"));
 const ContactDemo = lazy(() => import("./ContactDemo.jsx"));
 const Platform = lazy(() => import("./Platform.jsx"));
+const Integrations = lazy(() => import("./Integrations.jsx"));
+const Deployment = lazy(() => import("./Deployment.jsx"));
+const Pricing = lazy(() => import("./Pricing.jsx"));
+const CaseStudy = lazy(() => import("./CaseStudy.jsx"));
+const Screenshots = lazy(() => import("./Screenshots.jsx"));
 const PublicArchitecture = lazy(() => import("./PublicArchitecture.jsx"));
 const UseCases = lazy(() => import("./UseCases.jsx"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy.jsx"));
 const TermsOfService = lazy(() => import("./TermsOfService.jsx"));
 const SecurityDisclosure = lazy(() => import("./SecurityDisclosure.jsx"));
-const Sites = lazy(() => import("./Sites.jsx"));
-const Home = lazy(() => import("./Home.jsx"));
-const ForensicsPage = lazy(() => import("./ForensicsPage.jsx"));
-const ThreatIntel = lazy(() => import("./ThreatIntel.jsx"));
-const MitreMapping = lazy(() => import("./MitreMapping.jsx"));
-const AttackerProfile = lazy(() => import("./AttackerProfile.jsx"));
-const DeceptionConfig = lazy(() => import("./DeceptionConfig.jsx"));
-const AttackGraph = lazy(() => import("./AttackGraph.jsx"));
-const SystemStatus = lazy(() => import("./SystemStatus.jsx"));
-const Simulator = lazy(() => import("./Simulator.jsx"));
-const LabArchitecture = lazy(() => import("./Architecture.jsx"));
-const About = lazy(() => import("./About.jsx"));
-const AuditLog = lazy(() => import("./AuditLog.jsx"));
 const AIAssistant = lazy(() => import("./AIAssistant.jsx"));
-const WorkingAIChatBot = lazy(() => import("./components/WorkingAIChatBot.jsx"));
-const UrlScanner = lazy(() => import("./UrlScanner.jsx"));
-const TelemetryCenter = lazy(() => import("./TelemetryCenter.jsx"));
 const MainLayout = lazy(() => import("./MainLayout.jsx"));
-const AdminLeads = lazy(() => import("./AdminLeads.jsx"));
+const ProtectedPageOutlet = lazy(() => import("./ProtectedPageOutlet.jsx"));
 
-function RequireAuth({ children }) {
-  return isAuthenticated() ? children : <Navigate to="/auth/login" replace />;
+function RequireAuth({ children, authenticated }) {
+  return authenticated ? children : <Navigate to="/auth/login" replace />;
 }
 
 function RouteFallback() {
@@ -95,10 +82,80 @@ function AppErrorFallback() {
   );
 }
 
+export function AppShell({ authenticated, isSsr = false }) {
+  return (
+    <ErrorBoundary FallbackComponent={AppErrorFallback}>
+      <Suspense fallback={<RouteFallback />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+          <Route path="/auth/signup" element={authenticated ? <Navigate to="/dashboard" replace /> : <Signup />} />
+          <Route path="/login" element={<Navigate to={authenticated ? "/dashboard" : "/auth/login"} replace />} />
+          <Route path="/signup" element={<Navigate to={authenticated ? "/dashboard" : "/auth/signup"} replace />} />
+          <Route path="/contact" element={<ContactDemo mode="contact" />} />
+          <Route path="/demo" element={<ContactDemo mode="demo" />} />
+          <Route path="/platform" element={<Platform />} />
+          <Route path="/integrations" element={<Integrations />} />
+          <Route path="/deployment" element={<Deployment />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/case-study" element={<CaseStudy />} />
+          <Route path="/screenshots" element={<Screenshots />} />
+          <Route path="/architecture" element={<PublicArchitecture />} />
+          <Route path="/use-cases" element={<UseCases />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/security" element={<SecurityDisclosure />} />
+
+          {/* Protected Routes inside MainLayout */}
+          <Route
+            element={
+              <RequireAuth authenticated={authenticated}>
+                <MainLayout />
+              </RequireAuth>
+            }
+          >
+            <Route path="/terminal" element={<ProtectedPageOutlet page="terminal" />} />
+            <Route path="/dashboard" element={<ProtectedPageOutlet page="dashboard" />} />
+            <Route path="/telemetry" element={<ProtectedPageOutlet page="telemetry" />} />
+            <Route path="/sites" element={<ProtectedPageOutlet page="sites" />} />
+            <Route path="/forensics/detail" element={<ProtectedPageOutlet page="forensics" />} />
+            <Route path="/intelligence" element={<ProtectedPageOutlet page="intelligence" />} />
+            <Route path="/mapping" element={<ProtectedPageOutlet page="mapping" />} />
+            <Route path="/profiling" element={<ProtectedPageOutlet page="profiling" />} />
+            <Route path="/deception" element={<ProtectedPageOutlet page="deception" />} />
+            <Route path="/graph" element={<ProtectedPageOutlet page="graph" />} />
+            <Route path="/status" element={<ProtectedPageOutlet page="status" />} />
+            <Route path="/simulator" element={<ProtectedPageOutlet page="simulator" />} />
+            <Route path="/ai-companion" element={<ProtectedPageOutlet page="ai_companion" />} />
+            <Route path="/audit" element={<ProtectedPageOutlet page="audit" />} />
+            <Route path="/admin/leads" element={<ProtectedPageOutlet page="admin_leads" />} />
+            <Route path="/lab/architecture" element={<ProtectedPageOutlet page="lab_architecture" />} />
+            <Route path="/about" element={<ProtectedPageOutlet page="about" />} />
+            <Route path="/url-scanner" element={<ProtectedPageOutlet page="url_scanner" />} />
+          </Route>
+          <Route path="*" element={<Navigate to={authenticated ? "/dashboard" : "/"} replace />} />
+        </Routes>
+      </Suspense>
+      <Suspense fallback={null}>{isSsr ? null : <AIAssistant />}</Suspense>
+    </ErrorBoundary>
+  );
+}
+
 function App() {
-  const [authenticated, setAuthenticated] = useState(isAuthenticated());
+  const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    document.body.classList.add("app-mounted");
+    return undefined;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
     const syncAuth = () => {
       const ok = isAuthenticated();
       if (!ok && localStorage.getItem("token")) {
@@ -119,55 +176,7 @@ function App() {
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <ErrorBoundary FallbackComponent={AppErrorFallback}>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/auth/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-            <Route path="/auth/signup" element={authenticated ? <Navigate to="/dashboard" replace /> : <Signup />} />
-            <Route path="/login" element={<Navigate to={authenticated ? "/dashboard" : "/"} replace />} />
-            <Route path="/signup" element={<Navigate to={authenticated ? "/dashboard" : "/"} replace />} />
-            <Route path="/contact" element={<ContactDemo mode="contact" />} />
-            <Route path="/demo" element={<ContactDemo mode="demo" />} />
-            <Route path="/platform" element={<Platform />} />
-            <Route path="/architecture" element={<PublicArchitecture />} />
-            <Route path="/use-cases" element={<UseCases />} />
-            <Route path="/privacy" element={<PrivacyPolicy />} />
-            <Route path="/terms" element={<TermsOfService />} />
-            <Route path="/security" element={<SecurityDisclosure />} />
-
-            {/* Protected Routes inside MainLayout */}
-            <Route
-              element={
-                <RequireAuth>
-                  <MainLayout />
-                </RequireAuth>
-              }
-            >
-              <Route path="/terminal" element={<Terminal />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/telemetry" element={<TelemetryCenter />} />
-              <Route path="/sites" element={<Sites />} />
-              <Route path="/forensics/detail" element={<ForensicsPage />} />
-              <Route path="/intelligence" element={<ThreatIntel />} />
-              <Route path="/mapping" element={<MitreMapping />} />
-              <Route path="/profiling" element={<AttackerProfile />} />
-              <Route path="/deception" element={<DeceptionConfig />} />
-              <Route path="/graph" element={<AttackGraph />} />
-              <Route path="/status" element={<SystemStatus />} />
-              <Route path="/simulator" element={<Simulator />} />
-              <Route path="/ai-companion" element={<WorkingAIChatBot />} />
-              <Route path="/audit" element={<AuditLog />} />
-              <Route path="/admin/leads" element={<AdminLeads />} />
-              <Route path="/lab/architecture" element={<LabArchitecture />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/url-scanner" element={<UrlScanner />} />
-            </Route>
-            <Route path="*" element={<Navigate to={authenticated ? "/dashboard" : "/"} replace />} />
-          </Routes>
-          <AIAssistant />
-        </Suspense>
-      </ErrorBoundary>
+      <AppShell authenticated={authenticated} />
     </Router>
   );
 }

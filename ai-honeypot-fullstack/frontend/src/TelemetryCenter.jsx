@@ -42,6 +42,21 @@ function toLocalTimestamp(value) {
   return parsed.toLocaleString();
 }
 
+function suggestedFileName(format) {
+  if (format === "cloudflare-json") {
+    return "cybersentinel-blocked-ips.cloudflare.json";
+  }
+  if (format === "plain") {
+    return "cybersentinel-blocked-ips.txt";
+  }
+  return "cybersentinel-blocked-ips.conf";
+}
+
+function fileNameFromDisposition(headerValue, fallback) {
+  const match = /filename="?([^"]+)"?/i.exec(String(headerValue || ""));
+  return match?.[1] || fallback;
+}
+
 function MetricCard({ icon, label, value, hint, color }) {
   return (
     <article style={statCardStyle}>
@@ -67,6 +82,7 @@ export default function TelemetryCenter() {
   const [sessionTimeline, setSessionTimeline] = useState([]);
   const [timelineSummary, setTimelineSummary] = useState("");
   const [timelineLoading, setTimelineLoading] = useState(false);
+  const [exportingFormat, setExportingFormat] = useState("");
 
   const loadSessionTimeline = useCallback(async (sessionId) => {
     const normalized = String(sessionId || "").trim();
@@ -129,6 +145,29 @@ export default function TelemetryCenter() {
     },
     [hours, loadSessionTimeline, selectedSessionId]
   );
+
+  const downloadBlockedExport = useCallback(async (format) => {
+    setExportingFormat(format);
+    try {
+      const response = await axios.get(`${API_BASE}/soc/blocked-ips/export`, {
+        params: { format },
+        responseType: "blob",
+      });
+      const blob = new Blob([response.data], { type: response.data?.type || "application/octet-stream" });
+      const target = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = target;
+      link.download = fileNameFromDisposition(response.headers?.["content-disposition"], suggestedFileName(format));
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(target);
+    } catch (err) {
+      setError(err?.response?.data?.detail || "Unable to export blocked IP list right now.");
+    } finally {
+      setExportingFormat("");
+    }
+  }, []);
 
   useEffect(() => {
     loadTelemetry();
@@ -303,6 +342,37 @@ export default function TelemetryCenter() {
             <div style={{ display: "flex", justifyContent: "space-between", color: "#8b949e", fontSize: "12px" }}>
               <span>Trigger Rule</span>
               <span>{responsePosture.repeat_threshold} events / {responsePosture.window_minutes}m</span>
+            </div>
+            <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid rgba(48,54,61,0.45)" }}>
+              <div style={{ color: "#8b949e", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "8px", fontWeight: 700 }}>
+                Edge Export
+              </div>
+              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                {[
+                  { format: "nginx", label: "Nginx" },
+                  { format: "plain", label: "TXT" },
+                  { format: "cloudflare-json", label: "Cloudflare JSON" },
+                ].map((item) => (
+                  <button
+                    key={item.format}
+                    type="button"
+                    onClick={() => downloadBlockedExport(item.format)}
+                    disabled={exportingFormat !== "" && exportingFormat !== item.format}
+                    style={{
+                      border: "1px solid #334155",
+                      background: "rgba(2,6,23,0.85)",
+                      color: "#93c5fd",
+                      borderRadius: "8px",
+                      padding: "6px 10px",
+                      cursor: exportingFormat !== "" && exportingFormat !== item.format ? "not-allowed" : "pointer",
+                      fontWeight: 700,
+                      fontSize: "11px",
+                    }}
+                  >
+                    {exportingFormat === item.format ? `Exporting ${item.label}...` : item.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>

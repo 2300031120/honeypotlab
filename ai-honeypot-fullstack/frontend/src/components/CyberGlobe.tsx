@@ -1,22 +1,46 @@
-import React, { useRef, useEffect, useState } from 'react';
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+import React, { useId, useMemo } from 'react';
+
+type GlobePoint = {
+  lat: number;
+  lng: number;
+  size: number;
+  color: string;
+  intensity: number;
+};
 
 interface CyberGlobeProps {
   width?: number;
   height?: number;
-  data?: Array<{
-    lat: number;
-    lng: number;
-    size: number;
-    color: string;
-    intensity: number;
-  }>;
+  data?: GlobePoint[];
   interactive?: boolean;
-  onPointClick?: (point: any) => void;
+  onPointClick?: (point: GlobePoint) => void;
+}
+
+type ProjectedPoint = GlobePoint & {
+  id: string;
+  x: number;
+  y: number;
+  depth: number;
+  radius: number;
+  opacity: number;
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function projectPoint(lat: number, lng: number, width: number, height: number) {
+  const radius = Math.min(width * 0.31, height * 0.44);
+  const centerX = width * 0.5;
+  const centerY = height * 0.53;
+  const latRad = (lat * Math.PI) / 180;
+  const lngRad = (lng * Math.PI) / 180;
+
+  return {
+    x: centerX + radius * Math.cos(latRad) * Math.sin(lngRad),
+    y: centerY - radius * Math.sin(latRad),
+    depth: Math.cos(latRad) * Math.cos(lngRad),
+  };
 }
 
 export const CyberGlobe: React.FC<CyberGlobeProps> = ({
@@ -24,244 +48,101 @@ export const CyberGlobe: React.FC<CyberGlobeProps> = ({
   height = 600,
   data = [],
   interactive = true,
-  onPointClick
+  onPointClick,
 }) => {
-  const mountRef = useRef<HTMLDivElement>(null);
-  const sceneRef = useRef<THREE.Scene>();
-  const rendererRef = useRef<THREE.WebGLRenderer>();
-  const cameraRef = useRef<THREE.PerspectiveCamera>();
-  const controlsRef = useRef<OrbitControls>();
-  const composerRef = useRef<EffectComposer>();
-  const pointsRef = useRef<THREE.Points>();
+  const gradientId = useId();
 
-  const [isInitialized, setIsInitialized] = useState(false);
+  const points = useMemo<ProjectedPoint[]>(() => {
+    return data
+      .map((point, index) => {
+        const projection = projectPoint(Number(point.lat || 0), Number(point.lng || 0), width, height);
+        return {
+          ...point,
+          id: `cyber-point-${index}`,
+          x: projection.x,
+          y: projection.y,
+          depth: projection.depth,
+          radius: clamp(Number(point.size || 0.2) * 22, 5, 18),
+          opacity: clamp(0.25 + ((projection.depth + 1) / 2) * 0.6, 0.25, 0.9),
+        };
+      })
+      .sort((a, b) => a.depth - b.depth);
+  }, [data, height, width]);
 
-  useEffect(() => {
-    if (!mountRef.current) return;
-
-    // Scene setup
-    const scene = new THREE.Scene();
-    sceneRef.current = scene;
-
-    // Camera
-    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
-    camera.position.z = 5;
-    cameraRef.current = camera;
-
-    // Renderer with advanced settings
-    const renderer = new THREE.WebGLRenderer({
-      antialias: true,
-      alpha: true,
-      powerPreference: "high-performance"
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x000000, 0);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    rendererRef.current = renderer;
-
-    mountRef.current.appendChild(renderer.domElement);
-
-    // Advanced lighting setup
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
-    scene.add(ambientLight);
-
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 5, 5);
-    directionalLight.castShadow = true;
-    scene.add(directionalLight);
-
-    // Cyberpunk-style globe
-    const globeGeometry = new THREE.SphereGeometry(2, 64, 64);
-    const globeMaterial = new THREE.MeshPhongMaterial({
-      color: 0x1a1a2e,
-      transparent: true,
-      opacity: 0.8,
-      shininess: 100,
-      specular: 0x00ffff
-    });
-
-    const globe = new THREE.Mesh(globeGeometry, globeMaterial);
-    scene.add(globe);
-
-    // Wireframe overlay for cyber aesthetic
-    const wireframeGeometry = new THREE.SphereGeometry(2.01, 32, 32);
-    const wireframeMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.1
-    });
-
-    const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
-    scene.add(wireframe);
-
-    // Create cyberpunk grid
-    const gridGeometry = new THREE.SphereGeometry(2.02, 64, 32);
-    const gridMaterial = new THREE.MeshBasicMaterial({
-      color: 0x00ffff,
-      wireframe: true,
-      transparent: true,
-      opacity: 0.05
-    });
-
-    const grid = new THREE.Mesh(gridGeometry, gridMaterial);
-    scene.add(grid);
-
-    // Interactive points for threat data
-    if (data.length > 0) {
-      const pointsGeometry = new THREE.BufferGeometry();
-      const positions = [];
-      const colors = [];
-      const sizes = [];
-
-      data.forEach(point => {
-        // Convert lat/lng to 3D position
-        const phi = (90 - point.lat) * (Math.PI / 180);
-        const theta = (point.lng + 180) * (Math.PI / 180);
-
-        const x = -(2.1 * Math.sin(phi) * Math.cos(theta));
-        const z = 2.1 * Math.sin(phi) * Math.sin(theta);
-        const y = 2.1 * Math.cos(phi);
-
-        positions.push(x, y, z);
-        sizes.push(point.size * 5);
-
-        // Parse color
-        const color = new THREE.Color(point.color);
-        colors.push(color.r, color.g, color.b);
-      });
-
-      pointsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-      pointsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-      pointsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-
-      const pointsMaterial = new THREE.ShaderMaterial({
-        uniforms: {
-          time: { value: 0 }
-        },
-        vertexShader: `
-          attribute float size;
-          varying vec3 vColor;
-          varying float vSize;
-
-          void main() {
-            vColor = color;
-            vSize = size;
-
-            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-            gl_PointSize = size * (300.0 / -mvPosition.z);
-            gl_Position = projectionMatrix * mvPosition;
-          }
-        `,
-        fragmentShader: `
-          varying vec3 vColor;
-          varying float vSize;
-
-          void main() {
-            float r = distance(gl_PointCoord, vec2(0.5, 0.5));
-            if (r > 0.5) discard;
-
-            float alpha = 1.0 - smoothstep(0.0, 0.5, r);
-            gl_FragColor = vec4(vColor, alpha);
-          }
-        `,
-        transparent: true,
-        vertexColors: true,
-        blending: THREE.AdditiveBlending
-      });
-
-      const points = new THREE.Points(pointsGeometry, pointsMaterial);
-      scene.add(points);
-      pointsRef.current = points;
-    }
-
-    // Controls
-    if (interactive) {
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.enableZoom = true;
-      controls.enablePan = false;
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 0.5;
-      controlsRef.current = controls;
-    }
-
-    // Post-processing for cyberpunk effect
-    const composer = new EffectComposer(renderer);
-    composer.addPass(new RenderPass(scene, camera));
-
-    const bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(width, height),
-      1.5, // strength
-      0.4, // radius
-      0.85 // threshold
-    );
-    composer.addPass(bloomPass);
-    composerRef.current = composer;
-
-    setIsInitialized(true);
-
-    // Animation loop
-    const animate = () => {
-      requestAnimationFrame(animate);
-
-      if (controlsRef.current) {
-        controlsRef.current.update();
-      }
-
-      // Animate points
-      if (pointsRef.current && pointsRef.current.material instanceof THREE.ShaderMaterial) {
-        pointsRef.current.material.uniforms.time.value += 0.01;
-        pointsRef.current.rotation.y += 0.002;
-      }
-
-      // Animate wireframe
-      wireframe.rotation.y += 0.005;
-      wireframe.rotation.x += 0.002;
-
-      // Animate grid
-      grid.rotation.y -= 0.003;
-      grid.rotation.x += 0.001;
-
-      composer.render();
-    };
-    animate();
-
-    // Handle resize
-    const handleResize = () => {
-      if (!camera || !renderer || !composer) return;
-
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
-      composer.setSize(width, height);
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
-      renderer.dispose();
-    };
-  }, [width, height, data, interactive]);
+  const rings = [0.36, 0.52, 0.7, 0.86];
 
   return (
     <div
-      ref={mountRef}
       className="cyber-globe-container relative overflow-hidden rounded-xl"
-      style={{ width, height }}
+      style={{
+        width,
+        height,
+        position: 'relative',
+        background:
+          'radial-gradient(circle at 50% 18%, rgba(56, 189, 248, 0.18), transparent 30%), linear-gradient(180deg, rgba(2, 8, 18, 0.98) 0%, rgba(6, 18, 34, 0.98) 100%)',
+        border: '1px solid rgba(56, 189, 248, 0.12)',
+      }}
     >
-      {!isInitialized && (
-        <div className="absolute inset-0 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm rounded-xl">
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" role="img" aria-label="Cyber threat globe">
+        <defs>
+          <radialGradient id={gradientId} cx="50%" cy="46%" r="58%">
+            <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.24" />
+            <stop offset="48%" stopColor="#0f172a" stopOpacity="0.92" />
+            <stop offset="100%" stopColor="#020617" stopOpacity="1" />
+          </radialGradient>
+          <filter id={`${gradientId}-glow`} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+
+        <ellipse
+          cx={width * 0.5}
+          cy={height * 0.53}
+          rx={Math.min(width * 0.31, height * 0.44)}
+          ry={Math.min(width * 0.31, height * 0.44)}
+          fill={`url(#${gradientId})`}
+          stroke="rgba(56, 189, 248, 0.18)"
+          strokeWidth="1.3"
+        />
+
+        {rings.map((ratio) => (
+          <ellipse
+            key={`ring-${ratio}`}
+            cx={width * 0.5}
+            cy={height * 0.53}
+            rx={Math.min(width * 0.31, height * 0.44)}
+            ry={Math.min(width * 0.31, height * 0.44) * ratio}
+            fill="none"
+            stroke="rgba(56, 189, 248, 0.08)"
+            strokeWidth="1"
+          />
+        ))}
+
+        {points.map((point) => (
+          <g key={point.id} filter={`url(#${gradientId}-glow)`}>
+            <circle cx={point.x} cy={point.y} r={point.radius} fill={point.color} fillOpacity={point.opacity * 0.16} />
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={Math.max(2.4, point.radius * 0.38)}
+              fill={point.color}
+              fillOpacity={point.opacity}
+              onClick={interactive && onPointClick ? () => onPointClick(point) : undefined}
+              style={interactive && onPointClick ? { cursor: 'pointer' } : undefined}
+            />
+          </g>
+        ))}
+      </svg>
+
+      {!points.length && (
+        <div className="absolute inset-0 flex items-center justify-center bg-slate-950/35 backdrop-blur-sm rounded-xl">
           <div className="text-center">
-            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-            <p className="text-blue-400">Initializing Neural Network...</p>
+            <div className="mx-auto mb-2 h-8 w-8 rounded-full border border-cyan-400/40 bg-cyan-400/12" />
+            <p className="text-cyan-300">Initializing threat mesh...</p>
           </div>
         </div>
       )}

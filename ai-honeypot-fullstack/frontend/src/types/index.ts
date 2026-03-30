@@ -38,9 +38,9 @@ export interface ThreatStats {
 }
 
 export interface SystemHealth {
-  cpu?: number;
-  memory?: number;
-  latency?: number;
+  cpu?: number | null;
+  memory?: number | null;
+  latency?: number | null;
   uptime: string;
   components: SystemComponent[];
   notifications: Notification[];
@@ -50,14 +50,14 @@ export interface SystemHealth {
   };
   neural_hive?: {
     status: string;
-    latency_ms?: number;
+    latency_ms?: number | null;
     model: string;
     uptime: string;
   };
   resources?: {
-    cpu?: number;
-    memory?: number;
-    storage?: number;
+    cpu?: number | null;
+    memory?: number | null;
+    storage?: number | null;
   };
   integrity?: {
     trust_index?: number;
@@ -125,6 +125,9 @@ export interface LoginResponse {
 export interface TerminalResponse {
   output: string;
   prompt: string;
+  session_id?: string;
+  execution_mode?: string;
+  execution_status?: string;
   ai_metadata: {
     intent?: string;
     confidence?: number;
@@ -132,7 +135,11 @@ export interface TerminalResponse {
     thought?: string;
     explanation?: string;
     mode?: string;
-    vulnerabilities?: string[];
+    vulnerabilities?: Array<{
+      type?: string;
+      severity?: string;
+      vector?: string;
+    }>;
     mitre_tactic?: string;
     mitre_technique?: string;
     entropy?: number;

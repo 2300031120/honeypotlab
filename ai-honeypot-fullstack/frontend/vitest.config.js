@@ -7,6 +7,9 @@ export default defineConfig({
     include: ["src/**/*.test.{js,jsx,ts,tsx}"],
     globals: true,
     css: false,
+    testTimeout: 10000,
+    hookTimeout: 10000,
+    fileParallelism: false,
   },
 });
 

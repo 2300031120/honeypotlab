@@ -29,9 +29,14 @@ This project is an **AI‑enhanced, high‑interaction, dynamic deception system
 cp .env.example .env
 ```
 Set `CORS_ORIGINS` in `.env` if your frontend is served from a non-localhost origin.
+Set the public website identity before launch: `VITE_PUBLIC_SITE_NAME`, `VITE_PUBLIC_SITE_URL`, `VITE_PUBLIC_APP_URL`, `VITE_PUBLIC_CONTACT_EMAIL`, `VITE_PUBLIC_SECURITY_EMAIL`, and `VITE_PUBLIC_PRIVACY_EMAIL`.
+If marketing pages and the authenticated product live on different hostnames, point `VITE_PUBLIC_LOGIN_URL` at the real sign-in URL.
+Keep the marketing website and any high-interaction honeypot services logically separated; do not use the same public host for your brochure site and exposed decoy protocols unless you understand and accept that risk.
 When `APP_ENV=production`, set these mandatory trap credentials too:
 `PROTOCOL_SSH_TRAP_CREDENTIALS` and `PROTOCOL_MYSQL_TRAP_CREDENTIALS` (comma-separated `user:pass` pairs).
 For Google login, set `GOOGLE_OAUTH_CLIENT_ID` (backend) and `VITE_GOOGLE_CLIENT_ID` (frontend) to the same OAuth Web client ID.
+Set `BOOTSTRAP_ADMIN_PASSWORD` to a unique strong password before first launch. For production also set `ENABLE_DEMO_SEED=false` and usually `ALLOW_SIGNUP=false`.
+Set `POSTGRES_PASSWORD`, `DATABASE_URL`, and related Postgres settings before first launch. Docker Compose now defaults to PostgreSQL and backend migrations run automatically on startup.
 2. Start:
 ```bash
 docker compose up --build
@@ -50,7 +55,12 @@ Optional live URL probe:
 ```bash
 py -3 deploy/scripts/launch_preflight.py --check-url
 ```
-This validates production-critical settings such as `APP_ENV`, `SECRET_KEY`, `CORS_ORIGINS`, `TRUSTED_HOSTS`, HTTPS redirect, secure cookies, trap credentials, and database mode.
+Strict launch gate (warnings fail the deploy):
+```bash
+py -3 deploy/scripts/launch_preflight.py --strict --check-url
+```
+This validates production-critical settings such as `APP_ENV`, `SECRET_KEY`, `CORS_ORIGINS`, `TRUSTED_HOSTS`, HTTPS redirect, secure cookies, trap credentials, and PostgreSQL launch configuration.
+See [docs/PRODUCTION_DEPLOY_CHECKLIST.md](docs/PRODUCTION_DEPLOY_CHECKLIST.md) for the practical launch gate and operator readiness checklist.
 
 Frontend hotfix redeploy (force refresh stale bundles in production):
 ```powershell
@@ -58,11 +68,12 @@ powershell -ExecutionPolicy Bypass -File deploy/scripts/redeploy-frontend.ps1 -N
 ```
 Use `-Pull` if you also want latest base images.
 
-Optional local dev tooling (not public):
+Backend smoke tests:
 ```bash
-docker compose --profile dev-tools up -d phpmyadmin
+python -m pip install -r backend/requirements-dev.txt
+python -m pytest backend/tests/test_api_contract_smoke.py -q
+python -m pytest backend/tests -q
 ```
-phpMyAdmin will bind only to `127.0.0.1:8080`.
 
 Optional HTTPS (Let's Encrypt + Certbot):
 1. Set `TLS_DOMAIN` and `TLS_EMAIL` in `.env`.
@@ -192,11 +203,17 @@ Suggested tiers:
 See [docs/ADAPTIVE_WEB_DECOY_ARCHITECTURE.md](docs/ADAPTIVE_WEB_DECOY_ARCHITECTURE.md) for the FastAPI control-plane + phpMyAdmin-like decoy architecture and safety boundaries.
 See [docs/STARTUP_FOLDER_FORMAT.md](docs/STARTUP_FOLDER_FORMAT.md) for the startup-oriented folder structure and module ownership.
 See [docs/CUSTOMER_WEBSITE_INTEGRATION_PACK.md](docs/CUSTOMER_WEBSITE_INTEGRATION_PACK.md) for production ingest templates (Node/PHP/Python), Cloudflare Worker + M365 templates, and one-command integration bootstrap.
+Terminal deception now supports a hybrid execution model: backend falls back to emulation by default, but Docker Compose also starts a dedicated `terminal-sandbox` service so filesystem-heavy commands can run inside an isolated proot-based decoy rootfs when `TERMINAL_REAL_EXEC_ENABLED=true`.
 Analyst evaluation endpoint: `GET /deception/adaptive/metrics` (requires auth).
 Adaptive global intelligence endpoint: `GET /deception/adaptive/intelligence` (requires auth, 24h risk/country/tactic summaries).
 Adaptive session timeline endpoint: `GET /deception/adaptive/timeline/{session_id}` (requires auth, event-by-event policy progression).
 A/B/C experiment endpoints: `POST /research/experiments/run`, `GET /research/experiments/latest`, `GET /research/experiments/{run_id}`.
 Deception profiles endpoint: `GET /deception/profiles` (requires admin auth; backed by `backend/config/deception_profiles.json`).
+Operational readiness endpoint: `GET /ops/readiness` (requires auth; launch checks + coverage counts).
+Edge block export endpoint: `GET /soc/blocked-ips/export?format=nginx|plain|cloudflare-json` (requires auth; tenant-scoped edge enforcement export).
+Automatic Nginx sync script: `powershell -ExecutionPolicy Bypass -File deploy/scripts/sync-edge-blocks.ps1 -BaseUrl "https://your-public-domain" -Token "<operator-jwt>"` (exports the generated deny file and reloads `tls-gateway` when it is running).
+Automatic Cloudflare sync script: `py -3 deploy/scripts/sync_cloudflare_edge.py --base-url https://your-public-domain --operator-token <operator-jwt> --zone-id <cloudflare-zone-id>` (syncs managed blocked IPs into Cloudflare IP Access Rules).
+Cloudflare sync expects an API token with IP Access Rules write permission on the target zone or account; use `--account-id` instead of `--zone-id` for account-wide scope.
 Decoy UI pages: `/phpmyadmin/`, `/phpmyadmin/index.php`, `/phpmyadmin/tables.php`, `/phpmyadmin/table.php`, `/phpmyadmin/sql.php`, `/phpmyadmin/import-export.php`, `/phpmyadmin/sessions.php`, `/phpmyadmin/intrusion.php`, `/phpmyadmin/alerts.php`.
 
 ---
@@ -213,12 +230,6 @@ This repo **does not require any mock data**. Real events appear in the DB only 
 - your website sends events to `POST /ingest` (with `X-API-Key`)
 - or real attackers hit your honeypot endpoints
 
-### Important (MySQL/phpMyAdmin)
-If you manually created tables earlier, the column names may not match the backend models.
-Do this once:
-1) Keep the database name: `honeypot_db`
-2) In phpMyAdmin run: `backend/sql/reset_schema.sql` (drops old tables)
-3) Start the backend → it will auto-create the correct tables.
-
-### MySQL Workbench / phpMyAdmin port note
-On many Windows/XAMPP setups MySQL listens on **3307** (not 3306). Set `DATABASE_URL` accordingly.
+### Important (database runtime)
+Local/dev can still use SQLite through `DATABASE_URL=sqlite:///...`.
+Production launch is now aligned to PostgreSQL, and the backend applies schema migrations automatically from `backend/migrations/`.

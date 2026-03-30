@@ -1,8 +1,33 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, Target, BookOpen, Star, ArrowRight, Github } from 'lucide-react';
+import { Shield, Target, BookOpen, Star, ArrowRight } from 'lucide-react';
+import { loadAuthProviders } from './utils/authProviders';
 
 const About = () => {
+    const [signupEnabled, setSignupEnabled] = useState(true);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchAuthAvailability = async () => {
+            try {
+                const providers = await loadAuthProviders({ skipAuthRedirect: true });
+                if (!cancelled) {
+                    setSignupEnabled(providers.signupEnabled !== false);
+                }
+            } catch {
+                if (!cancelled) {
+                    setSignupEnabled(true);
+                }
+            }
+        };
+
+        fetchAuthAvailability();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     return (
         <div style={{ color: '#e6edf3', padding: '60px 20px' }}>
             <div style={{ maxWidth: '800px', margin: '0 auto' }}>
@@ -57,11 +82,11 @@ const About = () => {
                 }}>
                     <h2 style={{ marginBottom: '24px' }}>Ready to explore the core?</h2>
                     <div style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
-            <Link to="/auth/signup" style={{
+            <Link to={signupEnabled ? "/auth/signup" : "/demo"} style={{
                             padding: '12px 30px', background: '#238636', color: 'white',
                             borderRadius: '8px', textDecoration: 'none', fontWeight: '700'
                         }}>
-                            Get Started
+                            {signupEnabled ? "Get Started" : "Request Demo"}
                         </Link>
                         <Link to="/lab/architecture" style={{
                             padding: '12px 30px', border: '1px solid #30363d', color: '#e6edf3',

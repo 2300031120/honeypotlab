@@ -1,4 +1,3 @@
-import axios from "axios";
 import { API_BASE } from "../apiConfig";
 
 const DEFAULT_RESPONSE = {
@@ -38,7 +37,6 @@ const DEFAULT_REQUEST_CONFIG = {
     include_training: false,
     limit: 8,
   },
-  skipAuthRedirect: true,
 };
 
 const toNumber = (value, fallback = 0) => {
@@ -115,14 +113,24 @@ export function normalizePublicTelemetry(payload) {
 }
 
 export async function fetchPublicTelemetrySnapshot(config = {}) {
-  const mergedConfig = {
-    ...DEFAULT_REQUEST_CONFIG,
-    ...config,
-    params: {
-      ...DEFAULT_REQUEST_CONFIG.params,
-      ...(config?.params || {}),
-    },
+  const mergedParams = {
+    ...DEFAULT_REQUEST_CONFIG.params,
+    ...(config?.params || {}),
   };
-  const response = await axios.get(`${API_BASE}/public/telemetry/snapshot`, mergedConfig);
-  return normalizePublicTelemetry(response.data);
+  const query = new URLSearchParams();
+  Object.entries(mergedParams).forEach(([key, value]) => {
+    if (value === null || value === undefined) {
+      return;
+    }
+    query.set(key, String(value));
+  });
+  const requestUrl = `${API_BASE}/public/telemetry/snapshot?${query.toString()}`;
+  const response = await fetch(requestUrl, {
+    headers: { Accept: "application/json" },
+  });
+  if (!response.ok) {
+    throw new Error(`Public telemetry request failed: ${response.status}`);
+  }
+  const data = await response.json();
+  return normalizePublicTelemetry(data);
 }

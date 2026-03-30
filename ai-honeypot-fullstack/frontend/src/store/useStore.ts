@@ -17,7 +17,7 @@ interface DashboardState {
   httpTrapFeed: Event[];
   currentTime: string;
   globeData: GlobeData[];
-  arcsData: any[];
+  arcsData: unknown[];
   predictions: AIPrediction | null;
   healthData: SystemHealth;
 
@@ -36,7 +36,7 @@ interface DashboardState {
   setHttpTrapFeed: (feed: Event[]) => void;
   setCurrentTime: (time: string) => void;
   setGlobeData: (data: GlobeData[]) => void;
-  setArcsData: (data: any[]) => void;
+  setArcsData: (data: unknown[]) => void;
   setPredictions: (predictions: AIPrediction | null) => void;
   setHealthData: (health: SystemHealth) => void;
   setSearchQuery: (query: string) => void;

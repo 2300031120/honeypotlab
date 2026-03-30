@@ -1,23 +1,22 @@
-import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import React, { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Activity, Command, Menu, Shield, Sparkles, X } from "lucide-react";
+import { Activity, Menu, Shield, X } from "lucide-react";
 import { API_BASE } from "./apiConfig";
-import { trackCtaClick, trackEvent } from "./utils/analytics";
-import PublicCommandCenter from "./components/PublicCommandCenter";
+import { PUBLIC_SITE, resolvePublicBrandText } from "./siteConfig";
+import { trackCtaClick } from "./utils/analytics";
 
 const CORE_LINKS = [
   { label: "Home", to: "/" },
   { label: "Platform", to: "/platform" },
-  { label: "Architecture", to: "/architecture" },
+  { label: "Integrations", to: "/integrations" },
+  { label: "Deploy", to: "/deployment" },
   { label: "Use Cases", to: "/use-cases" },
-  { label: "Demo", to: "/demo" },
-  { label: "Contact", to: "/contact" },
 ];
 
 const HOME_ANCHOR_LINKS = [
-  { label: "Problem", href: "#problem" },
-  { label: "Features", href: "#features" },
+  { label: "Why It Works", href: "#problem" },
+  { label: "How It Works", href: "#features" },
+  { label: "Telemetry", href: "#telemetry" },
 ];
 
 function slugify(textValue) {
@@ -39,18 +38,10 @@ export default function PublicHeader({
   variant = "cred",
   pagePath = "/",
   includeHomeAnchors = false,
-  brandText = "CYBERSENTINEL",
+  brandText = PUBLIC_SITE.brandText || "CYBERSENTINEL",
 }) {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [commandOpen, setCommandOpen] = useState(false);
-  const [uiMode, setUiMode] = useState(() => {
-    try {
-      return localStorage.getItem("public_ui_mode") || "startup";
-    } catch {
-      return "startup";
-    }
-  });
   const [liveStatus, setLiveStatus] = useState({
     online: false,
     sessions: 0,
@@ -75,57 +66,63 @@ export default function PublicHeader({
   const closeMobile = () => setMobileOpen(false);
   const currentPath = location.pathname || "/";
   const analyticsPath = pagePath || currentPath;
+  const resolvedBrandText = resolvePublicBrandText(brandText);
 
   useEffect(() => {
-    const mode = uiMode === "futuristic" ? "futuristic" : "startup";
-    document.documentElement.setAttribute("data-public-mode", mode);
-    try {
-      localStorage.setItem("public_ui_mode", mode);
-    } catch {
-      // Ignore local storage write failures.
+    if (!PUBLIC_SITE.showStatusPill) {
+      return undefined;
     }
-  }, [uiMode]);
 
-  useEffect(() => {
-    const onKeyDown = (event) => {
-      const isShortcut = (event.ctrlKey || event.metaKey) && String(event.key || "").toLowerCase() === "k";
-      if (!isShortcut) {
-        return;
-      }
-      event.preventDefault();
-      setCommandOpen(true);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
-
-  useEffect(() => {
     let cancelled = false;
     const loadHealth = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       try {
-        const res = await axios.get(`${API_BASE}/health`, { skipAuthRedirect: true });
+        const res = await fetch(`${API_BASE}/health`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!res.ok) {
+          throw new Error(`Health request failed: ${res.status}`);
+        }
+        const payload = await res.json();
         if (cancelled) {
           return;
         }
-        const payload = res.data || {};
-        const backendState = String(payload?.services?.backend || "").toLowerCase();
-        setLiveStatus({
-          online: payload?.status === "healthy" || backendState === "operational",
-          sessions: Number(payload?.metrics?.active_sessions || 0),
-          totalEvents: Number(payload?.metrics?.total_events || 0),
+        const safePayload = payload || {};
+        const backendState = String(safePayload?.services?.backend || "").toLowerCase();
+        startTransition(() => {
+          setLiveStatus({
+            online: safePayload?.status === "healthy" || backendState === "operational",
+            sessions: Number(safePayload?.metrics?.active_sessions || 0),
+            totalEvents: Number(safePayload?.metrics?.total_events || 0),
+          });
         });
       } catch {
         if (!cancelled) {
-          setLiveStatus((prev) => ({ ...prev, online: false }));
+          startTransition(() => {
+            setLiveStatus((prev) => ({ ...prev, online: false }));
+          });
         }
       }
     };
 
-    loadHealth();
-    const interval = setInterval(loadHealth, 30000);
+    const handleVisibilityChange = () => {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") {
+        return;
+      }
+      void loadHealth();
+    };
+
+    void loadHealth();
+    const interval = setInterval(() => {
+      void loadHealth();
+    }, 30000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       cancelled = true;
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 
@@ -134,40 +131,76 @@ export default function PublicHeader({
     closeMobile();
   };
 
-  const toggleUiMode = () => {
-    setUiMode((prev) => {
-      const next = prev === "futuristic" ? "startup" : "futuristic";
-      trackEvent("ui_mode_toggle", {
-        category: "engagement",
-        pagePath: analyticsPath,
-        properties: { mode: next },
-      });
-      return next;
-    });
-  };
-
-  const openCommandCenter = () => {
-    setCommandOpen(true);
-    closeMobile();
-  };
-
   return (
-    <>
-      <header className={`${navClass} public-nav-shell`}>
-        <Link
-          to="/"
-          className={brandClass}
-          onClick={() => handleTrackedClick("brand_home")}
-        >
-          <Shield size={16} />
-          <span>{brandText}</span>
+    <header className={`${navClass} public-nav-shell`}>
+      <div className="public-brand-block">
+        <Link to="/" className={brandClass} onClick={() => handleTrackedClick("brand_home")}>
+          <span className="public-brand-mark">
+            <Shield size={16} />
+          </span>
+          <span>{resolvedBrandText}</span>
         </Link>
+        <small className="public-brand-sub">{PUBLIC_SITE.tagline}</small>
+      </div>
 
-        <nav className={linksClass}>
+      <nav className={linksClass}>
+        {links.map((link) => {
+          if (link.href) {
+            return (
+              <a key={link.label} href={link.href} onClick={() => handleTrackedClick(link.label)}>
+                {link.label}
+              </a>
+            );
+          }
+
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
+              onClick={() => handleTrackedClick(link.label)}
+            >
+              {link.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {PUBLIC_SITE.showStatusPill ? (
+        <div className="public-util-group">
+          <div className={`public-live-pill ${liveStatus.online ? "online" : "offline"}`}>
+            <Activity size={13} />
+            <span>{liveStatus.online ? "Live" : "Offline"}</span>
+            <small>{liveStatus.sessions}</small>
+          </div>
+        </div>
+      ) : null}
+
+      <div className={actionsClass}>
+        <a href={PUBLIC_SITE.loginUrl} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
+          Login
+        </a>
+        <Link to="/demo" className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
+          Request Demo
+        </Link>
+      </div>
+
+      <button
+        type="button"
+        className="public-nav-toggle"
+        aria-label={mobileOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileOpen}
+        onClick={() => setMobileOpen((prev) => !prev)}
+      >
+        {mobileOpen ? <X size={18} /> : <Menu size={18} />}
+      </button>
+
+      <div className={`public-nav-mobile ${mobileOpen ? "open" : ""}`}>
+        <div className="public-nav-mobile-links">
           {links.map((link) => {
             if (link.href) {
               return (
-                <a key={link.label} href={link.href} onClick={() => handleTrackedClick(link.label)}>
+                <a key={`m-${link.label}`} href={link.href} onClick={() => handleTrackedClick(link.label)}>
                   {link.label}
                 </a>
               );
@@ -175,7 +208,7 @@ export default function PublicHeader({
 
             return (
               <Link
-                key={link.to}
+                key={`m-${link.to}`}
                 to={link.to}
                 className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
                 onClick={() => handleTrackedClick(link.label)}
@@ -184,88 +217,19 @@ export default function PublicHeader({
               </Link>
             );
           })}
-        </nav>
-
-        <div className="public-util-group">
-          <button type="button" className="public-util-btn" onClick={openCommandCenter} aria-label="Open command center">
-            <Command size={14} />
-            <span>Command</span>
-          </button>
-          <button type="button" className="public-util-btn" onClick={toggleUiMode} aria-label="Toggle futuristic mode">
-            <Sparkles size={14} />
-            <span>{uiMode === "futuristic" ? "Startup" : "Futuristic"}</span>
-          </button>
-          <button type="button" className={`public-live-pill ${liveStatus.online ? "online" : "offline"}`} onClick={openCommandCenter}>
-            <Activity size={13} />
-            <span>{liveStatus.online ? "LIVE" : "OFFLINE"}</span>
-            <small>{liveStatus.sessions}</small>
-          </button>
         </div>
-
-        <div className={actionsClass}>
-          <Link to="/auth/login" className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
+        <div className="public-nav-mobile-actions">
+          <Link to="/" className={ghostBtnClass} onClick={() => handleTrackedClick("mobile_home")}>
+            Home
+          </Link>
+          <a href={PUBLIC_SITE.loginUrl} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
             Login
-          </Link>
-          <Link to="/auth/signup" className={primaryBtnClass} onClick={() => handleTrackedClick("sign_up")}>
-            Sign Up
+          </a>
+          <Link to="/demo" className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
+            Request Demo
           </Link>
         </div>
-
-        <button
-          type="button"
-          className="public-nav-toggle"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          aria-expanded={mobileOpen}
-          onClick={() => setMobileOpen((prev) => !prev)}
-        >
-          {mobileOpen ? <X size={18} /> : <Menu size={18} />}
-        </button>
-
-        <div className={`public-nav-mobile ${mobileOpen ? "open" : ""}`}>
-          <div className="public-nav-mobile-links">
-            {links.map((link) => {
-              if (link.href) {
-                return (
-                  <a key={`m-${link.label}`} href={link.href} onClick={() => handleTrackedClick(link.label)}>
-                    {link.label}
-                  </a>
-                );
-              }
-
-              return (
-                <Link
-                  key={`m-${link.to}`}
-                  to={link.to}
-                  className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
-                  onClick={() => handleTrackedClick(link.label)}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-          <div className="public-nav-mobile-actions">
-            <button type="button" className="public-mobile-meta-btn" onClick={openCommandCenter}>
-              <Command size={14} />
-              Open Command Center
-            </button>
-            <button type="button" className="public-mobile-meta-btn" onClick={toggleUiMode}>
-              <Sparkles size={14} />
-              {uiMode === "futuristic" ? "Switch to Startup Mode" : "Switch to Futuristic Mode"}
-            </button>
-            <Link to="/demo" className={ghostBtnClass} onClick={() => handleTrackedClick("request_demo")}>
-              Request Demo
-            </Link>
-            <Link to="/auth/login" className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
-              Login
-            </Link>
-            <Link to="/auth/signup" className={primaryBtnClass} onClick={() => handleTrackedClick("sign_up")}>
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </header>
-      <PublicCommandCenter open={commandOpen} onClose={() => setCommandOpen(false)} analyticsPath={analyticsPath} />
-    </>
+      </div>
+    </header>
   );
 }

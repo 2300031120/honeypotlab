@@ -1,83 +1,271 @@
-import React, { useEffect, useState } from "react";
+import React, { startTransition, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import axios from "axios";
 import {
   Activity,
   ArrowRight,
   Bot,
+  Building2,
   BrainCircuit,
-  Layers,
+  CheckCircle2,
+  Link2,
+  LockKeyhole,
   Radar,
+  ScanSearch,
   Server,
-  Shield,
+  ShieldAlert,
   ShieldCheck,
+  Workflow,
 } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
 import { trackCtaClick } from "./utils/analytics";
-import { isAuthenticated } from "./utils/auth";
+import { buildAuthHeaders, isAuthenticated } from "./utils/auth";
 import { fetchPublicTelemetrySnapshot } from "./utils/publicTelemetry";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
+import { PUBLIC_SITE } from "./siteConfig";
 
 const FEATURE_CARDS = [
   {
-    title: "Dynamic web decoys",
-    desc: "Serve believable login portals, admin flows, and multi-page decoys with progressive attacker engagement.",
-    icon: <Layers size={20} />,
+    title: "Believable deception surfaces",
+    desc: "Deploy fake login, admin, and internal application paths that attract reconnaissance before attackers reach the real system.",
+    icon: <ShieldAlert size={18} />,
   },
   {
-    title: "AI-driven adaptation",
-    desc: "Change responses in-session based on behavior classification, probe sequence, and deception policy.",
-    icon: <BrainCircuit size={20} />,
+    title: "Readable evidence and AI context",
+    desc: "Turn noisy first-touch activity into a short incident brief your operators can review, explain, and act on quickly.",
+    icon: <BrainCircuit size={18} />,
   },
   {
-    title: "High-interaction simulation",
-    desc: "Maintain realistic state, fake records, audit trails, and continuity so sessions feel authentic.",
-    icon: <ShieldCheck size={20} />,
-  },
-  {
-    title: "Real-time analytics",
-    desc: "Stream attack telemetry, threat scoring, intent labels, and AI analyst summaries into one command surface.",
-    icon: <Activity size={20} />,
+    title: "One operator workflow",
+    desc: "Review sessions, paths, top-targeted decoys, and attacker intent from one dashboard instead of scattered logs and alerts.",
+    icon: <Activity size={18} />,
   },
 ];
 
-const DECEPTION_TYPES = [
-  "Fake Login Portal Honeypot",
-  "Admin Dashboard Honeypot",
-  "API Honeypot",
-  "File Download Decoy",
-  "CMS / Web Panel Decoy",
-  "Cloud Console Simulation",
-  "Internal Employee Portal Decoy",
+const PRODUCT_STEPS = [
+  {
+    title: "Expose controlled lures",
+    detail: "Place believable login, admin, and API-style routes where attackers usually begin reconnaissance and probing.",
+    icon: <LockKeyhole size={18} />,
+  },
+  {
+    title: "Capture attacker behavior",
+    detail: "Track routes, IPs, timing, repeated probes, and suspicious movement as the interaction unfolds.",
+    icon: <ScanSearch size={18} />,
+  },
+  {
+    title: "Respond with evidence",
+    detail: "Use AI summaries, timelines, and replay to understand intent faster and brief the team with clean context.",
+    icon: <Bot size={18} />,
+  },
 ];
 
-const COMPARISON_ROWS = [
-  ["Static responses", "Adaptive responses"],
-  ["Single decoy", "Multi-layer deception"],
-  ["Manual log review", "AI-assisted analysis"],
-  ["Easy fingerprinting", "Higher realism"],
-  ["Limited engagement", "High-interaction flows"],
+const TRUST_POINTS = ["Internet-facing deception", "Operator-ready evidence", "Cloudflare/WAF actions", "MSSP-ready workflow"];
+
+const IMPACT_POINTS = ["Launch in 30 minutes", "Capture attacker intent live", "Respond with evidence"];
+const HERO_PROOF_PILLS = ["API health endpoint", "Public telemetry snapshot", "Real dashboard screenshots", "Security disclosure"];
+const VALIDATION_SIGNAL_BAR = [
+  "Built for internet-facing security teams",
+  "Live telemetry + AI triage + replay workflow",
+  "Launch path with deployment and security checks",
+  "Public proof endpoints for independent validation",
+];
+const HARD_DIFFERENTIATORS = [
+  {
+    title: "High-interaction deception",
+    detail: "Believable web and protocol lures capture attacker behavior, not just static signatures.",
+  },
+  {
+    title: "Evidence-first workflow",
+    detail: "Session path, severity progression, and AI brief stay in one operator timeline for fast triage.",
+  },
+  {
+    title: "Response-ready output",
+    detail: "Captured signals map to edge/WAF blocking and analyst handoff without manual log stitching.",
+  },
+  {
+    title: "Operational launch discipline",
+    detail: "Production checklist, readiness checks, and infrastructure guidance reduce rollout risk.",
+  },
 ];
 
-const TREND_MODULES = [
+const CHECKLIST_ITEMS = [
+  "Expose admin probing, credential spray, API recon, and first-touch intrusion behavior before production paths are hit",
+  "Give lean SOC teams and responders a readable attacker trail instead of raw alert noise and disconnected logs",
+  "Protect public-facing SaaS, fintech, ecommerce, and service portals with believable web and API deception",
+  "Support MSSP multi-tenant operations with one workflow for telemetry review, customer reporting, and response handoff",
+];
+
+const BUYER_POINTS = [
+  "Built for MSSPs, lean SOC teams, and internet-facing SaaS or service operators",
+  "Readable enough for operators, leadership, and customer-facing incident updates",
+  "Live telemetry backed by AI-assisted incident context, replay, and block-ready evidence",
+];
+
+const TRUST_AUDIENCE_STRIP = ["MSSPs", "Lean SOC teams", "SaaS operators", "Fintech teams", "Ecommerce apps", "Incident responders"];
+
+const TRUST_LEDGER = [
   {
-    title: "High-Interaction Web Decoys",
-    detail: "Believable login and admin journeys with realistic state transitions.",
+    title: "Deployment-ready",
+    detail: "Docker stack, PostgreSQL path, and guarded production settings already wired into the rollout path.",
+    icon: <Server size={18} />,
   },
   {
-    title: "API Honeymesh",
-    detail: "Adaptive API response surfaces for probe detection and intent tagging.",
+    title: "Operator-readable",
+    detail: "Readable telemetry, preserved attacker path, and AI brief layers instead of raw alert noise.",
+    icon: <ShieldCheck size={18} />,
   },
   {
-    title: "Cloud Console Simulation",
-    detail: "Cloud-style control surfaces to detect credential abuse and recon behavior.",
+    title: "Action-ready",
+    detail: "One path for live monitoring, investigation, Cloudflare or WAF response, and readiness review.",
+    icon: <Workflow size={18} />,
   },
   {
-    title: "Bait File Intelligence",
-    detail: "Tokenized download traps with collection-phase telemetry and risk scoring.",
+    title: "Channel-ready",
+    detail: "Fits public-facing apps, customer environments, and MSSP multi-tenant operating models.",
+    icon: <Building2 size={18} />,
+  },
+];
+
+const USE_CASES = [
+  {
+    title: "SOC and incident response",
+    detail: "Review suspicious sessions quickly, preserve the evidence trail, and hand analysts a clearer attacker narrative.",
+  },
+  {
+    title: "Public-facing services",
+    detail: "Place decoys around portals, admin paths, and exposed applications to surface attacker behavior before production impact or service disruption.",
+  },
+  {
+    title: "Higher education and labs",
+    detail: "Run deception-driven exercises, research behavior patterns, and help learners study attacker movement in a safe environment.",
+  },
+  {
+    title: "Cyber readiness training",
+    detail: "Use realistic telemetry, replay, and summaries to brief teams during exercises, awareness programs, and tabletop drills.",
+  },
+];
+
+const EVALUATION_PATHS = [
+  {
+    title: "Platform",
+    detail: "See the operator workflow, live telemetry surfaces, replay path, and AI incident output first.",
+    to: "/platform",
+    cta: "Explore platform",
+    icon: <ShieldCheck size={18} />,
+  },
+  {
+    title: "Integrations",
+    detail: "Check how websites, Cloudflare, Microsoft 365, and provider alerts feed the product.",
+    to: "/integrations",
+    cta: "View integrations",
+    icon: <Link2 size={18} />,
+  },
+  {
+    title: "Deployment",
+    detail: "Review the PostgreSQL, HTTPS, preflight, and readiness path before a public rollout.",
+    to: "/deployment",
+    cta: "View deployment",
+    icon: <Server size={18} />,
+  },
+  {
+    title: "Security",
+    detail: "Open the disclosure and trust material when you need launch-level safety and handling context.",
+    to: "/security",
+    cta: "Open security",
+    icon: <LockKeyhole size={18} />,
+  },
+];
+
+const LAUNCH_SIGNALS = [
+  {
+    title: "PostgreSQL path",
+    detail: "Production runtime supports PostgreSQL plus migrations instead of staying on local-only storage.",
+    cta: "Deployment",
+    to: "/deployment",
+    icon: <Server size={18} />,
+  },
+  {
+    title: "Deployable stack",
+    detail: "Frontend, backend, and database already run together in a verified Docker flow.",
+    cta: "Architecture",
+    to: "/architecture",
+    icon: <Workflow size={18} />,
+  },
+  {
+    title: "Security guardrails",
+    detail: "Rate limits, secure headers, trusted hosts, and HTTPS rollout checks are in the platform path.",
+    cta: "Security",
+    to: "/security",
+    icon: <ShieldCheck size={18} />,
+  },
+  {
+    title: "Ops readiness",
+    detail: "Readiness checks help teams verify launch state before public rollout or team handoff.",
+    cta: "Platform",
+    to: "/platform",
+    icon: <LockKeyhole size={18} />,
+  },
+];
+
+const DEMO_CHAPTERS = [
+  {
+    title: "Deception activation",
+    detail: "Operators arm believable lures around exposed login, admin, and API entry points.",
+  },
+  {
+    title: "Suspicious path capture",
+    detail: "The platform records route order, severity, and session movement as the attacker touches the trap.",
+  },
+  {
+    title: "AI-backed handoff",
+    detail: "The incident brief compresses the path into a readable summary and next-step workflow for the team.",
+  },
+];
+
+const SCREENSHOT_GALLERY = [
+  {
+    title: "Live dashboard",
+    detail: "Current command view with threat score, active sessions, and the main operator mesh.",
+    image: "/screenshots/dashboard.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} dashboard screenshot`,
+  },
+  {
+    title: "Threat intelligence",
+    detail: "Threat-intel screen captured from the running local app with live telemetry context.",
+    image: "/screenshots/threat-intel.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} threat intelligence screenshot`,
+  },
+  {
+    title: "Forensics lab",
+    detail: "Artifact review, risk progression, and attack reconstruction from the local forensics workflow.",
+    image: "/screenshots/forensics.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} forensics lab screenshot`,
+  },
+];
+
+const COMPETITIVE_ROWS = [
+  {
+    label: "Telemetry depth",
+    ours: "Live session timeline + decoy path + severity context",
+    generic: "Mostly static dashboards or delayed alert paths",
+  },
+  {
+    label: "Operator workflow",
+    ours: "Capture -> AI brief -> replay -> response handoff",
+    generic: "Multiple tools and manual analyst correlation",
+  },
+  {
+    label: "Deployment readiness",
+    ours: "Docker, PostgreSQL path, security preflight, edge response hooks",
+    generic: "Demo-first setup with limited launch guardrails",
+  },
+  {
+    label: "Public trust",
+    ours: "Security disclosure, real screenshots, API-backed public snapshot",
+    generic: "Positioning claims with limited operational proof",
   },
 ];
 
@@ -112,16 +300,16 @@ function toTimelineItem(event, index = 0) {
 
 export default function Home() {
   usePageAnalytics("home");
+  const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName || "CyberSentinel";
   useSeo({
-    title: "CyberSentinel AI | AI-Enhanced Dynamic Deception Platform",
+    title: `${PUBLIC_SITE.siteName} | Deception Telemetry Platform`,
     description:
-      "AI-enhanced dynamic deception platform for modern cyber defense with adaptive high-interaction decoys and real-time analytics.",
-    ogTitle: "CyberSentinel AI Dynamic Deception Platform",
+      "Deception telemetry platform with believable decoys, live telemetry, session replay, and AI-assisted incident context for internet-facing cyber defense.",
+    ogTitle: `${PUBLIC_SITE.siteName} Deception Telemetry Platform`,
     ogDescription:
-      "Deploy adaptive deception, observe attacker behavior, and analyze threats through AI-assisted security operations.",
+      "Detect attacker reconnaissance early, observe suspicious behavior safely, and preserve evidence with AI-assisted incident context.",
   });
 
-  const REAL_ONLY_PARAMS = { params: { include_training: false }, skipAuthRedirect: true };
   const [snapshot, setSnapshot] = useState({
     totalAttacks: 0,
     criticalThreats: 0,
@@ -130,180 +318,817 @@ export default function Home() {
     uniqueIps: 0,
     activeDecoys: 0,
     threatScore: 0,
-    topDecoy: "login-portal",
+    topDecoy: "",
   });
   const [attackTimeline, setAttackTimeline] = useState([]);
   const [backendOnline, setBackendOnline] = useState(false);
-  const [analystSummary, setAnalystSummary] = useState(
-    "Attacker probed login, admin, backup, and API endpoints in sequence. Behavior indicates reconnaissance activity."
-  );
-
+  const [analystSummary, setAnalystSummary] = useState(buildAnalystSummary([]));
+  const [activeWalkthrough, setActiveWalkthrough] = useState(0);
+  const [showRichSections, setShowRichSections] = useState(false);
+  const [telemetryEnabled, setTelemetryEnabled] = useState(false);
+  const [motionEnabled, setMotionEnabled] = useState(false);
   useEffect(() => {
+    if (!telemetryEnabled) {
+      return undefined;
+    }
+    let active = true;
     const loadSnapshot = async () => {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       try {
         if (!isAuthenticated()) {
           const publicData = await fetchPublicTelemetrySnapshot();
           const summary = publicData.summary || {};
           const feed = Array.isArray(publicData.feed) ? publicData.feed : [];
           const publicTimeline = feed.slice(0, 5).map((event, index) => toTimelineItem(event, index));
-          setBackendOnline(true);
-          setSnapshot({
-            totalAttacks: Number(summary.total_events || 0),
-            criticalThreats: Number(summary.critical_events || 0),
-            blockedIps: Number(summary.blocked_ips || 0),
-            liveSessions: Number(summary.live_sessions || 0),
-            uniqueIps: Number(summary.unique_ips || 0),
-            activeDecoys: Number(summary.active_decoys || 0),
-            threatScore: Number(summary.threat_score || 12),
-            topDecoy: String(summary.top_target || "none"),
+          if (!active) {
+            return;
+          }
+          startTransition(() => {
+            setBackendOnline(true);
+            setSnapshot({
+              totalAttacks: Number(summary.total_events || 0),
+              criticalThreats: Number(summary.critical_events || 0),
+              blockedIps: Number(summary.blocked_ips || 0),
+              liveSessions: Number(summary.live_sessions || 0),
+              uniqueIps: Number(summary.unique_ips || 0),
+              activeDecoys: Number(summary.active_decoys || 0),
+              threatScore: Number(summary.threat_score || 0),
+              topDecoy: String(summary.top_target || "").trim(),
+            });
+            setAttackTimeline(publicTimeline);
+            setAnalystSummary(String(publicData.ai_summary || "").trim() || buildAnalystSummary(feed));
           });
-          setAttackTimeline(publicTimeline);
-          setAnalystSummary(
-            String(publicData.ai_summary || "").trim() || buildAnalystSummary(feed)
-          );
           return;
         }
 
-        const res = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
-        const summary = res.data?.summary || {};
-        const feed = Array.isArray(res.data?.feed) ? res.data.feed : [];
-        const trapDistribution = res.data?.trap_distribution || {};
+        const authHeaders = buildAuthHeaders({ Accept: "application/json" });
+        const res = await fetch(`${API_BASE}/dashboard/stats?include_training=false`, { headers: authHeaders });
+        if (!res.ok) {
+          throw new Error(`Dashboard stats request failed: ${res.status}`);
+        }
+        const data = await res.json();
+        const summary = data?.summary || {};
+        const feed = Array.isArray(data?.feed) ? data.feed : [];
+        const trapDistribution = data?.trap_distribution || {};
         const totalAttacks = Number(summary.total || 0);
         const criticalThreats = Number(summary.critical || 0);
         const blockedIps = Number(summary.blocked || 0);
-        const uniqueIps = new Set(
-          feed
-            .map((event) => String(event?.ip || "").trim())
-            .filter(Boolean)
-        ).size;
+        const uniqueIps = new Set(feed.map((event) => String(event?.ip || "").trim()).filter(Boolean)).size;
         const activeDecoys = Object.keys(trapDistribution).length;
         const topDecoy =
-          Object.entries(trapDistribution).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0] || "login-portal";
+          String(Object.entries(trapDistribution).sort((a, b) => Number(b[1]) - Number(a[1]))[0]?.[0] || "").trim();
         const threatScore =
           totalAttacks === 0
-            ? 12
+            ? 0
             : Math.min(99, Math.round((criticalThreats / Math.max(totalAttacks, 1)) * 70 + Math.min(feed.length, 20) * 1.5 + 20));
         const timeline = feed.slice(0, 5).map((event, index) => toTimelineItem(event, index));
 
-        setSnapshot({
-          totalAttacks,
-          criticalThreats,
-          blockedIps,
-          liveSessions: feed.length,
-          uniqueIps,
-          activeDecoys,
-          threatScore,
-          topDecoy,
+        if (!active) {
+          return;
+        }
+        startTransition(() => {
+          setSnapshot({
+            totalAttacks,
+            criticalThreats,
+            blockedIps,
+            liveSessions: feed.length,
+            uniqueIps,
+            activeDecoys,
+            threatScore,
+            topDecoy,
+          });
+          setAttackTimeline(timeline);
+          setAnalystSummary(buildAnalystSummary(feed));
+          setBackendOnline(true);
         });
-        setAttackTimeline(timeline);
-        setAnalystSummary(buildAnalystSummary(feed));
-        setBackendOnline(true);
       } catch {
-        setBackendOnline(false);
+        if (!active) {
+          return;
+        }
+        startTransition(() => {
+          setBackendOnline(false);
+        });
       }
     };
 
-    loadSnapshot();
-    const interval = setInterval(loadSnapshot, 15000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (typeof document === "undefined" || document.visibilityState !== "visible") {
+        return;
+      }
+      void loadSnapshot();
+    };
+    void loadSnapshot();
+    const interval = setInterval(() => {
+      void loadSnapshot();
+    }, 15000);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      active = false;
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [telemetryEnabled]);
+
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return undefined;
+    }
+    const interval = window.setInterval(() => {
+      setActiveWalkthrough((current) => (current + 1) % 3);
+    }, 3600);
+    return () => window.clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return undefined;
+    }
+    let revealed = false;
+    const unlockInteractiveExperience = () => {
+      if (revealed) {
+        return;
+      }
+      revealed = true;
+      startTransition(() => {
+        setShowRichSections(true);
+      });
+      setTelemetryEnabled(true);
+      setMotionEnabled(true);
+    };
+    const onScroll = () => {
+      if ((window.scrollY || 0) > 120) {
+        unlockInteractiveExperience();
+      }
+    };
+    const onPointerDown = () => {
+      unlockInteractiveExperience();
+    };
+    const onKeyDown = () => {
+      unlockInteractiveExperience();
+    };
+    const onHashChange = () => {
+      if (window.location.hash) {
+        unlockInteractiveExperience();
+      }
+    };
+
+    if (window.location.hash) {
+      unlockInteractiveExperience();
+    }
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("keydown", onKeyDown);
+    window.addEventListener("hashchange", onHashChange);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("hashchange", onHashChange);
+    };
+  }, []);
+
+  const hasLiveEventData = attackTimeline.length > 0 || snapshot.totalAttacks > 0 || snapshot.liveSessions > 0;
+  const threatScoreLabel = snapshot.threatScore > 0 ? `${snapshot.threatScore}/100` : "No score yet";
+  const activeLuresLabel = snapshot.activeDecoys > 0 ? `${snapshot.activeDecoys} active lures` : "No live lures yet";
+  const activeSurfacesLabel = snapshot.activeDecoys > 0 ? `${snapshot.activeDecoys} active surfaces` : "No live surfaces yet";
+  const liveSessionsLabel = snapshot.liveSessions > 0 ? `${snapshot.liveSessions} live sessions` : "No live sessions yet";
+  const eventHitsLabel = snapshot.totalAttacks > 0 ? `${snapshot.totalAttacks} event hits` : "No event hits yet";
+  const blockedIpsLabel = snapshot.blockedIps > 0 ? `${snapshot.blockedIps} blocked IPs` : "No blocked IPs yet";
+  const topDecoyLabel = snapshot.topDecoy || "No live lure yet";
+  const runtimeStatusLabel = backendOnline ? "Online" : "Degraded";
+  const snapshotSignal = hasLiveEventData ? "Live signal present" : "Signal warming";
+  const defenseCoverageLabel = snapshot.activeDecoys > 0 ? `${snapshot.activeDecoys} decoy surfaces armed` : "Decoy surfaces arming";
+  const evidenceDepthLabel = snapshot.totalAttacks > 0 ? `${snapshot.totalAttacks} event records` : "Event records pending";
+  const responseReadinessLabel = snapshot.blockedIps > 0 ? `${snapshot.blockedIps} block actions prepared` : "Block actions pending";
+  const proofCards = [
+    { label: "Runtime status", value: runtimeStatusLabel, detail: "Public API and telemetry path availability." },
+    { label: "Threat confidence", value: threatScoreLabel, detail: "AI-assisted signal confidence from live activity." },
+    { label: "Coverage state", value: defenseCoverageLabel, detail: "How many decoy surfaces are actively collecting." },
+    { label: "Evidence depth", value: evidenceDepthLabel, detail: "Captured records ready for analyst review." },
+    { label: "Response path", value: responseReadinessLabel, detail: "Edge/WAF response readiness from observed behavior." },
+    { label: "Top targeted lure", value: topDecoyLabel, detail: "Most hit deception surface in the latest window." },
+  ];
+  const readinessChecklist = [
+    `Detection signal: ${snapshotSignal}`,
+    `Analyst context: ${analystSummary}`,
+    `Live sessions: ${liveSessionsLabel}`,
+    `Critical events: ${snapshot.criticalThreats > 0 ? snapshot.criticalThreats : "No critical events yet"}`,
+    `Unique source IPs: ${snapshot.uniqueIps > 0 ? snapshot.uniqueIps : "No source IPs yet"}`,
+  ];
+  const publicHealthUrl = "/api/health";
+  const publicSnapshotUrl = "/api/public/telemetry/snapshot";
+
+  const highlights = [
+    { label: "Active decoys", value: snapshot.activeDecoys },
+    { label: "Threat score", value: threatScoreLabel },
+    { label: "Unique IPs", value: snapshot.uniqueIps },
+  ];
+  const homeConsoleNodes = [
+    { label: topDecoyLabel, meta: snapshot.topDecoy ? "Most targeted lure" : "Most targeted lure pending" },
+    { label: snapshot.activeDecoys > 0 ? `${snapshot.activeDecoys} decoys armed` : "No armed decoys yet", meta: "Coverage state" },
+    { label: snapshot.uniqueIps > 0 ? `${snapshot.uniqueIps} source IPs` : "No source IPs yet", meta: "Observed sources" },
+    { label: liveSessionsLabel, meta: "Current session pressure" },
+  ];
+  const homeProtocolLanes = [
+    {
+      label: "Web decoys",
+      value: snapshot.liveSessions > 0 ? `${snapshot.liveSessions} live sessions` : "Waiting for session flow",
+      intensity: snapshot.liveSessions > 0 ? Math.min(96, 38 + snapshot.liveSessions * 8 + snapshot.criticalThreats * 4) : 0,
+    },
+    {
+      label: "API traps",
+      value: snapshot.activeDecoys > 0 ? `${snapshot.activeDecoys} decoys armed` : "Waiting for active decoys",
+      intensity: snapshot.activeDecoys > 0 ? Math.min(92, 34 + snapshot.activeDecoys * 7 + snapshot.uniqueIps * 3) : 0,
+    },
+    {
+      label: "AI triage",
+      value: snapshot.threatScore > 0 ? `Confidence ${threatScoreLabel}` : "Waiting for threat score",
+      intensity: snapshot.threatScore > 0 ? Math.min(98, 45 + Math.round(snapshot.threatScore * 0.45)) : 0,
+    },
+  ];
+  const homeConsoleFeed =
+    attackTimeline.length > 0
+      ? attackTimeline.slice(0, 4)
+      : [
+          { id: "waiting-events", ts: "--:--:--", path: "Waiting for live attacker events", severity: "low" },
+          { id: "waiting-replay", ts: "--:--:--", path: "Replay starts after the first suspicious touch", severity: "low" },
+          { id: "waiting-brief", ts: "--:--:--", path: "AI brief updates when telemetry arrives", severity: "low" },
+        ];
+  const walkthroughFrames = [
+    {
+      label: "Step 1",
+      title: "Trap activation",
+      detail: "A decoy route is armed around the public edge so recon lands in a controlled surface first.",
+      stats: [activeLuresLabel, topDecoyLabel],
+    },
+    {
+      label: "Step 2",
+      title: "Path capture",
+      detail: "The platform records route order, timing, and suspicious movement as the session unfolds.",
+      stats: [liveSessionsLabel, eventHitsLabel],
+    },
+    {
+      label: "Step 3",
+      title: "Operator brief",
+      detail: "AI condenses the first-touch sequence into a short summary and readiness checks point to next action.",
+      stats: [threatScoreLabel, blockedIpsLabel],
+    },
+  ];
+  const demoFrame = DEMO_CHAPTERS[activeWalkthrough] || DEMO_CHAPTERS[0];
+
   return (
-    <div className="home-v2">
-      <div className="home-v2-ambient home-v2-ambient-a" />
-      <div className="home-v2-ambient home-v2-ambient-b" />
+    <div className={`marketing-shell marketing-shell-home ${motionEnabled ? "marketing-motion-on" : "marketing-motion-paused"}`}>
+      <PublicHeader variant="cred" pagePath="/" includeHomeAnchors />
 
-      <PublicHeader variant="home" pagePath="/" brandText="CYBERSENTINEL AI" />
-
-      <main className="home-v2-main">
-        <section className="home-v2-hero">
-          <div>
-            <p className="home-v2-badge">AI-Enhanced Dynamic Deception Platform</p>
-            <h1>AI-Enhanced Dynamic Deception Platform</h1>
-            <p className="home-v2-subtitle">
-              Deploy adaptive high-interaction decoys, observe attacker behavior, and analyze threats in real time
-              through an AI-driven analytics dashboard.
+      <main className="marketing-main">
+        <section className="marketing-hero marketing-hero-home">
+          <article className="marketing-card marketing-hero-copy">
+            <div className="marketing-badge">AI-enhanced deception security platform</div>
+            <div className="marketing-hero-signal">
+              {IMPACT_POINTS.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+            <h1 className="marketing-title">Turn public attack traffic into deception telemetry, attacker intelligence, and operator-ready response.</h1>
+            <p className="marketing-subtitle">
+              {productName} turns noisy internet attack traffic into a usable defender workflow: detect early, preserve evidence, explain intent with AI,
+              and move to response before attacker reconnaissance becomes breach pressure.
             </p>
-            <div className="home-v2-trust-strip">
-              <span>High-Interaction</span>
-              <span>Behavior-Aware AI</span>
-              <span>SOC-Ready Analytics</span>
-              <span>Startup Ops CRM</span>
+            <div className="marketing-inline-points">
+              {TRUST_POINTS.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
             </div>
-            <div className="home-v2-hero-actions">
-              <Link to="/demo" className="home-v2-btn home-v2-btn-primary" onClick={() => trackCtaClick("request_demo", "/")}>
-                Request Demo <ArrowRight size={16} />
+            <div className="marketing-actions">
+              <Link to="/platform" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("explore_platform", "/")}>
+                Start Live Tour <ArrowRight size={16} />
               </Link>
-              <Link
-                to="/platform"
-                className="home-v2-btn home-v2-btn-ghost"
-                onClick={() => trackCtaClick("explore_platform", "/")}
-              >
-                Explore Platform
+              <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/")}>
+                Request Demo
               </Link>
-              <Link
-                to="/contact"
-                className="home-v2-btn home-v2-btn-ghost"
-                onClick={() => trackCtaClick("contact_team", "/")}
-              >
-                Contact Team
+              <Link to="/screenshots" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_screenshots_gallery", "/")}>
+                See Product Proof
               </Link>
             </div>
-          </div>
+            <div className="marketing-mini-pill-row" aria-label="Validation assets">
+              {HERO_PROOF_PILLS.map((item) => (
+                <span key={item} className="marketing-mini-pill">{item}</span>
+              ))}
+            </div>
+            <div className="marketing-highlight-row">
+              {highlights.map((item) => (
+                <div key={item.label} className="marketing-highlight">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+            <div className="marketing-hero-story">
+              <div className="marketing-hero-story-head">
+                <span className="marketing-kicker">Why teams deploy it</span>
+                <strong>One workflow for public-edge detection, analyst review, and response handoff.</strong>
+              </div>
+              <ul className="marketing-checklist marketing-checklist-compact">
+                {BUYER_POINTS.map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 size={16} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="marketing-hero-walkthrough">
+              <div className="marketing-hero-walkthrough-head">
+                <span className="marketing-kicker">Guided walkthrough</span>
+                <strong>Watch the operator flow move from lure to AI-backed handoff.</strong>
+              </div>
+              <div className="marketing-hero-walkthrough-tabs" aria-label="Guided walkthrough">
+                {walkthroughFrames.map((item, index) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    className={`marketing-hero-walkthrough-tab ${index === activeWalkthrough ? "is-active" : ""}`}
+                    onClick={() => setActiveWalkthrough(index)}
+                    aria-pressed={index === activeWalkthrough}
+                  >
+                    <span>{item.label}</span>
+                    <strong>{item.title}</strong>
+                  </button>
+                ))}
+              </div>
+              <div className="marketing-hero-walkthrough-card">
+                <p>{walkthroughFrames[activeWalkthrough].detail}</p>
+                <div className="marketing-hero-walkthrough-stats">
+                  {walkthroughFrames[activeWalkthrough].stats.map((item) => (
+                    <strong key={item}>{item}</strong>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </article>
 
-          <div className="home-v2-panel">
-            <div className="home-v2-panel-head">
-              <h3>Live Security Snapshot</h3>
-              <span className={backendOnline ? "status-online" : "status-offline"}>
-                {backendOnline ? "AI ONLINE" : "AI OFFLINE"}
+          <aside className="marketing-card marketing-hero-panel marketing-stage marketing-stage-console">
+            <div className="marketing-stage-top">
+              <div>
+                <div className="marketing-kicker">Live deception mesh</div>
+                <h2>High-interaction command view</h2>
+              </div>
+              <span className={`marketing-status ${backendOnline ? "online" : "offline"}`}>
+                {backendOnline ? "Online" : "Offline"}
               </span>
             </div>
-            <div className="home-v2-metric-grid">
-              <Metric label="Total attacks today" value={snapshot.totalAttacks} />
-              <Metric label="Critical threats" value={snapshot.criticalThreats} />
-              <Metric label="Blocked IPs" value={snapshot.blockedIps} />
-              <Metric label="Unique IPs" value={snapshot.uniqueIps} />
-              <Metric label="Live sessions" value={snapshot.liveSessions} />
-              <Metric label="Top targeted decoy" value={snapshot.topDecoy} mono />
+
+            <div className="marketing-console-shell">
+              <div className="marketing-console-head">
+                <span>Decoy mesh armed</span>
+                <strong>{activeSurfacesLabel}</strong>
+              </div>
+              <div className="marketing-deception-map">
+                <span className="marketing-deception-trace marketing-deception-trace-v" />
+                <span className="marketing-deception-trace marketing-deception-trace-top" />
+                <span className="marketing-deception-trace marketing-deception-trace-bottom" />
+                <div className="marketing-deception-node marketing-deception-node-1">
+                  <small>{homeConsoleNodes[0].meta}</small>
+                  <strong>{homeConsoleNodes[0].label}</strong>
+                </div>
+                <div className="marketing-deception-node marketing-deception-node-2">
+                  <small>{homeConsoleNodes[1].meta}</small>
+                  <strong>{homeConsoleNodes[1].label}</strong>
+                </div>
+                <div className="marketing-deception-node marketing-deception-node-core">
+                  <small>AI Sentinel</small>
+                  <strong>{threatScoreLabel}</strong>
+                  <span>Threat score</span>
+                </div>
+                <div className="marketing-deception-node marketing-deception-node-3">
+                  <small>{homeConsoleNodes[2].meta}</small>
+                  <strong>{homeConsoleNodes[2].label}</strong>
+                </div>
+                <div className="marketing-deception-node marketing-deception-node-4">
+                  <small>{homeConsoleNodes[3].meta}</small>
+                  <strong>{homeConsoleNodes[3].label}</strong>
+                </div>
+              </div>
+              <div className="marketing-signal-lanes">
+                {homeProtocolLanes.map((item) => (
+                  <div key={item.label} className="marketing-signal-lane">
+                    <div className="marketing-signal-lane-meta">
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                    </div>
+                    <div className="marketing-signal-lane-bar">
+                      <span style={{ width: `${item.intensity}%` }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="home-v2-analyst">
-              <div>
-                <Bot size={16} />
-                AI Analyst Summary
+
+            <div className="marketing-stage-summary">
+              <div className="marketing-summary-head">
+                <BrainCircuit size={16} />
+                <span>AI incident brief</span>
               </div>
               <p>{analystSummary}</p>
             </div>
+
+            <div className="marketing-stage-grid">
+              <MetricCard label="Attacks today" value={snapshot.totalAttacks} />
+              <MetricCard label="Critical threats" value={snapshot.criticalThreats} />
+              <MetricCard label="Blocked IPs" value={snapshot.blockedIps} />
+              <MetricCard label="Live sessions" value={snapshot.liveSessions} />
+            </div>
+
+            <div className="marketing-stage-strip">
+              <div>
+                <span>Top decoy</span>
+                <strong>{topDecoyLabel}</strong>
+              </div>
+              <div>
+                <span>Monitoring</span>
+                <strong>Deception active</strong>
+              </div>
+            </div>
+            <div className="marketing-stage-feed marketing-stage-feed-console">
+              <div className="marketing-stage-feed-head">
+                <Activity size={14} />
+                <span>Recent session activity</span>
+              </div>
+              <ul className="marketing-stage-feed-list marketing-stage-feed-list-rich">
+                {homeConsoleFeed.map((item) => (
+                  <li key={item.id}>
+                    <span>{item.ts}</span>
+                    <code>{item.path}</code>
+                    <b className={`severity severity-${item.severity}`}>{item.severity}</b>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+        </section>
+
+        <section id="telemetry" className="marketing-card marketing-live-ribbon">
+          <div className="marketing-live-ribbon-head">
+            <Activity size={15} />
+            <strong>Live telemetry snapshot</strong>
+          </div>
+          <div className="marketing-live-ribbon-stream">
+            {(attackTimeline.length > 0 ? attackTimeline : [{ id: "waiting", ts: "--:--:--", path: "Waiting for live attacker events", severity: "low" }]).map((item) => (
+              <div key={item.id} className="marketing-live-pill-item">
+                <span>{item.ts}</span>
+                <code>{item.path}</code>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section id="problem" className="home-v2-section-split">
-          <article className="home-v2-panel">
-            <h2>Why static honeypots fail</h2>
-            <ul>
-              <li>Fixed banners and predictable responses are easy to fingerprint.</li>
-              <li>Single-protocol traps break attacker journey realism.</li>
-              <li>Manual triage slows incident response.</li>
-            </ul>
-          </article>
-          <article className="home-v2-panel">
-            <h2>How this platform solves it</h2>
-            <ul>
-              <li>Dynamic page mutation and believable decoy data.</li>
-              <li>Behavior-aware response adaptation with high-interaction flows.</li>
-              <li>Automated intent classification, scoring, and session summaries.</li>
-            </ul>
-          </article>
+        <section className="marketing-card marketing-live-ribbon marketing-lazy-section">
+          <div className="marketing-live-ribbon-head">
+            <ShieldCheck size={15} />
+            <strong>Technical validation strip</strong>
+          </div>
+          <div className="marketing-live-ribbon-stream">
+            {VALIDATION_SIGNAL_BAR.map((item) => (
+              <div key={item} className="marketing-live-pill-item">
+                <span>Proof</span>
+                <code>{item}</code>
+              </div>
+            ))}
+          </div>
         </section>
 
-        <section id="features" className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Core capabilities</p>
-            <h2>From trap to full deception ecosystem</h2>
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Hard differentiation</p>
+            <h2>Why this platform is stronger than baseline security tooling.</h2>
           </div>
-          <div className="home-v2-feature-grid">
+          <div className="marketing-grid-2">
+            {HARD_DIFFERENTIATORS.map((item) => (
+              <article key={item.title} className="marketing-card marketing-showcase">
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Proof-first view</p>
+            <h2>Operational evidence buyers and reviewers can verify quickly.</h2>
+          </div>
+          <div className="marketing-grid-3">
+            {proofCards.map((item) => (
+              <article key={item.label} className="marketing-card marketing-feature">
+                <h3>{item.label}</h3>
+                <p style={{ fontSize: "1.2rem", fontWeight: 800, marginBottom: "6px" }}>{item.value}</p>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+          <div className="marketing-grid-2" style={{ marginTop: "12px" }}>
+            <article className="marketing-card marketing-list-card">
+              <div className="marketing-section-head">
+                <p>Readiness checklist</p>
+                <h2>What a technical evaluator can inspect now.</h2>
+              </div>
+              <ul className="marketing-checklist marketing-checklist-compact">
+                {readinessChecklist.map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 size={16} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="marketing-actions">
+                <a href={publicHealthUrl} className="marketing-btn marketing-btn-secondary" target="_blank" rel="noreferrer">
+                  Open API Health
+                </a>
+                <a href={publicSnapshotUrl} className="marketing-btn marketing-btn-secondary" target="_blank" rel="noreferrer">
+                  Open Public Snapshot
+                </a>
+              </div>
+            </article>
+
+            <article className="marketing-card marketing-list-card">
+              <div className="marketing-section-head">
+                <p>Why this stands out</p>
+                <h2>Difference between this platform and baseline security tooling.</h2>
+              </div>
+              <ul className="marketing-list">
+                {COMPETITIVE_ROWS.map((row, index) => (
+                  <li key={row.label} className="simple marketing-plan-compare-row">
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{row.label}</strong>
+                      <p>{row.ours}</p>
+                      <p style={{ opacity: 0.78 }}>Typical alternatives: {row.generic}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        {showRichSections ? (
+          <>
+            <section className="marketing-card marketing-top-trust-strip marketing-lazy-section">
+              <div className="marketing-top-trust-head">
+                <div className="marketing-top-trust-copy">
+                  <span className="marketing-kicker">Buyer confidence</span>
+                  <h2>Built for serious operator review, not just a concept landing page.</h2>
+                    <p>Teams evaluate three things first: fit, deployment quality, and operational readiness. This section answers those quickly.</p>
+                </div>
+                <div className="marketing-top-trust-badges" aria-label="Built for these teams">
+                  {TRUST_AUDIENCE_STRIP.map((item) => (
+                    <span key={item} className="marketing-top-trust-badge">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="marketing-top-trust-ledger">
+                {TRUST_LEDGER.map((item) => (
+                  <article key={item.title} className="marketing-top-trust-item">
+                    <div className="marketing-impact-head">
+                      <div className="marketing-icon-box">{item.icon}</div>
+                      <span className="marketing-impact-signal">{item.title}</span>
+                    </div>
+                    <p>{item.detail}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="marketing-section marketing-lazy-section">
+              <div className="marketing-section-head">
+                <p>Interactive preview</p>
+                <h2>A guided product demo built into the page.</h2>
+              </div>
+              <div className="marketing-grid-2 marketing-demo-band">
+                <article className="marketing-card marketing-demo-player">
+                  <div className="marketing-demo-topbar">
+                    <div className="marketing-demo-dots">
+                      <span />
+                      <span />
+                      <span />
+                    </div>
+                    <div className="marketing-demo-label">
+                      <span>{productName} demo</span>
+                      <strong>{demoFrame.title}</strong>
+                    </div>
+                  </div>
+                  <div className="marketing-demo-screen">
+                    <div className="marketing-demo-screen-grid">
+                      <div className="marketing-demo-pane marketing-demo-pane-primary">
+                        <div className="marketing-demo-pane-head">
+                          <span className="marketing-kicker">Live attacker path</span>
+                          <strong>{hasLiveEventData ? homeConsoleFeed[0]?.path : "Waiting for live attacker path"}</strong>
+                        </div>
+                        <div className="marketing-demo-wave">
+                          {homeProtocolLanes.map((item) => (
+                            <div key={item.label} className="marketing-demo-wave-row">
+                              <span>{item.label}</span>
+                              <div><b style={{ width: `${item.intensity}%` }} /></div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="marketing-demo-pane">
+                        <div className="marketing-demo-pane-head">
+                          <span className="marketing-kicker">AI brief</span>
+                          <strong>Readable operator context</strong>
+                        </div>
+                        <p>{analystSummary}</p>
+                      </div>
+                      <div className="marketing-demo-pane marketing-demo-pane-wide">
+                        <div className="marketing-demo-chapters">
+                          {DEMO_CHAPTERS.map((item, index) => (
+                            <button
+                              key={item.title}
+                              type="button"
+                              className={`marketing-demo-chapter ${index === activeWalkthrough ? "is-active" : ""}`}
+                              onClick={() => setActiveWalkthrough(index)}
+                            >
+                              <span>{String(index + 1).padStart(2, "0")}</span>
+                              <div>
+                                <strong>{item.title}</strong>
+                                <p>{item.detail}</p>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="marketing-demo-play">
+                      <div className="marketing-demo-play-button">
+                        <span />
+                      </div>
+                      <strong>Interactive product preview</strong>
+                    </div>
+                  </div>
+                </article>
+
+                <article className="marketing-card marketing-demo-copy">
+                  <div className="marketing-section-head">
+                    <p>What this shows</p>
+                    <h2>The platform path buyers need to understand before opening the full product.</h2>
+                  </div>
+                  <p>
+                    This preview condenses the first-touch workflow into one guided view: decoy activation, suspicious route capture,
+                    AI-assisted incident context, and operator-ready next steps. It is designed to answer the first product question fast:
+                    "what will my team actually see?"
+                  </p>
+                  <ul className="marketing-checklist marketing-checklist-compact">
+                    <li>
+                      <CheckCircle2 size={16} />
+                      <span>Shows the operator-facing workflow without opening the dashboard.</span>
+                    </li>
+                    <li>
+                      <CheckCircle2 size={16} />
+                      <span>Matches the same telemetry, AI brief, and readiness story shown elsewhere on the site.</span>
+                    </li>
+                    <li>
+                      <CheckCircle2 size={16} />
+                      <span>Lets visitors understand the product before they commit to a demo call.</span>
+                    </li>
+                  </ul>
+                  <div className="marketing-actions">
+                    <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/")}>
+                      Request Demo
+                    </Link>
+                    <Link to="/platform" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("explore_platform", "/")}>
+                      Explore Platform
+                    </Link>
+                    <Link to="/case-study" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/")}>
+                      View Case Study
+                    </Link>
+                  </div>
+                </article>
+              </div>
+            </section>
+
+            <section className="marketing-section marketing-lazy-section">
+              <div className="marketing-section-head">
+                <p>Launch trust</p>
+                <h2>Immediate credibility signals buyers expect before they spend time on the rest of the site.</h2>
+              </div>
+              <div className="marketing-launch-ribbon">
+                {LAUNCH_SIGNALS.map((item) => (
+                  <article key={item.title} className="marketing-card marketing-launch-chip">
+                    <div className="marketing-impact-head">
+                      <div className="marketing-icon-box">{item.icon}</div>
+                      <span className="marketing-impact-signal">{item.title}</span>
+                    </div>
+                    <p>{item.detail}</p>
+                    <Link to={item.to} className="marketing-route-link" onClick={() => trackCtaClick(`launch_${item.cta.toLowerCase()}`, "/")}>
+                      {item.cta} <ArrowRight size={15} />
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <section className="marketing-section marketing-lazy-section">
+              <div className="marketing-section-head">
+                <p>Real screens</p>
+                <h2>Actual screenshots captured from the current local build, not illustration cards.</h2>
+              </div>
+              <div className="marketing-screenshot-grid">
+                {SCREENSHOT_GALLERY.map((item) => (
+                  <article key={item.title} className="marketing-card marketing-screenshot-card">
+                    <div className="marketing-screenshot-frame">
+                      <img src={item.image} alt={item.alt} loading="lazy" />
+                    </div>
+                    <div className="marketing-screenshot-copy">
+                      <h3>{item.title}</h3>
+                      <p>{item.detail}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="marketing-mini-pill-row">
+                <span className="marketing-mini-pill">Captured from the running local stack</span>
+                <span className="marketing-mini-pill">Dashboard, threat intel, and forensics views</span>
+                <span className="marketing-mini-pill">Use Request Demo for a guided live walkthrough</span>
+              </div>
+              <div className="marketing-actions">
+                <Link
+                  to="/screenshots"
+                  className="marketing-btn marketing-btn-primary"
+                  onClick={() => trackCtaClick("view_screenshots_gallery", "/")}
+                >
+                  Open Screenshots Gallery
+                </Link>
+                <Link
+                  to="/demo"
+                  className="marketing-btn marketing-btn-secondary"
+                  onClick={() => trackCtaClick("request_demo", "/")}
+                >
+                  Request Demo
+                </Link>
+              </div>
+            </section>
+          </>
+        ) : (
+          <section className="marketing-section marketing-lazy-section">
+            <article className="marketing-card marketing-showcase">
+              <h3>Interactive modules ready</h3>
+              <p>Deep demo, launch-trust lane, and screenshot proof gallery load after interaction.</p>
+              <div className="marketing-actions">
+                <button
+                  type="button"
+                  className="marketing-btn marketing-btn-secondary"
+                  onClick={() => {
+                    startTransition(() => {
+                      setShowRichSections(true);
+                    });
+                    setTelemetryEnabled(true);
+                    setMotionEnabled(true);
+                  }}
+                >
+                  Load Full Experience
+                </button>
+              </div>
+            </article>
+          </section>
+        )}
+
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Start here</p>
+            <h2>Modern buyers do not read everything. They look for product, integration, deployment, and trust in the first few clicks.</h2>
+          </div>
+          <div className="marketing-grid-2 marketing-route-grid">
+            {EVALUATION_PATHS.map((item) => (
+              <article key={item.title} className="marketing-card marketing-route-card">
+                <div className="marketing-impact-head">
+                  <div className="marketing-icon-box">{item.icon}</div>
+                  <span className="marketing-impact-signal">{item.title}</span>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
+                <Link to={item.to} className="marketing-route-link" onClick={() => trackCtaClick(`home_${item.cta.replace(/\s+/g, "_").toLowerCase()}`, "/")}>
+                  {item.cta} <ArrowRight size={15} />
+                </Link>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section id="problem" className="marketing-band marketing-card marketing-proof-band marketing-lazy-section">
+          <div className="marketing-proof-copy">
+            <p className="marketing-kicker">Mission fit</p>
+            <h2>Built for teams that need evidence before attacker movement becomes customer impact, outage risk, or breach pressure.</h2>
+          </div>
+          <div className="marketing-proof-grid">
             {FEATURE_CARDS.map((feature) => (
-              <article key={feature.title} className="home-v2-feature-card">
-                <div className="home-v2-feature-icon">{feature.icon}</div>
+              <article key={feature.title} className="marketing-proof-item">
+                <div className="marketing-icon-box">{feature.icon}</div>
                 <h3>{feature.title}</h3>
                 <p>{feature.desc}</p>
               </article>
@@ -311,124 +1136,95 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Why not traditional honeypots?</p>
-            <h2>Static traps vs adaptive deception</h2>
+        <section id="features" className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>How it works</p>
+            <h2>One simple product story from first touch to analyst response</h2>
           </div>
-          <div className="home-v2-table-wrap home-v2-contrast-card">
-            <div className="home-v2-contrast-title">Traditional vs Our System</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Traditional</th>
-                  <th>Our System</th>
-                </tr>
-              </thead>
-              <tbody>
-                {COMPARISON_ROWS.map((row) => (
-                  <tr key={row[0]}>
-                    <td>{row[0]}</td>
-                    <td>{row[1]}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section id="architecture" className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Architecture preview</p>
-            <h2>Attacker to AI loop in one pipeline</h2>
-          </div>
-          <div className="home-v2-flow">
-            <FlowNode icon={<Activity size={16} />} label="Attacker" />
-            <FlowNode icon={<Shield size={16} />} label="Dynamic Decoy" />
-            <FlowNode icon={<Server size={16} />} label="Event Collector" />
-            <FlowNode icon={<BrainCircuit size={16} />} label="AI Engine" />
-            <FlowNode icon={<Radar size={16} />} label="Dashboard" />
-          </div>
-        </section>
-
-        <section className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Demo preview</p>
-            <h2>Mini live dashboard preview</h2>
-          </div>
-          <div className="home-v2-live-demo">
-            <div className="home-v2-live-kpis">
-              <LiveKpi label="Active decoys" value={snapshot.activeDecoys} />
-              <LiveKpi label="Live sessions" value={snapshot.liveSessions} />
-              <LiveKpi label="Threat score" value={`${snapshot.threatScore}/100`} />
-              <LiveKpi label="Top decoy" value={snapshot.topDecoy} mono />
-            </div>
-            <div className="home-v2-live-body">
-              <div className="home-v2-live-panel">
-                <h3>AI Analyst Summary</h3>
-                <p>{analystSummary}</p>
-              </div>
-              <div className="home-v2-live-panel">
-                <h3>Attack Timeline</h3>
-                {attackTimeline.length === 0 ? (
-                  <p>No active timeline. Waiting for first attack session.</p>
-                ) : (
-                  <ul>
-                    {attackTimeline.map((item) => (
-                      <li key={item.id}>
-                        <span>{item.ts}</span>
-                        <code>{item.path}</code>
-                        <b className={`sev-${item.severity}`}>{item.severity.toUpperCase()}</b>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Supported deception environments</p>
-            <h2>Multi-layer decoys beyond one service trap</h2>
-          </div>
-          <div className="home-v2-chip-grid">
-            {DECEPTION_TYPES.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </section>
-
-        <section className="home-v2-section">
-          <div className="home-v2-section-head">
-            <p>Trend-aligned modules</p>
-            <h2>Built on current deception platform direction</h2>
-          </div>
-          <div className="home-v2-trend-grid">
-            {TREND_MODULES.map((module) => (
-              <article key={module.title} className="home-v2-trend-card">
-                <h3>{module.title}</h3>
-                <p>{module.detail}</p>
+          <div className="marketing-grid-3">
+            {PRODUCT_STEPS.map((step) => (
+              <article key={step.title} className="marketing-card marketing-step">
+                <div className="marketing-icon-box">{step.icon}</div>
+                <h3>{step.title}</h3>
+                <p>{step.detail}</p>
               </article>
             ))}
           </div>
         </section>
 
-        <section id="contact" className="home-v2-cta">
-          <div>
-            <p>Contact / Demo</p>
-            <h2>Schedule a dynamic deception walkthrough</h2>
-            <span>See how adaptive decoys classify intent and increase attacker dwell time.</span>
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Use cases</p>
+            <h2>Where the platform fits best</h2>
           </div>
-          <div className="home-v2-cta-actions">
-            <Link to="/demo" className="home-v2-btn home-v2-btn-primary" onClick={() => trackCtaClick("request_demo", "/")}>
-              Request Demo
+          <div className="marketing-grid-2">
+            {USE_CASES.map((item) => (
+              <article key={item.title} className="marketing-card marketing-showcase">
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-grid-2 marketing-home-lower">
+            <article className="marketing-card marketing-list-card">
+              <div className="marketing-section-head">
+                <p>Live activity</p>
+                <h2>Recent telemetry from the event stream</h2>
+              </div>
+              {attackTimeline.length === 0 ? (
+                <p className="marketing-empty">No active timeline yet. Waiting for live events.</p>
+              ) : (
+                <ul className="marketing-timeline">
+                  {attackTimeline.map((item) => (
+                    <li key={item.id}>
+                      <span className="marketing-timeline-time">{item.ts}</span>
+                      <code>{item.path}</code>
+                      <b className={`severity severity-${item.severity}`}>{item.severity}</b>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+
+            <article className="marketing-card marketing-list-card">
+              <div className="marketing-section-head">
+                <p>Mission impact</p>
+                <h2>Why the platform matters in real environments</h2>
+              </div>
+              <ul className="marketing-checklist">
+                {CHECKLIST_ITEMS.map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 size={16} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="marketing-radar-box">
+                <div className="marketing-icon-box">
+                  <Radar size={18} />
+                </div>
+                <div>
+                  <strong>Readiness focus</strong>
+                  <p>Use the same deception workflow for monitoring, exercises, analyst training, and incident review.</p>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="marketing-card marketing-cta marketing-lazy-section">
+          <div className="marketing-cta-copy">
+            <h2>Need earlier signal, clearer evidence, and a market-ready deception workflow?</h2>
+            <p>{productName} helps teams catch suspicious interaction earlier, preserve the attacker path, and move from public attack traffic to response-ready evidence fast.</p>
+          </div>
+          <div className="marketing-actions">
+            <Link to="/platform" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_platform", "/")}>
+              View Platform
             </Link>
-            <Link to="/platform" className="home-v2-btn home-v2-btn-ghost" onClick={() => trackCtaClick("explore_platform", "/")}>
-              Explore Platform
-            </Link>
-            <Link to="/contact" className="home-v2-btn home-v2-btn-ghost" onClick={() => trackCtaClick("contact_team", "/")}>
+            <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/")}>
               Contact Team
             </Link>
           </div>
@@ -440,29 +1236,11 @@ export default function Home() {
   );
 }
 
-function Metric({ label, value, mono = false }) {
+function MetricCard({ label, value }) {
   return (
-    <div className="home-v2-metric">
+    <div className="marketing-stat">
       <span>{label}</span>
-      <strong className={mono ? "mono" : ""}>{value}</strong>
-    </div>
-  );
-}
-
-function FlowNode({ icon, label }) {
-  return (
-    <div className="home-v2-flow-node">
-      <div>{icon}</div>
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function LiveKpi({ label, value, mono = false }) {
-  return (
-    <div className="home-v2-live-kpi">
-      <span>{label}</span>
-      <strong className={mono ? "mono" : ""}>{value}</strong>
+      <strong>{value}</strong>
     </div>
   );
 }

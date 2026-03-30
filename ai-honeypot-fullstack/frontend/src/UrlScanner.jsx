@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE } from './apiConfig';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from './utils/motionLite.jsx';
 import {
     Globe, Search, Shield, AlertTriangle, CheckCircle, XCircle, Wifi,
     ExternalLink, Zap, Activity, Lock, Eye, Clock, BarChart3,

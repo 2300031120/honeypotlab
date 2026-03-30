@@ -1,45 +1,58 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { PUBLIC_SITE, toMailto } from "./siteConfig";
 import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
+import PublicHeader from "./PublicHeader";
 import PublicFooter from "./PublicFooter";
 
 export default function PrivacyPolicy() {
   useSeo({
-    title: "Privacy Policy | CyberSentinel AI",
-    description: "Privacy policy for CyberSentinel AI platform, lead forms, telemetry handling, and security controls.",
+    title: `Privacy Policy | ${PUBLIC_SITE.siteName}`,
+    description: `Privacy policy for ${PUBLIC_SITE.siteName}, lead forms, telemetry handling, and security controls.`,
   });
   usePageAnalytics("privacy_policy");
 
   return (
     <div className="cred-page">
-      <header className="cred-nav">
-        <Link to="/" className="cred-brand">
-          <Shield size={16} />
-          CYBERSENTINEL
-        </Link>
-        <nav className="cred-nav-links">
-          <Link to="/">Home</Link>
-          <Link to="/platform">Platform</Link>
-          <Link to="/security">Security</Link>
-          <Link to="/contact">Contact</Link>
-        </nav>
-      </header>
+      <PublicHeader variant="cred" pagePath="/privacy" />
       <main className="cred-main">
         <section className="legal-card">
           <h1>Privacy Policy</h1>
-          <p>Last updated: March 7, 2026</p>
-          <h2>Data We Collect</h2>
-          <p>We collect lead form submissions, platform telemetry, and operational events needed for security monitoring and service improvement.</p>
-          <h2>How We Use Data</h2>
-          <p>Data is used for demo/contact response, attacker behavior analysis, product operations, and abuse prevention.</p>
+          <p>Last updated: March 29, 2026</p>
+          <h2>Scope</h2>
+          <p>
+            This policy explains how {PUBLIC_SITE.companyName} handles personal data when you visit {PUBLIC_SITE.siteName}, request a demo,
+            contact the team, or use an authorized deployment of the platform.
+          </p>
+          <h2>Data Categories</h2>
+          <p>
+            We may process contact details, organization details, support communications, authentication records, and security telemetry that
+            operators intentionally collect through approved deployments. We do not permit unlawful monitoring or offensive use.
+          </p>
+          <h2>Why We Use Data</h2>
+          <p>
+            Data is used to respond to commercial requests, secure accounts, investigate abuse, operate deception workflows, and improve platform
+            reliability and analyst experience.
+          </p>
           <h2>Retention and Access</h2>
-          <p>Access is role-based and limited to authorized operators. Retention is controlled by environment and deployment settings.</p>
-          <h2>Third-Party Services</h2>
-          <p>Notification channels and infrastructure providers may process operational metadata required to deliver service alerts.</p>
+          <p>
+            Access is role-based and limited to authorized operators. Retention depends on contract, deployment settings, and legal obligations.
+            Customers are responsible for configuring reasonable retention inside their own environments.
+          </p>
+          <h2>International Processing</h2>
+          <p>
+            The platform may use infrastructure or notification providers in multiple regions. When cross-border processing applies, we expect
+            customers and operators to use appropriate contractual and technical safeguards.
+          </p>
+          <h2>Your Requests</h2>
+          <p>
+            Where applicable, you may request access, correction, deletion, or clarification about the personal data we control. Some requests may
+            be limited by security, audit, or legal obligations.
+          </p>
           <h2>Contact</h2>
-          <p>For privacy requests, contact: privacy@cybersentinel.ai</p>
+          <p>
+            Privacy requests can be sent to <a href={toMailto(PUBLIC_SITE.privacyEmail)}>{PUBLIC_SITE.privacyEmail}</a>.
+          </p>
         </section>
         <PublicFooter />
       </main>

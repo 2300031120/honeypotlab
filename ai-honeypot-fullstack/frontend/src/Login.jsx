@@ -2,13 +2,16 @@
 import { useNavigate, Link } from "react-router-dom";
 import { API_BASE, WS_BASE } from "./apiConfig";
 import axios from "axios";
-import { motion, AnimatePresence, useAnimation } from "framer-motion";
+import "./styles.css";
+import { motion, AnimatePresence, useAnimation } from "./utils/motionLite.jsx";
 import { setAuthSession } from "./utils/auth";
+import { loadAuthProviders } from "./utils/authProviders";
 import { requestGoogleCredential } from "./utils/googleAuth";
+import { PUBLIC_SITE } from "./siteConfig";
 import {
-  Shield, Lock, User, Eye, EyeOff, Fingerprint, Smartphone, Key, AlertTriangle,
+  Shield, Lock, User, Eye, EyeOff, Fingerprint, Smartphone, AlertTriangle,
   Wifi, Activity, Cpu, Globe, Zap, CheckCircle, XCircle, Clock,
-  ShieldCheck, Terminal, AlertCircle, LockOpen, EyeIcon, Chrome
+  ShieldCheck, Terminal, AlertCircle, Chrome
 } from "lucide-react";
 
 function normalizeGoogleAuthError(err) {
@@ -48,6 +51,8 @@ function normalizeGoogleAuthError(err) {
   return detail;
 }
 
+const PRODUCT_NAME = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
+
 export default function Login() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -63,6 +68,7 @@ export default function Login() {
     checked: false,
     googleEnabled: null,
     serverGoogleClientId: "",
+    signupEnabled: true,
     warning: "",
   });
   const [securityMetrics, setShieldMetrics] = useState({
@@ -91,6 +97,7 @@ export default function Login() {
   const googleButtonEnabled =
     Boolean(effectiveGoogleClientId) &&
     (googleAuthStatus.checked ? googleAuthStatus.googleEnabled !== false : true);
+  const signupEnabled = googleAuthStatus.signupEnabled !== false;
   const showDetailedGoogleDiagnostics =
     import.meta.env.VITE_SHOW_AUTH_DEBUG === "true" && Boolean(googleAuthStatus.warning);
   const biometricLoginEnabled = import.meta.env.VITE_ENABLE_BIOMETRIC_LOGIN === 'true';
@@ -117,11 +124,9 @@ export default function Login() {
 
     const fetchAuthProviders = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/auth/providers`, { timeout: 8000 });
-        const providers = res.data?.providers || {};
-        const googleProvider = providers.google || {};
-        const serverGoogleClientId = String(googleProvider.client_id || "");
-        const googleEnabled = Boolean(googleProvider.enabled);
+        const authProviders = await loadAuthProviders();
+        const serverGoogleClientId = authProviders.serverGoogleClientId;
+        const googleEnabled = authProviders.googleEnabled;
 
         let warning = "";
         if (googleClientId && serverGoogleClientId && googleClientId !== serverGoogleClientId) {
@@ -139,6 +144,7 @@ export default function Login() {
             checked: true,
             googleEnabled,
             serverGoogleClientId,
+            signupEnabled: authProviders.signupEnabled,
             warning,
           });
         }
@@ -247,7 +253,7 @@ export default function Login() {
         username: res.data.username || username,
         role: res.data.role || "analyst"
       });
-      setMsg("ACCESS GRANTED - WELCOME TO CYBERSENTINEL AI");
+      setMsg(`ACCESS GRANTED - WELCOME TO ${PRODUCT_NAME.toUpperCase()}`);
       controls.start({ scale: 1.05, transition: { duration: 0.3 } });
       setPendingLogin(null);
       setAuthStep('login');
@@ -424,6 +430,25 @@ export default function Login() {
     transition: { duration: 0.3 }
   };
 
+  const resetLocalLockout = () => {
+    setIsLocked(false);
+    setLockoutTime(0);
+    setLoginAttempts(0);
+    setError("");
+    setShieldMetrics((prev) => ({
+      ...prev,
+      suspiciousActivity: false,
+      threatLevel: "low",
+    }));
+  };
+
+  const fillDemoCredentials = () => {
+    setUsername("admin");
+    setPassword("Admin@123");
+    setError("");
+    setMsg("Demo credentials loaded. Submit secure access to continue.");
+  };
+
   return (
     <div className="login-page">
       {/* Simplified background for cleaner UX */}
@@ -432,7 +457,11 @@ export default function Login() {
       <div className="login-wrapper">
         <div className="login-quick-nav">
           <Link to="/" className="login-quick-link">Home</Link>
-          <Link to="/auth/signup" className="login-quick-link login-quick-link-primary">Sign Up</Link>
+          {signupEnabled ? (
+            <Link to="/auth/signup" className="login-quick-link login-quick-link-primary">Sign Up</Link>
+          ) : (
+            <Link to="/demo" className="login-quick-link login-quick-link-primary">Request Demo</Link>
+          )}
         </div>
 
         {/* Main Login Card */}
@@ -523,6 +552,40 @@ export default function Login() {
                 Advanced Multi-Factor Authentication - SOC Division
               </p>
 
+              <div
+                style={{
+                  background: 'rgba(88,166,255,0.08)',
+                  border: '1px solid rgba(88,166,255,0.25)',
+                  color: '#dbeafe',
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  marginBottom: '20px',
+                  fontSize: '12px',
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 800, marginBottom: '4px', color: '#93c5fd' }}>Demo credentials</div>
+                <div><strong>Username:</strong> `admin`</div>
+                <div><strong>Password:</strong> `Admin@123`</div>
+                <button
+                  type="button"
+                  onClick={fillDemoCredentials}
+                  style={{
+                    marginTop: '10px',
+                    border: '1px solid rgba(88,166,255,0.35)',
+                    borderRadius: '8px',
+                    background: 'rgba(15,23,42,0.35)',
+                    color: '#bfdbfe',
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    padding: '8px 10px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Use Demo Access
+                </button>
+              </div>
+
               {/* Shield Alerts */}
               {securityMetrics.suspiciousActivity && (
                 <motion.div
@@ -541,6 +604,29 @@ export default function Login() {
                   <AlertTriangle size={16} style={{ marginRight: '8px' }} />
                   Suspicious activity detected. Enhanced security measures active.
                 </motion.div>
+              )}
+
+              {isLocked && (
+                <motion.button
+                  type="button"
+                  onClick={resetLocalLockout}
+                  style={{
+                    width: '100%',
+                    marginBottom: '18px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(248,81,73,0.35)',
+                    background: 'rgba(248,81,73,0.08)',
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                  }}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                >
+                  Reset Local Lockout
+                </motion.button>
               )}
 
               {/* Google Auth Diagnostics */}
@@ -920,13 +1006,23 @@ export default function Login() {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5 }}
               >
-                <Link to="/auth/signup" style={{
-                  color: '#c65d1a',
-                  textDecoration: 'none',
-                  fontWeight: '600'
-                }}>
-                  Request Access Credentials
-                </Link>
+                {signupEnabled ? (
+                  <Link to="/auth/signup" style={{
+                    color: '#c65d1a',
+                    textDecoration: 'none',
+                    fontWeight: '600'
+                  }}>
+                    Request Access Credentials
+                  </Link>
+                ) : (
+                  <Link to="/demo" style={{
+                    color: '#c65d1a',
+                    textDecoration: 'none',
+                    fontWeight: '600'
+                  }}>
+                    Request Guided Access
+                  </Link>
+                )}
               </motion.div>
 
               {/* Scanline effect */}

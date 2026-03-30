@@ -1,28 +1,30 @@
 import React from 'react';
 import { MessageSquare } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
-// simple floating button linking to the AI Companion page
 const AIAssistant = () => {
+  const location = useLocation();
+  const publicPaths = [
+    '/',
+    '/platform',
+    '/architecture',
+    '/use-cases',
+    '/demo',
+    '/contact',
+    '/privacy',
+    '/terms',
+    '/security',
+  ];
+  const isPublicPage = publicPaths.includes(location.pathname);
+
   return (
     <Link
       to="/ai-companion"
-      style={{
-        position: 'fixed',
-        bottom: '20px',
-        right: '20px',
-        background: '#238636',
-        borderRadius: '50%',
-        padding: '14px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-        color: 'white',
-        zIndex: 1000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
+      aria-label="Ask AI Companion"
+      className={`ai-assistant-fab ${isPublicPage ? 'ai-assistant-fab-public' : 'ai-assistant-fab-private'}`}
     >
       <MessageSquare size={24} />
+      {isPublicPage ? <span>Ask AI Companion</span> : null}
     </Link>
   );
 };

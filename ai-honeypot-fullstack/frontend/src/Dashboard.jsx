@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -6,7 +6,9 @@ import {
   Activity, Shield, AlertTriangle,
   Wifi, Globe as GlobeIcon, Target, Cpu, ShieldAlert, Zap, Search, FileSearch, ChevronRight, TrendingUp, BrainCircuit
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "./utils/motionLite.jsx";
+import { ForecastSparkChart, MitreDonutChart, SeverityDonutChart } from "./components/charts/SignalCharts.jsx";
+import ThreatGlobe from "./components/dashboard/ThreatGlobe.jsx";
 import { isSyntheticEvent, stableGeoLatLng } from "./utils/eventUtils";
 import { createManagedWebSocket, safeParseJson } from "./utils/realtime";
 
@@ -27,37 +29,6 @@ const TRAP_CONFIG = {
   '/robots.txt': { color: '#3fb950', label: 'LOW', icon: '🤖' },
   '/wp-admin/': { color: '#d29922', label: 'MEDIUM', icon: '📁' },
 };
-
-const ThreatGlobe = lazy(() => import("./components/dashboard/ThreatGlobe.jsx"));
-const MitrePieChart = lazy(() =>
-  import("./components/dashboard/RechartsWidgets.jsx").then((module) => ({ default: module.MitrePieChart }))
-);
-const RiskPieChart = lazy(() =>
-  import("./components/dashboard/RechartsWidgets.jsx").then((module) => ({ default: module.RiskPieChart }))
-);
-const ForecastAreaChart = lazy(() =>
-  import("./components/dashboard/RechartsWidgets.jsx").then((module) => ({ default: module.ForecastAreaChart }))
-);
-
-function PanelLoader({ height = 220, label = "Loading analytics module..." }) {
-  return (
-    <div
-      style={{
-        height,
-        borderRadius: "14px",
-        border: "1px solid #30363d",
-        background: "rgba(13,17,23,0.55)",
-        display: "grid",
-        placeItems: "center",
-        color: "#8b949e",
-        fontSize: "12px",
-        fontWeight: 700,
-      }}
-    >
-      {label}
-    </div>
-  );
-}
 
 const EMPTY_ADAPTIVE_METRICS = {
   profile_mode: "adaptive",
@@ -99,14 +70,7 @@ const Dashboard = () => {
   const [httpTrapFeed, setHttpTrapFeed] = useState([]);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [globeModuleReady, setGlobeModuleReady] = useState(false);
-  const [chartModulesReady, setChartModulesReady] = useState(false);
-  const [heavyModulesIdleReady, setHeavyModulesIdleReady] = useState(false);
-  const [globeModuleNearViewport, setGlobeModuleNearViewport] = useState(false);
-  const [chartModulesNearViewport, setChartModulesNearViewport] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const heavyModulesAnchorRef = useRef(null);
-  const chartModulesAnchorRef = useRef(null);
 
   const [globeData, setGlobeData] = useState([]);
   const [arcsData, setArcsData] = useState([]);
@@ -116,6 +80,10 @@ const Dashboard = () => {
     neural_hive: { latency_ms: null },
     integrity: { trust_index: null, siem_sync: null }
   });
+  const [opsReadiness, setOpsReadiness] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState('');
   const [adaptiveMetrics, setAdaptiveMetrics] = useState(EMPTY_ADAPTIVE_METRICS);
   const [adaptiveIntelligence, setAdaptiveIntelligence] = useState(EMPTY_ADAPTIVE_INTELLIGENCE);
   const [selectedTimelineSession, setSelectedTimelineSession] = useState("");
@@ -132,6 +100,12 @@ const Dashboard = () => {
     .slice(0, 5);
   const topCountries = adaptiveIntelligence.top_countries || [];
   const topTactics = adaptiveIntelligence.tactic_matrix || [];
+  const readinessChecks = opsReadiness?.checks || [];
+  const readinessPassCount = readinessChecks.filter((item) => item.status === "pass").length;
+  const readinessScore = readinessChecks.length ? Math.round((readinessPassCount / readinessChecks.length) * 100) : null;
+  const readinessTone = opsReadiness?.status === "ready" ? "#3fb950" : "#d29922";
+  const readinessLabel = opsReadiness?.status === "ready" ? "ROLL_OUT_READY" : "ATTENTION_NEEDED";
+  const readinessActions = (opsReadiness?.next_actions || []).slice(0, 3);
 
   const loadAdaptiveTimeline = async (sessionId) => {
     const safeSessionId = String(sessionId || "").trim();
@@ -156,7 +130,10 @@ const Dashboard = () => {
   };
 
   const fetchData = async () => {
+    const errors = [];
     let candidateTimelineSession = selectedTimelineSession;
+    setRefreshing(true);
+    setLoadError('');
     try {
       const res = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
       const data = {
@@ -200,12 +177,16 @@ const Dashboard = () => {
 
       // MITRE Distribution
       setMitreData(Object.keys(data.mitre_distribution).map(t => ({ name: t, value: data.mitre_distribution[t] })));
-    } catch (err) { console.error("Fetch stats failed", err); }
+    } catch (err) {
+      errors.push("dashboard");
+      console.error("Fetch stats failed", err);
+    }
 
     try {
       const healthRes = await axios.get(`${API_BASE}/intelligence/health`, REAL_ONLY_PARAMS);
       setHealthData(healthRes.data || {});
     } catch (err) {
+      errors.push("health");
       console.error("Fetch health failed", err);
     }
 
@@ -213,7 +194,17 @@ const Dashboard = () => {
       const predRes = await axios.get(`${API_BASE}/intelligence/predict`);
       setPredictions(predRes.data || null);
     } catch (err) {
+      errors.push("predictions");
       console.error("Fetch predictions failed", err);
+    }
+
+    try {
+      const readinessRes = await axios.get(`${API_BASE}/ops/readiness`);
+      setOpsReadiness(readinessRes.data || null);
+    } catch (err) {
+      errors.push("readiness");
+      console.error("Fetch ops readiness failed", err);
+      setOpsReadiness(null);
     }
 
     try {
@@ -232,6 +223,7 @@ const Dashboard = () => {
         );
       }
     } catch (err) {
+      errors.push("adaptive_metrics");
       if (err?.response?.status !== 401) {
         console.error("Fetch adaptive metrics failed", err);
       }
@@ -254,6 +246,7 @@ const Dashboard = () => {
         candidateTimelineSession = String(intelPayload.high_risk_sessions[0]?.session_id || "");
       }
     } catch (err) {
+      errors.push("adaptive_intel");
       if (err?.response?.status !== 401) {
         console.error("Fetch adaptive intelligence failed", err);
       }
@@ -265,73 +258,10 @@ const Dashboard = () => {
     } else {
       setSessionTimeline([]);
     }
+    setLoadError(errors.includes("dashboard") ? "Unable to refresh dashboard telemetry right now. Check auth or backend state, then try refresh." : "");
+    setLastUpdatedAt(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    setRefreshing(false);
   };
-
-  useEffect(() => {
-    let timeoutId;
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(() => setHeavyModulesIdleReady(true), { timeout: 1200 });
-      return () => window.cancelIdleCallback(idleId);
-    }
-    timeoutId = window.setTimeout(() => setHeavyModulesIdleReady(true), 800);
-    return () => window.clearTimeout(timeoutId);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
-      setGlobeModuleNearViewport(true);
-      setChartModulesNearViewport(true);
-      return undefined;
-    }
-    const node = heavyModulesAnchorRef.current;
-    if (!node) {
-      return undefined;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setGlobeModuleNearViewport(true);
-          observer.disconnect();
-        }
-      },
-      { root: null, rootMargin: "300px 0px", threshold: 0.01 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
-      return undefined;
-    }
-    const node = chartModulesAnchorRef.current;
-    if (!node) {
-      return undefined;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setChartModulesNearViewport(true);
-          observer.disconnect();
-        }
-      },
-      { root: null, rootMargin: "280px 0px", threshold: 0.01 }
-    );
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!globeModuleReady && heavyModulesIdleReady && globeModuleNearViewport) {
-      setGlobeModuleReady(true);
-    }
-  }, [heavyModulesIdleReady, globeModuleNearViewport, globeModuleReady]);
-
-  useEffect(() => {
-    if (!chartModulesReady && heavyModulesIdleReady && chartModulesNearViewport) {
-      setChartModulesReady(true);
-    }
-  }, [heavyModulesIdleReady, chartModulesNearViewport, chartModulesReady]);
 
   useEffect(() => {
     fetchData();
@@ -462,6 +392,23 @@ const Dashboard = () => {
 
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
           <button
+            onClick={fetchData}
+            style={{
+              background: 'rgba(63, 185, 80, 0.12)',
+              border: '1px solid rgba(63, 185, 80, 0.3)',
+              color: '#3fb950',
+              padding: '8px 16px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              fontWeight: '800',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+            className="interactive-glow"
+          >
+            {refreshing ? 'REFRESHING' : 'REFRESH DATA'}
+          </button>
+          <button
             onClick={toggleFullscreen}
             style={{
               background: 'rgba(88, 166, 255, 0.1)',
@@ -478,6 +425,19 @@ const Dashboard = () => {
           >
             {isFullscreen ? 'EXIT FULLSCREEN' : 'FULLSCREEN'}
           </button>
+          {lastUpdatedAt && (
+            <div style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              border: '1px solid #30363d',
+              background: 'rgba(22, 27, 34, 0.72)',
+              color: '#8b949e',
+              fontSize: '11px',
+              fontWeight: '800'
+            }}>
+              LAST_SYNC :: {lastUpdatedAt}
+            </div>
+          )}
           <div className="premium-glass active-node-indicator" style={{
             padding: '12px 24px', borderRadius: '30px',
             fontSize: '12px', fontWeight: '900', color: '#58a6ff',
@@ -488,6 +448,23 @@ const Dashboard = () => {
           </div>
         </div>
       </motion.header>
+
+      {loadError && (
+        <div style={{
+          marginBottom: '24px',
+          padding: '14px 18px',
+          borderRadius: '14px',
+          border: '1px solid rgba(248,81,73,0.24)',
+          background: 'rgba(248,81,73,0.08)',
+          color: '#ffb4a8',
+          fontSize: '13px',
+          fontWeight: '700',
+          position: 'relative',
+          zIndex: 1
+        }}>
+          {loadError}
+        </div>
+      )}
 
       {/* ENHANCED UNIVERSAL SPLUNK SEARCH */}
       <motion.div
@@ -572,8 +549,78 @@ const Dashboard = () => {
         <KPICard label="AUTO-BLOCKED" value={stats.summary.blocked} color="#d29922" icon={<Shield size={20} />} trend="AUTONOMOUS" border="neon-border-orange" />
       </div>
 
+      {opsReadiness && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card"
+          style={{ borderRadius: '20px', overflow: 'hidden', marginBottom: '32px' }}
+        >
+          <div style={{
+            padding: '20px 28px',
+            borderBottom: '1px solid #30363d',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '16px',
+            background: 'rgba(255,255,255,0.02)'
+          }}>
+            <div>
+              <div style={{ fontSize: '11px', color: '#8b949e', fontWeight: '800', letterSpacing: '0.08em' }}>OPS READINESS</div>
+              <h3 style={{ margin: '6px 0 0', fontSize: '18px', fontWeight: '900', color: '#f0f6fc' }}>
+                {readinessLabel} {readinessScore != null ? `:: ${readinessScore}%` : ""}
+              </h3>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <ReadinessMetric label="Sites" value={opsReadiness.coverage?.sites_total ?? 0} />
+              <ReadinessMetric label="Events" value={opsReadiness.coverage?.events_total ?? 0} />
+              <ReadinessMetric label="Canaries" value={opsReadiness.coverage?.canary_tokens_total ?? 0} />
+              <ReadinessMetric label="Latest event" value={opsReadiness.coverage?.latest_event_at ? 'SEEN' : 'NONE'} />
+            </div>
+          </div>
+
+          <div style={{ padding: '24px 28px', display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '24px' }}>
+            <div>
+              <div style={{ fontSize: '12px', color: '#8b949e', marginBottom: '12px', fontWeight: '800' }}>Readiness checks</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                {readinessChecks.map((item) => (
+                  <ReadinessCheckCard key={item.key} item={item} />
+                ))}
+              </div>
+            </div>
+
+            <div style={{
+              border: '1px solid #30363d',
+              borderRadius: '16px',
+              padding: '18px',
+              background: 'rgba(255,255,255,0.02)',
+              display: 'grid',
+              gap: '14px'
+            }}>
+              <div>
+                <div style={{ fontSize: '12px', color: '#8b949e', fontWeight: '800', marginBottom: '8px' }}>Next actions</div>
+                {readinessActions.length === 0 ? (
+                  <div style={{ color: readinessTone, fontWeight: '800', fontSize: '13px' }}>No blocking readiness actions right now.</div>
+                ) : (
+                  <ul style={{ margin: 0, paddingLeft: '18px', color: '#e6edf3', display: 'grid', gap: '8px', fontSize: '13px' }}>
+                    {readinessActions.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <Link to="/sites" style={readinessActionStyle}>CONFIGURE SITES</Link>
+                <Link to="/deception" style={readinessActionStyle}>REVIEW DECEPTION</Link>
+                <Link to="/telemetry" style={readinessActionStyle}>OPEN TELEMETRY</Link>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Globe & Charts Row */}
-      <div ref={heavyModulesAnchorRef} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '24px', marginBottom: '40px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr', gap: '24px', marginBottom: '40px' }}>
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -582,38 +629,25 @@ const Dashboard = () => {
         >
           <div style={{ position: 'absolute', top: '24px', left: '24px', zIndex: 5 }}>
             <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <GlobeIcon size={20} color="#58a6ff" /> Global Threat Landscape (3D)
+              <GlobeIcon size={20} color="#58a6ff" /> Global Threat Mesh
             </h3>
             <div style={{ fontSize: '10px', color: '#8b949e', fontWeight: '800', marginTop: '4px' }}>ACTIVE_ATTACK_VECTORS_REALTIME</div>
           </div>
 
-          {globeModuleReady ? (
-            <Suspense fallback={<PanelLoader height={450} label="Loading globe telemetry..." />}>
-              <ThreatGlobe globeData={globeData} arcsData={arcsData} />
-            </Suspense>
-          ) : (
-            <PanelLoader height={450} label="Preparing globe telemetry..." />
-          )}
+          <ThreatGlobe globeData={globeData} arcsData={arcsData} />
         </motion.div>
 
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           className="glass-card"
-          ref={chartModulesAnchorRef}
           style={{ padding: '32px', borderRadius: '20px' }}
         >
           <h3 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Target size={20} color="#ff7b72" /> MITRE ATT&CK Tactics
           </h3>
           <div style={{ height: '300px' }}>
-            {chartModulesReady ? (
-              <Suspense fallback={<PanelLoader height={300} label="Loading MITRE analytics..." />}>
-                <MitrePieChart mitreData={mitreData} />
-              </Suspense>
-            ) : (
-              <PanelLoader height={300} label="Preparing MITRE analytics..." />
-            )}
+            <MitreDonutChart mitreData={mitreData} />
           </div>
         </motion.div>
       </div>
@@ -630,13 +664,7 @@ const Dashboard = () => {
             <ShieldAlert size={20} color="#d29922" /> Risk Profile
           </h3>
           <div style={{ height: '180px' }}>
-            {chartModulesReady ? (
-              <Suspense fallback={<PanelLoader height={180} label="Loading risk model..." />}>
-                <RiskPieChart severityData={severityData} />
-              </Suspense>
-            ) : (
-              <PanelLoader height={180} label="Preparing risk model..." />
-            )}
+            <SeverityDonutChart severityData={severityData} />
           </div>
         </motion.div>
 
@@ -667,13 +695,7 @@ const Dashboard = () => {
             <TrendingUp size={20} color="#3fb950" /> Threat Forecast
           </h3>
           <div style={{ height: '140px' }}>
-            {chartModulesReady ? (
-              <Suspense fallback={<PanelLoader height={140} label="Loading forecast engine..." />}>
-                <ForecastAreaChart forecast={predictions?.forecast || []} />
-              </Suspense>
-            ) : (
-              <PanelLoader height={140} label="Preparing forecast engine..." />
-            )}
+            <ForecastSparkChart forecast={predictions?.forecast || []} />
           </div>
           <div style={{ marginTop: '12px', textAlign: 'center' }}>
             <span style={{ fontSize: '10px', color: '#8b949e', fontWeight: '800' }}>AI_CONFIDENCE: </span>
@@ -996,7 +1018,15 @@ const Dashboard = () => {
           {stats.feed.length === 0 ? (
             <div style={{ padding: '80px', textAlign: 'center', color: '#484f58' }}>
               <Shield size={48} style={{ marginBottom: '16px', opacity: 0.3 }} />
-              <p style={{ fontSize: '16px', fontWeight: '600' }}>NO_THREATS_DETECTED :: SYSTEM_LISTENING</p>
+              <p style={{ fontSize: '16px', fontWeight: '600', color: '#e6edf3' }}>NO_THREATS_DETECTED :: SYSTEM_LISTENING</p>
+              <p style={{ fontSize: '12px', maxWidth: '56ch', margin: '10px auto 0', lineHeight: 1.7 }}>
+                Wire a site, inject simulator traffic, or arm more deception surfaces if you want the dashboard to show a stronger live narrative.
+              </p>
+              <div style={{ marginTop: '18px', display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <Link to="/sites" style={readinessActionStyle}>ADD SITE</Link>
+                <Link to="/simulator" style={readinessActionStyle}>RUN SIMULATOR</Link>
+                <Link to="/deception" style={readinessActionStyle}>ARM DECEPTION</Link>
+              </div>
             </div>
           ) : (
             <AnimatePresence initial={false}>
@@ -1081,6 +1111,60 @@ const KPICard = ({ label, value, color, icon, trend, border }) => (
     </div>
   </motion.div>
 );
+
+const readinessActionStyle = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '40px',
+  padding: '0 14px',
+  borderRadius: '10px',
+  textDecoration: 'none',
+  border: '1px solid rgba(88,166,255,0.24)',
+  background: 'rgba(88,166,255,0.08)',
+  color: '#58a6ff',
+  fontSize: '11px',
+  fontWeight: '900',
+  letterSpacing: '0.04em'
+};
+
+const readinessStateStyles = {
+  pass: { border: '1px solid rgba(63,185,80,0.24)', background: 'rgba(63,185,80,0.08)', color: '#3fb950', label: 'PASS' },
+  warn: { border: '1px solid rgba(210,153,34,0.24)', background: 'rgba(210,153,34,0.08)', color: '#d29922', label: 'WARN' },
+  fail: { border: '1px solid rgba(248,81,73,0.24)', background: 'rgba(248,81,73,0.08)', color: '#f85149', label: 'FAIL' },
+};
+
+const ReadinessMetric = ({ label, value }) => (
+  <div style={{
+    minWidth: '92px',
+    padding: '10px 12px',
+    borderRadius: '12px',
+    border: '1px solid #30363d',
+    background: 'rgba(255,255,255,0.03)',
+    display: 'grid',
+    gap: '4px'
+  }}>
+    <span style={{ fontSize: '10px', color: '#8b949e', fontWeight: '800', letterSpacing: '0.05em' }}>{label}</span>
+    <strong style={{ fontSize: '14px', color: '#f0f6fc' }}>{value}</strong>
+  </div>
+);
+
+const ReadinessCheckCard = ({ item }) => {
+  const tone = readinessStateStyles[item.status] || readinessStateStyles.warn;
+  return (
+    <div style={{
+      borderRadius: '14px',
+      padding: '14px',
+      ...tone
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
+        <strong style={{ fontSize: '12px', color: tone.color }}>{String(item.key || '').replaceAll('_', ' ').toUpperCase()}</strong>
+        <span style={{ fontSize: '10px', fontWeight: '900', color: tone.color }}>{tone.label}</span>
+      </div>
+      <div style={{ color: '#e6edf3', fontSize: '12px', lineHeight: 1.6 }}>{item.summary}</div>
+    </div>
+  );
+};
 
 
 const HealthBar = ({ label, value, color }) => {

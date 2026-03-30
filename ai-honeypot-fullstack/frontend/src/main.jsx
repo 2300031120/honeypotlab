@@ -1,14 +1,133 @@
 import React from "react";
-import ReactDOM from "react-dom/client";
+import { createRoot } from "react-dom/client";
 import { ErrorBoundary } from "react-error-boundary";
 import App from "./App.jsx";
-import { initAuthTransport } from "./bootstrapAuth";
-import "./styles.css";
-import "./premiumTheme.css";
-import "./homeRefresh.css";
-import "./startupRefresh.css";
+import "./public-remake.css";
 
-initAuthTransport();
+function toErrorMessage(value) {
+  if (!value) {
+    return "";
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  if (value instanceof Error) {
+    return value.message || String(value);
+  }
+  if (typeof value === "object" && "message" in value && typeof value.message === "string") {
+    return value.message;
+  }
+  return String(value);
+}
+
+function isHydrationMismatchError(value) {
+  const message = toErrorMessage(value);
+  if (!message) {
+    return false;
+  }
+  return (
+    message.includes("Minified React error #418") ||
+    message.includes("Minified React error #423") ||
+    message.toLowerCase().includes("hydration failed")
+  );
+}
+
+async function clearStaleRuntimeCaches() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return;
+  }
+
+  if ("serviceWorker" in navigator) {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+    } catch {
+      // Ignore service worker failures.
+    }
+  }
+
+  if ("caches" in window) {
+    try {
+      const names = await caches.keys();
+      await Promise.allSettled(names.map((name) => caches.delete(name)));
+    } catch {
+      // Ignore cache API failures.
+    }
+  }
+}
+
+function installHydrationRecoveryGuard() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const recoveryKey = "__frontend_hydration_recovered_v1__";
+
+  const recoverOnce = async () => {
+    let recoveredAlready = false;
+    try {
+      recoveredAlready = window.sessionStorage?.getItem(recoveryKey) === "1";
+    } catch {
+      recoveredAlready = false;
+    }
+
+    if (recoveredAlready) {
+      return;
+    }
+
+    try {
+      window.sessionStorage?.setItem(recoveryKey, "1");
+    } catch {
+      // Ignore storage failures.
+    }
+
+    await clearStaleRuntimeCaches();
+    const next = new URL(window.location.href);
+    next.searchParams.set("reload", Date.now().toString(36));
+    window.location.replace(next.toString());
+  };
+
+  window.addEventListener("error", (event) => {
+    if (isHydrationMismatchError(event?.error || event?.message)) {
+      void recoverOnce();
+    }
+  });
+
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isHydrationMismatchError(event?.reason)) {
+      void recoverOnce();
+    }
+  });
+}
+
+function bootstrapAuthTransport() {
+  void import("./bootstrapAuth")
+    .then(({ initAuthTransport }) => {
+      initAuthTransport();
+    })
+    .catch(() => {
+      // Keep public routes booting even if transport bootstrap fails.
+    });
+}
+
+if (typeof window !== "undefined") {
+  installHydrationRecoveryGuard();
+
+  let hasStoredToken = false;
+  try {
+    hasStoredToken = Boolean(localStorage.getItem("token"));
+  } catch {
+    hasStoredToken = false;
+  }
+
+  if (hasStoredToken) {
+    bootstrapAuthTransport();
+  } else if (typeof window.requestIdleCallback === "function") {
+    window.requestIdleCallback(bootstrapAuthTransport, { timeout: 2500 });
+  } else {
+    window.setTimeout(bootstrapAuthTransport, 1200);
+  }
+}
 
 function AppCrashFallback({ error }) {
   return (
@@ -55,8 +174,16 @@ function AppCrashFallback({ error }) {
   );
 }
 
-ReactDOM.createRoot(document.getElementById("root")).render(
+const app = (
   <ErrorBoundary FallbackComponent={AppCrashFallback}>
     <App />
   </ErrorBoundary>
 );
+
+const rootEl = document.getElementById("root");
+if (rootEl?.hasChildNodes()) {
+  rootEl.textContent = "";
+}
+if (rootEl) {
+  createRoot(rootEl).render(app);
+}

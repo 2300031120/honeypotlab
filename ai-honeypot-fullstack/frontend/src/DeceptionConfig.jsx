@@ -7,7 +7,7 @@ import {
     Eye, Crosshair, Lock, Globe, Server, Database,
     Copy, ExternalLink, AlertCircle, Clock
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from './utils/motionLite.jsx';
 import { isSyntheticEvent } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 

@@ -1,32 +1,118 @@
 services:
-  db:
-    image: mariadb:10.11
-    command: --default-authentication-plugin=mysql_native_password
-    restart: always
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      MARIADB_ROOT_PASSWORD: rootpassword
-      MARIADB_DATABASE: honeypot_db
-      MARIADB_USER: user
-      MARIADB_PASSWORD: password
+      - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
+      - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cybersentinel}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+
+  terminal-sandbox:
+    build: ./terminal-sandbox
+    restart: unless-stopped
+    expose:
+      - "5100"
+    environment:
+      - SANDBOX_BASE_DIR=/sandbox-data
+      - SANDBOX_EXEC_TIMEOUT_SEC=${TERMINAL_EXEC_TIMEOUT_SEC:-8}
+      - SANDBOX_MAX_OUTPUT_CHARS=${TERMINAL_MAX_OUTPUT_CHARS:-12000}
+      - SANDBOX_SESSION_TTL_SECONDS=${TERMINAL_SANDBOX_SESSION_TTL_SECONDS:-7200}
+    volumes:
+      - terminal_sandbox_data:/sandbox-data
+
+  ssh-decoy:
+    build: ./ssh-decoy
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - terminal-sandbox
+    ports:
+      - "${SSH_DECOY_PORT:-2222}:2222"
+    expose:
+      - "5101"
+    environment:
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
+      - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - PROTOCOL_SSH_AUTH_TRAP_ENABLED=${PROTOCOL_SSH_AUTH_TRAP_ENABLED:-true}
+      - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-admin:Winter2026!,deploy:Deploy@2026!,reporting:Report#2026}
+      - SSH_DECOY_LISTEN_HOST=0.0.0.0
+      - SSH_DECOY_PORT=2222
+      - SSH_DECOY_SITE_ID=${SSH_DECOY_SITE_ID:-}
+      - SSH_DECOY_ACCEPT_ANY_PASSWORD=${SSH_DECOY_ACCEPT_ANY_PASSWORD:-false}
+      - SSH_DECOY_SERVER_VERSION=${SSH_DECOY_SERVER_VERSION:-OpenSSH_8.9p1 Ubuntu-3ubuntu0.6}
+      - SSH_DECOY_HTTP_TIMEOUT_SEC=${SSH_DECOY_HTTP_TIMEOUT_SEC:-4}
+    volumes:
+      - ssh_decoy_data:/data
+
+  cowrie:
+    image: cowrie/cowrie:latest
+    profiles:
+      - cowrie
+    restart: unless-stopped
+    ports:
+      - "${COWRIE_SSH_PORT:-2223}:2222"
+    environment:
+      - COWRIE_TELNET_ENABLED=${COWRIE_TELNET_ENABLED:-no}
+      - COWRIE_OUTPUT_JSONLOG_ENABLED=${COWRIE_OUTPUT_JSONLOG_ENABLED:-yes}
+    volumes:
+      - cowrie_var_data:/cowrie/cowrie-git/var
+
+  cowrie-bridge:
+    build: ./cowrie-bridge
+    profiles:
+      - cowrie
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - cowrie
+    environment:
+      - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - COWRIE_SITE_ID=${COWRIE_SITE_ID:-}
+      - COWRIE_JSON_LOG=${COWRIE_JSON_LOG:-/cowrie/cowrie-git/var/log/cowrie/cowrie.json}
+      - COWRIE_HTTP_TIMEOUT_SEC=${COWRIE_HTTP_TIMEOUT_SEC:-4}
+      - COWRIE_BRIDGE_POLL_INTERVAL_SEC=${COWRIE_BRIDGE_POLL_INTERVAL_SEC:-2}
+    volumes:
+      - cowrie_var_data:/cowrie/cowrie-git/var:ro
+      - cowrie_bridge_data:/data
 
   backend:
     build: ./backend
+    restart: unless-stopped
     expose:
       - "5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      terminal-sandbox:
+        condition: service_started
     environment:
       - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=mysql+pymysql://user:password@db:3306/honeypot_db
+      - DATABASE_URL=${DATABASE_URL:-postgresql://cybersentinel:cybersentinel@postgres:5432/cybersentinel}
+      - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
+      - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cybersentinel}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
-      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver,backend}
       - FORCE_HTTPS_REDIRECT=${FORCE_HTTPS_REDIRECT:-false}
       - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
       - SECURITY_HSTS_SECONDS=${SECURITY_HSTS_SECONDS:-31536000}
       - SECURITY_CONTENT_SECURITY_POLICY=${SECURITY_CONTENT_SECURITY_POLICY:-}
       - DECOY_COOKIE_SECURE=${DECOY_COOKIE_SECURE:-false}
       - DECOY_COOKIE_SAMESITE=${DECOY_COOKIE_SAMESITE:-lax}
+      - AUTH_RATE_LIMIT_WINDOW_SECONDS=${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
+      - AUTH_RATE_LIMIT_MAX_ATTEMPTS=${AUTH_RATE_LIMIT_MAX_ATTEMPTS:-8}
+      - LEAD_RATE_LIMIT_WINDOW_SECONDS=${LEAD_RATE_LIMIT_WINDOW_SECONDS:-300}
+      - LEAD_RATE_LIMIT_MAX_ATTEMPTS=${LEAD_RATE_LIMIT_MAX_ATTEMPTS:-5}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=llama3
       - OLLAMA_REQUEST_TIMEOUT_SECONDS=${OLLAMA_REQUEST_TIMEOUT_SECONDS:-45}
@@ -35,22 +121,49 @@ services:
       - AI_BREAKER_COOLDOWN_SECONDS=${AI_BREAKER_COOLDOWN_SECONDS:-60}
       - THREAT_ANALYSIS_AI_TIMEOUT_SECONDS=${THREAT_ANALYSIS_AI_TIMEOUT_SECONDS:-8}
       - SHELL_RESPONSE_AI_TIMEOUT_SECONDS=${SHELL_RESPONSE_AI_TIMEOUT_SECONDS:-8}
-      - SECRET_KEY=${SECRET_KEY}
+      - TERMINAL_REAL_EXEC_ENABLED=${TERMINAL_REAL_EXEC_ENABLED:-true}
+      - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
+      - TERMINAL_EXEC_TIMEOUT_SEC=${TERMINAL_EXEC_TIMEOUT_SEC:-8}
+      - TERMINAL_MAX_OUTPUT_CHARS=${TERMINAL_MAX_OUTPUT_CHARS:-12000}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - SSH_DECOY_HEALTH_URL=${SSH_DECOY_HEALTH_URL:-http://ssh-decoy:5101/health}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me-at-least-32b}
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
+      - BOOTSTRAP_ADMIN_USERNAME=${BOOTSTRAP_ADMIN_USERNAME:-admin}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@cybersentinel.local}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-Admin@123}
+      - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-true}
+      - ALLOW_SIGNUP=${ALLOW_SIGNUP:-true}
       - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-}
       - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-}
+      - SPLUNK_HEC_VERIFY_TLS=${SPLUNK_HEC_VERIFY_TLS:-true}
+      - SPLUNK_HEC_TIMEOUT_SECONDS=${SPLUNK_HEC_TIMEOUT_SECONDS:-4}
       - PROTOCOL_SSH_AUTH_TRAP_ENABLED=${PROTOCOL_SSH_AUTH_TRAP_ENABLED:-true}
       - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-}
       - PROTOCOL_MYSQL_AUTH_TRAP_ENABLED=${PROTOCOL_MYSQL_AUTH_TRAP_ENABLED:-true}
       - PROTOCOL_MYSQL_TRAP_CREDENTIALS=${PROTOCOL_MYSQL_TRAP_CREDENTIALS:-}
-    depends_on:
-      - db
+    volumes:
+      - backend_data:/data
 
   frontend:
     build:
       context: ./frontend
       args:
+        VITE_PUBLIC_SITE_NAME: ${VITE_PUBLIC_SITE_NAME:-CyberSentinel AI}
+        VITE_PUBLIC_SHORT_NAME: ${VITE_PUBLIC_SHORT_NAME:-CyberSentinel}
+        VITE_PUBLIC_BRAND_TEXT: ${VITE_PUBLIC_BRAND_TEXT:-CYBERSENTINEL AI}
+        VITE_PUBLIC_TAGLINE: ${VITE_PUBLIC_TAGLINE:-Deception-led threat detection}
+        VITE_PUBLIC_SITE_DESCRIPTION: ${VITE_PUBLIC_SITE_DESCRIPTION:-Deception-led threat detection platform for earlier attacker visibility, preserved evidence, and AI-assisted incident context.}
+        VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-http://localhost}
+        VITE_PUBLIC_APP_URL: ${VITE_PUBLIC_APP_URL:-http://localhost}
+        VITE_PUBLIC_LOGIN_URL: ${VITE_PUBLIC_LOGIN_URL:-}
+        VITE_PUBLIC_COMPANY_NAME: ${VITE_PUBLIC_COMPANY_NAME:-CyberSentinel AI Labs}
+        VITE_PUBLIC_CONTACT_EMAIL: ${VITE_PUBLIC_CONTACT_EMAIL:-contact@cybersentinel.ai}
+        VITE_PUBLIC_SECURITY_EMAIL: ${VITE_PUBLIC_SECURITY_EMAIL:-security@cybersentinel.ai}
+        VITE_PUBLIC_PRIVACY_EMAIL: ${VITE_PUBLIC_PRIVACY_EMAIL:-privacy@cybersentinel.ai}
+        VITE_PUBLIC_SHOW_STATUS_PILL: ${VITE_PUBLIC_SHOW_STATUS_PILL:-false}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    restart: unless-stopped
     ports:
       - "80:80"
     volumes:
@@ -67,9 +180,10 @@ services:
     ports:
       - "443:443"
     environment:
-      - TLS_DOMAIN=${TLS_DOMAIN}
+      - TLS_DOMAIN=${TLS_DOMAIN:-localhost}
     volumes:
       - ./deploy/nginx/https-gateway.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./deploy/nginx/generated:/etc/nginx/cybersentinel:ro
       - certbot_conf:/etc/letsencrypt:ro
     command: >
       /bin/sh -c "envsubst '$$TLS_DOMAIN' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf
@@ -101,20 +215,12 @@ services:
       - frontend
     command: tunnel --no-autoupdate --url http://frontend:80
 
-  phpmyadmin:
-    image: phpmyadmin:latest
-    restart: always
-    profiles:
-      - dev-tools
-    ports:
-      - "127.0.0.1:8080:80"
-    environment:
-      - PMA_ARBITRARY=1
-      - PMA_HOST=db
-    depends_on:
-      - db
-
 volumes:
-  mariadb_data:
+  postgres_data:
+  backend_data:
+  terminal_sandbox_data:
+  ssh_decoy_data:
+  cowrie_var_data:
+  cowrie_bridge_data:
   certbot_www:
   certbot_conf:

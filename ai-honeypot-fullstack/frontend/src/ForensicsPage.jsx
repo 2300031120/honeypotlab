@@ -10,16 +10,14 @@ import {
     stableHexFromText,
 } from "./utils/eventUtils";
 import { createManagedWebSocket, safeParseJson } from "./utils/realtime";
+import { AreaTrendChart } from "./components/charts/SignalCharts.jsx";
 import {
-    Shield, Clock, FileText, Hash, Search, ArrowLeft, Download,
-    Layers, Briefcase, Activity, Database, AlertCircle, Filter,
+    Shield, Clock, FileText, Search, ArrowLeft, Download,
+    Layers, Activity, Database, AlertCircle, Filter,
     ChevronRight, Fingerprint, Crosshair, Target, ShieldCheck,
-    Cpu, Globe, Zap, FileSearch, Trash2, ExternalLink, Share2,
+    Cpu, Globe, Zap, FileSearch, ExternalLink,
     Lock, CheckCircle, AlertTriangle, Play, Pause, Rewind, FastForward
 } from "lucide-react";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
 const HexViewer = ({ data }) => {
     if (!data) return null;
@@ -43,6 +41,208 @@ const HexViewer = ({ data }) => {
         </div>
     );
 };
+
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+}
+
+function buildPrintableReportHtml({ session, caseId, behaviorProfile, sessionEvents, artifacts }) {
+    const eventsMarkup = sessionEvents
+        .slice(0, 14)
+        .map((event, index) => `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${escapeHtml(getEventIsoTime(event) || event?.ts || "N/A")}</td>
+                <td>${escapeHtml(event?.cmd || event?.event_type || "N/A")}</td>
+                <td>${escapeHtml(event?.severity || "low")}</td>
+                <td>${escapeHtml(event?.ip || session?.ip || "unknown")}</td>
+            </tr>
+        `)
+        .join("");
+
+    const artifactsMarkup = artifacts.length
+        ? artifacts
+            .slice(0, 8)
+            .map((artifact) => `
+                <li>
+                    <strong>${escapeHtml(artifact?.kind || artifact?.name || "Artifact")}</strong>
+                    <span>${escapeHtml(artifact?.value || artifact?.path || artifact?.summary || "Recorded evidence")}</span>
+                </li>
+            `)
+            .join("")
+        : `<li><strong>No preserved artifacts</strong><span>Live telemetry captured the session without extra artifacts.</span></li>`;
+
+    return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>CyberSentinel Forensics Report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      margin: 0;
+      padding: 32px;
+      color: #0f172a;
+      background: #ffffff;
+    }
+    h1, h2, h3, p {
+      margin: 0;
+    }
+    .header {
+      border-bottom: 2px solid #0ea5e9;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      color: #0369a1;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin: 24px 0;
+    }
+    .meta-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px;
+      background: #f8fafc;
+    }
+    .meta-card small {
+      display: block;
+      color: #475569;
+      font-size: 11px;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .meta-card strong {
+      font-size: 18px;
+      color: #0f172a;
+    }
+    .section {
+      margin-top: 28px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 12px;
+    }
+    th, td {
+      border: 1px solid #cbd5e1;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #e0f2fe;
+      color: #0c4a6e;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    ul {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+    li {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+    li strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+    .summary {
+      margin-top: 12px;
+      line-height: 1.6;
+      color: #334155;
+      white-space: pre-wrap;
+    }
+    @media print {
+      body {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="eyebrow">CyberSentinel Forensics Report</div>
+    <h1>${escapeHtml(caseId)}</h1>
+    <p style="margin-top: 8px; color: #475569;">Generated ${escapeHtml(new Date().toLocaleString())} for session ${escapeHtml(session?.id || "unknown")}</p>
+  </div>
+
+  <div class="meta">
+    <div class="meta-card">
+      <small>Subject IP</small>
+      <strong>${escapeHtml(session?.ip || "unknown")}</strong>
+    </div>
+    <div class="meta-card">
+      <small>Risk Index</small>
+      <strong>${escapeHtml(`${session?.risk || 0}/100`)}</strong>
+    </div>
+    <div class="meta-card">
+      <small>Strategy</small>
+      <strong>${escapeHtml(session?.strategy || "STEALTH")}</strong>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="eyebrow">Behavior Profile</div>
+    <table>
+      <tbody>
+        <tr><th>Country</th><td>${escapeHtml(session?.country || "Unknown")}</td><th>Commands</th><td>${escapeHtml(sessionEvents.length)}</td></tr>
+        <tr><th>Bot Probability</th><td>${escapeHtml(`${behaviorProfile?.bot_probability || 0}%`)}</td><th>Human Likelihood</th><td>${escapeHtml(`${behaviorProfile?.human_likelihood || 0}%`)}</td></tr>
+        <tr><th>Skill Level</th><td>${escapeHtml(behaviorProfile?.skill_level || "Unknown")}</td><th>Exploit Chain Depth</th><td>${escapeHtml(behaviorProfile?.exploit_chain_depth || 0)}</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="eyebrow">Session Timeline</div>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Time</th>
+          <th>Command / Event</th>
+          <th>Severity</th>
+          <th>Source</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${eventsMarkup || `<tr><td colspan="5">No recorded events for this session.</td></tr>`}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <div class="eyebrow">Artifacts</div>
+    <ul>${artifactsMarkup}</ul>
+  </div>
+</body>
+</html>`;
+}
 
 const ForensicsPage = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
@@ -399,33 +599,34 @@ const ForensicsPage = () => {
         cmd: e.cmd
     }));
 
-    const generatePDF = (session) => {
-        const doc = new jsPDF();
-        doc.setFontSize(22);
-        doc.setTextColor(33, 150, 243);
-        doc.text("CyberSentinel Forensics Report", 20, 20);
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Case ID: DF-2026-${session.id.substring(0, 4).toUpperCase()}`, 20, 28);
-        doc.text(`Generated: ${new Date().toLocaleString()}`, 20, 34);
-        doc.setLineWidth(0.5);
-        doc.line(20, 38, 190, 38);
+    const generatePDF = async (session) => {
+        try {
+            const printableEvents = [...sessionEvents];
+            const printableArtifacts = artifacts.filter((artifact) => artifact?.ip === session?.ip);
+            const reportWindow = window.open("", "_blank", "noopener,noreferrer");
+            if (!reportWindow) {
+                showNotice("warning", "Popup blocked. Allow popups to print or save the report as PDF.");
+                return;
+            }
 
-        doc.autoTable({
-            startY: 45,
-            head: [['Attribute', 'Value']],
-            body: [
-                ['Subject IP', session.ip],
-                ['Country', session.country],
-                ['Risk Index', `${session.risk}/100`],
-                ['Strategy Applied', session.strategy],
-                ['Command Count', session.events.length],
-                ['Evidence Integrity', 'VERIFIED']
-            ],
-            theme: 'striped'
-        });
+            reportWindow.document.open();
+            reportWindow.document.write(buildPrintableReportHtml({
+                session,
+                caseId: activeSessionCaseId,
+                behaviorProfile,
+                sessionEvents: printableEvents,
+                artifacts: printableArtifacts,
+            }));
+            reportWindow.document.close();
 
-        doc.save(`forensics_${session.id.substring(0, 8)}.pdf`);
+            window.setTimeout(() => {
+                reportWindow.focus();
+                reportWindow.print();
+            }, 200);
+        } catch (error) {
+            console.error("PDF export failed", error);
+            showNotice("error", "Print-friendly report generation failed.");
+        }
     };
 
     if (loading) return (
@@ -676,23 +877,16 @@ const ForensicsPage = () => {
                             <div style={{ fontSize: '11px', color: '#64748b' }}>LIVE HEURISTICS MAPPING</div>
                         </div>
                         <div style={{ height: '150px', width: '100%' }}>
-                            <ResponsiveContainer width="100%" height="100%">
-                                <AreaChart data={graphData}>
-                                    <defs>
-                                        <linearGradient id="colorRisk" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3} />
-                                            <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <XAxis dataKey="step" hide />
-                                    <YAxis hide domain={[0, 100]} />
-                                    <Tooltip
-                                        contentStyle={{ background: '#0f172a', border: '1px solid #38bdf8', color: '#f8fafc', fontSize: '12px' }}
-                                        itemStyle={{ color: '#38bdf8' }}
-                                    />
-                                    <Area type="monotone" dataKey="risk" stroke="#0ea5e9" fillOpacity={1} fill="url(#colorRisk)" strokeWidth={2} />
-                                </AreaChart>
-                            </ResponsiveContainer>
+                            <AreaTrendChart
+                                data={graphData}
+                                valueKey="risk"
+                                labelKey="step"
+                                minValue={0}
+                                maxValue={100}
+                                color="#0ea5e9"
+                                height={150}
+                                emptyLabel="No command sequence available for this session."
+                            />
                         </div>
                     </div>
 
@@ -1095,7 +1289,7 @@ const ForensicsPage = () => {
                         onMouseOver={(e) => e.target.style.background = 'rgba(56, 189, 248, 0.2)'}
                         onMouseOut={(e) => e.target.style.background = 'rgba(56, 189, 248, 0.1)'}
                     >
-                        <FileText size={18} /> EXPORT PDF
+                        <FileText size={18} /> PRINT / SAVE PDF
                     </button>
                     <button
                         onClick={handleGenerateThreatSummary}

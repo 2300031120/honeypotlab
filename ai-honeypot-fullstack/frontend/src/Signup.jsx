@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import "./styles.css";
 import { API_BASE } from "./apiConfig";
 import { Link, useNavigate } from "react-router-dom";
 import { UserPlus, User, Lock, ArrowLeft, Shield, Mail, Chrome } from "lucide-react";
+import { PUBLIC_SITE } from "./siteConfig";
 import { setAuthSession } from "./utils/auth";
+import { DEFAULT_AUTH_PROVIDERS, loadAuthProviders } from "./utils/authProviders";
 import { requestGoogleCredential } from "./utils/googleAuth";
 
 const DEFAULT_FORM = {
@@ -19,8 +22,44 @@ const Signup = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [authProviders, setAuthProviders] = useState({
+    checked: false,
+    ...DEFAULT_AUTH_PROVIDERS,
+  });
   const navigate = useNavigate();
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+  const effectiveGoogleClientId = googleClientId || authProviders.serverGoogleClientId;
+  const signupEnabled = authProviders.signupEnabled !== false;
+  const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
+  const googleSignupEnabled =
+    signupEnabled &&
+    Boolean(effectiveGoogleClientId) &&
+    (authProviders.checked ? authProviders.googleEnabled !== false : true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchProviders = async () => {
+      try {
+        const nextProviders = await loadAuthProviders();
+        if (!cancelled) {
+          setAuthProviders({
+            checked: true,
+            ...nextProviders,
+          });
+        }
+      } catch {
+        if (!cancelled) {
+          setAuthProviders((prev) => ({ ...prev, checked: true }));
+        }
+      }
+    };
+
+    fetchProviders();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleFieldChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -30,6 +69,10 @@ const Signup = () => {
     e.preventDefault();
     setMsg("");
     setError("");
+    if (!signupEnabled) {
+      setError("Self-service signup is disabled for this deployment.");
+      return;
+    }
 
     const username = form.username.trim();
     const email = form.email.trim().toLowerCase();
@@ -70,14 +113,18 @@ const Signup = () => {
   const handleGoogleSignup = async () => {
     setMsg("");
     setError("");
-    if (!googleClientId) {
-      setError("Google signup is not configured. Set VITE_GOOGLE_CLIENT_ID.");
+    if (!signupEnabled) {
+      setError("Self-service signup is disabled for this deployment.");
+      return;
+    }
+    if (!effectiveGoogleClientId) {
+      setError("Google signup is not configured. Set GOOGLE_OAUTH_CLIENT_ID or VITE_GOOGLE_CLIENT_ID.");
       return;
     }
 
     setGoogleLoading(true);
     try {
-      const credential = await requestGoogleCredential(googleClientId);
+      const credential = await requestGoogleCredential(effectiveGoogleClientId);
       const response = await axios.post(`${API_BASE}/auth/google`, {
         credential,
         plan: "free",
@@ -129,7 +176,7 @@ const Signup = () => {
 
           <h2 style={{ textAlign: "center", fontSize: "1.5rem", fontWeight: "700", marginBottom: "8px" }}>AGENT ENROLLMENT</h2>
           <p style={{ textAlign: "center", color: "#8b949e", fontSize: "13px", marginBottom: "26px" }}>
-            Register real credentials for SOC access
+            {signupEnabled ? "Register real credentials for SOC access" : "Self-service enrollment is disabled for this deployment"}
           </p>
 
           {msg && (
@@ -166,149 +213,176 @@ const Signup = () => {
             </div>
           )}
 
-          <button
-            type="button"
-            onClick={handleGoogleSignup}
-            disabled={googleLoading || loading}
-            style={{
-              width: "100%",
-              padding: "12px",
-              borderRadius: "8px",
-              border: "1px solid rgba(88,166,255,0.35)",
-              background: "rgba(88,166,255,0.1)",
-              color: "#58a6ff",
-              cursor: googleLoading || loading ? "not-allowed" : "pointer",
-              fontWeight: "700",
-              marginBottom: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "8px",
-            }}
-          >
-            <Chrome size={16} />
-            {googleLoading ? "CONNECTING GOOGLE..." : "Continue with Google"}
-          </button>
+          {signupEnabled ? (
+            <>
+              <button
+                type="button"
+                onClick={handleGoogleSignup}
+                disabled={googleLoading || loading || !googleSignupEnabled}
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  borderRadius: "8px",
+                  border: "1px solid rgba(88,166,255,0.35)",
+                  background: "rgba(88,166,255,0.1)",
+                  color: "#58a6ff",
+                  cursor: googleLoading || loading || !googleSignupEnabled ? "not-allowed" : "pointer",
+                  fontWeight: "700",
+                  marginBottom: "18px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                }}
+              >
+                <Chrome size={16} />
+                {googleLoading ? "CONNECTING GOOGLE..." : googleSignupEnabled ? "Continue with Google" : "Google Signup Off"}
+              </button>
 
-          <form onSubmit={handleSignup}>
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Username</label>
-              <div style={{ position: "relative" }}>
-                <User size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
-                <input
-                  type="text"
-                  placeholder="agent_name"
-                  value={form.username}
-                  required
-                  onChange={(e) => handleFieldChange("username", e.target.value)}
+              <form onSubmit={handleSignup}>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Username</label>
+                  <div style={{ position: "relative" }}>
+                    <User size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
+                    <input
+                      type="text"
+                      placeholder="agent_name"
+                      value={form.username}
+                      required
+                      onChange={(e) => handleFieldChange("username", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "14px 14px 14px 42px",
+                        background: "#010409",
+                        border: "1px solid #30363d",
+                        color: "#e6edf3",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Email</label>
+                  <div style={{ position: "relative" }}>
+                    <Mail size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
+                    <input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={form.email}
+                      required
+                      onChange={(e) => handleFieldChange("email", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "14px 14px 14px 42px",
+                        background: "#010409",
+                        border: "1px solid #30363d",
+                        color: "#e6edf3",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Password</label>
+                  <div style={{ position: "relative" }}>
+                    <Lock size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
+                    <input
+                      type="password"
+                      placeholder="Minimum 8 characters"
+                      value={form.password}
+                      required
+                      onChange={(e) => handleFieldChange("password", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "14px 14px 14px 42px",
+                        background: "#010409",
+                        border: "1px solid #30363d",
+                        color: "#e6edf3",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: "24px" }}>
+                  <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Confirm Password</label>
+                  <div style={{ position: "relative" }}>
+                    <Lock size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
+                    <input
+                      type="password"
+                      placeholder="Repeat password"
+                      value={form.confirmPassword}
+                      required
+                      onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
+                      style={{
+                        width: "100%",
+                        padding: "14px 14px 14px 42px",
+                        background: "#010409",
+                        border: "1px solid #30363d",
+                        color: "#e6edf3",
+                        borderRadius: "8px",
+                        fontSize: "14px",
+                        outline: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || googleLoading}
                   style={{
                     width: "100%",
-                    padding: "14px 14px 14px 42px",
-                    background: "#010409",
-                    border: "1px solid #30363d",
-                    color: "#e6edf3",
+                    padding: "14px",
+                    border: "none",
                     borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
+                    background: loading ? "#21262d" : "#238636",
+                    color: "white",
+                    fontWeight: "700",
+                    cursor: loading || googleLoading ? "not-allowed" : "pointer",
                   }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Email</label>
-              <div style={{ position: "relative" }}>
-                <Mail size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={form.email}
-                  required
-                  onChange={(e) => handleFieldChange("email", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "14px 14px 14px 42px",
-                    background: "#010409",
-                    border: "1px solid #30363d",
-                    color: "#e6edf3",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Password</label>
-              <div style={{ position: "relative" }}>
-                <Lock size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
-                <input
-                  type="password"
-                  placeholder="Minimum 8 characters"
-                  value={form.password}
-                  required
-                  onChange={(e) => handleFieldChange("password", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "14px 14px 14px 42px",
-                    background: "#010409",
-                    border: "1px solid #30363d",
-                    color: "#e6edf3",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ marginBottom: "24px" }}>
-              <label style={{ display: "block", color: "#8b949e", marginBottom: "8px", fontSize: "11px", textTransform: "uppercase" }}>Confirm Password</label>
-              <div style={{ position: "relative" }}>
-                <Lock size={16} style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: "#484f58" }} />
-                <input
-                  type="password"
-                  placeholder="Repeat password"
-                  value={form.confirmPassword}
-                  required
-                  onChange={(e) => handleFieldChange("confirmPassword", e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "14px 14px 14px 42px",
-                    background: "#010409",
-                    border: "1px solid #30363d",
-                    color: "#e6edf3",
-                    borderRadius: "8px",
-                    fontSize: "14px",
-                    outline: "none",
-                  }}
-                />
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || googleLoading}
+                >
+                  {loading ? "PROCESSING..." : "REGISTER FOR ACCESS"}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div
               style={{
-                width: "100%",
+                background: "rgba(88,166,255,0.08)",
+                border: "1px solid rgba(88,166,255,0.25)",
+                color: "#a5d6ff",
                 padding: "14px",
-                border: "none",
-                borderRadius: "8px",
-                background: loading ? "#21262d" : "#238636",
-                color: "white",
-                fontWeight: "700",
-                cursor: loading || googleLoading ? "not-allowed" : "pointer",
+                borderRadius: "10px",
+                marginBottom: "18px",
+                fontSize: "13px",
+                lineHeight: 1.6,
+                textAlign: "center",
               }}
             >
-              {loading ? "PROCESSING..." : "REGISTER FOR ACCESS"}
-            </button>
-          </form>
+              Self-service signup is disabled. Use an existing account, or request guided onboarding from the {productName} team.
+            </div>
+          )}
 
           <div style={{ marginTop: "20px", textAlign: "center", fontSize: "13px" }}>
             <Link to="/auth/login" style={{ color: "#58a6ff", textDecoration: "none" }}>
               Back to Secure Login
             </Link>
+            {!signupEnabled && (
+              <div style={{ marginTop: "12px" }}>
+                <Link to="/demo" style={{ color: "#3fb950", textDecoration: "none" }}>
+                  Request Guided Access
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="scanline"></div>

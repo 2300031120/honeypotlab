@@ -3,13 +3,12 @@ import {
     Play, RotateCcw, ShieldAlert, Terminal, Eye,
     AlertCircle, CheckCircle2, Zap, Target,
     ChevronRight, Activity, Cpu, Shield,
-    Lock, Search, Share2, Fingerprint, Database,
+    Lock, Search, Fingerprint, Database,
     Info, Sparkles, Network, Terminal as TerminalIcon,
     XCircle
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from './utils/motionLite.jsx';
 import axios from 'axios';
-import * as d3 from 'd3';
 import { API_BASE } from './apiConfig';
 
 const Simulator = () => {
@@ -17,7 +16,6 @@ const Simulator = () => {
     const [step, setStep] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
     const [logs, setLogs] = useState([]);
-    const svgRef = useRef();
     const logEndRef = useRef();
 
     const scenarios = [
@@ -50,82 +48,25 @@ const Simulator = () => {
         }
     ];
 
-    // --- D3 Network Graph Logic ---
-    useEffect(() => {
-        if (!svgRef.current) return;
+    const topologyNodes = [
+        { id: 'Attacker_Node', label: 'ATTACKER', type: 'attacker', x: 120, y: 226, radius: 16, color: '#f85149' },
+        { id: 'Web_Front', label: 'WEB_FRONT', type: 'service', x: 320, y: 132, radius: 12, color: '#58a6ff' },
+        { id: 'Auth_Gateway', label: 'AUTH_GATEWAY', type: 'service', x: 520, y: 260, radius: 12, color: '#58a6ff' },
+        { id: 'Honeypot_Core', label: 'HONEYPOT_CORE', type: 'core', x: 720, y: 156, radius: 20, color: '#3fb950' },
+        { id: 'DB_Cluster', label: 'DB_CLUSTER', type: 'service', x: 900, y: 284, radius: 12, color: '#58a6ff' },
+    ];
 
-        const svg = d3.select(svgRef.current);
-        const width = svgRef.current.clientWidth;
-        const height = svgRef.current.clientHeight;
-        svg.selectAll("*").remove();
+    const topologyLinks = [
+        { id: 'l1', source: 'Attacker_Node', target: 'Web_Front' },
+        { id: 'l2', source: 'Web_Front', target: 'Auth_Gateway' },
+        { id: 'l3', source: 'Auth_Gateway', target: 'Honeypot_Core' },
+        { id: 'l4', source: 'Honeypot_Core', target: 'DB_Cluster' },
+    ];
 
-        const nodes = [
-            { id: 'Honeypot_Core', type: 'core', val: 20 },
-            { id: 'Auth_Gateway', type: 'service', val: 12 },
-            { id: 'DB_Cluster', type: 'service', val: 12 },
-            { id: 'Web_Front', type: 'service', val: 12 },
-            { id: 'Attacker_Node', type: 'attacker', val: 15 }
-        ];
-
-        const links = [
-            { source: 'Attacker_Node', target: 'Web_Front' },
-            { source: 'Web_Front', target: 'Auth_Gateway' },
-            { source: 'Auth_Gateway', target: 'Honeypot_Core' },
-            { source: 'Honeypot_Core', target: 'DB_Cluster' }
-        ];
-
-        const simulation = d3.forceSimulation(nodes)
-            .force("link", d3.forceLink(links).id(d => d.id).distance(100))
-            .force("charge", d3.forceManyBody().strength(-300))
-            .force("center", d3.forceCenter(width / 2, height / 2));
-
-        const link = svg.append("g")
-            .attr("stroke", "rgba(56, 189, 248, 0.2)")
-            .selectAll("line")
-            .data(links)
-            .join("line")
-            .attr("stroke-width", 2);
-
-        const node = svg.append("g")
-            .selectAll("circle")
-            .data(nodes)
-            .join("circle")
-            .attr("r", d => d.val)
-            .attr("fill", d => d.type === 'attacker' ? '#f85149' : (d.type === 'core' ? '#3fb950' : '#58a6ff'))
-            .attr("stroke", "#fff")
-            .attr("stroke-width", 1.5)
-            .call(d3.drag()
-                .on("start", (event, d) => {
-                    if (!event.active) simulation.alphaTarget(0.3).restart();
-                    d.fx = d.x;
-                    d.fy = d.y;
-                })
-                .on("drag", (event, d) => {
-                    d.fx = event.x;
-                    d.fy = event.y;
-                })
-                .on("end", (event, d) => {
-                    if (!event.active) simulation.alphaTarget(0);
-                    d.fx = null;
-                    d.fy = null;
-                }));
-
-        node.append("title").text(d => d.id);
-
-        simulation.on("tick", () => {
-            link
-                .attr("x1", d => d.source.x)
-                .attr("y1", d => d.source.y)
-                .attr("x2", d => d.target.x)
-                .attr("y2", d => d.target.y);
-
-            node
-                .attr("cx", d => d.x)
-                .attr("cy", d => d.y);
-        });
-
-        return () => simulation.stop();
-    }, [isRunning]);
+    const activeLinkCount = isRunning ? Math.min(step + 1, topologyLinks.length) : activeScenario ? 1 : 0;
+    const activeNodeCount = isRunning ? Math.min(step + 2, topologyNodes.length) : activeScenario ? 2 : 0;
+    const activeNodeIds = new Set(topologyNodes.slice(0, activeNodeCount).map((node) => node.id));
+    const topologyNodeLookup = Object.fromEntries(topologyNodes.map((node) => [node.id, node]));
 
     const startSimulation = () => {
         if (!activeScenario) return;
@@ -278,7 +219,7 @@ const Simulator = () => {
 
                 {/* Main Viewport */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-                    {/* Visualizer (D3 Relationship Graph) */}
+                    {/* Visualizer (Relationship Graph) */}
                     <div className="premium-glass" style={{
                         borderRadius: '28px',
                         height: '450px',
@@ -299,7 +240,78 @@ const Simulator = () => {
                                 </div>
                             </div>
                         </div>
-                        <svg ref={svgRef} style={{ width: '100%', height: '100%' }}></svg>
+                        <svg viewBox="0 0 1000 450" style={{ width: '100%', height: '100%' }} preserveAspectRatio="xMidYMid meet">
+                            <defs>
+                                <linearGradient id="simLinkActive" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#f85149" />
+                                    <stop offset="50%" stopColor="#58a6ff" />
+                                    <stop offset="100%" stopColor="#3fb950" />
+                                </linearGradient>
+                            </defs>
+
+                            <g opacity="0.22">
+                                {Array.from({ length: 8 }).map((_, idx) => (
+                                    <line key={`grid-x-${idx}`} x1={120 + (idx * 100)} y1="40" x2={120 + (idx * 100)} y2="390" stroke="rgba(48,54,61,0.45)" />
+                                ))}
+                                {Array.from({ length: 4 }).map((_, idx) => (
+                                    <line key={`grid-y-${idx}`} x1="60" y1={90 + (idx * 90)} x2="940" y2={90 + (idx * 90)} stroke="rgba(48,54,61,0.35)" />
+                                ))}
+                            </g>
+
+                            {topologyLinks.map((link, index) => {
+                                const source = topologyNodeLookup[link.source];
+                                const target = topologyNodeLookup[link.target];
+                                const isActive = index < activeLinkCount;
+                                if (!source || !target) return null;
+
+                                const path = `M ${source.x} ${source.y} C ${(source.x + target.x) / 2} ${source.y - 40}, ${(source.x + target.x) / 2} ${target.y - 40}, ${target.x} ${target.y}`;
+
+                                return (
+                                    <g key={link.id}>
+                                        <path
+                                            d={path}
+                                            fill="none"
+                                            stroke={isActive ? 'url(#simLinkActive)' : 'rgba(56,189,248,0.2)'}
+                                            strokeWidth={isActive ? 4 : 2}
+                                            strokeLinecap="round"
+                                        />
+                                        {isActive && (
+                                            <circle r="4" fill="#58a6ff">
+                                                <animateMotion dur="1.8s" repeatCount="indefinite" path={path} />
+                                            </circle>
+                                        )}
+                                    </g>
+                                );
+                            })}
+
+                            {topologyNodes.map((node, index) => {
+                                const isActive = activeNodeIds.has(node.id);
+                                return (
+                                    <g key={node.id} transform={`translate(${node.x}, ${node.y})`}>
+                                        <circle
+                                            r={node.radius + (isActive ? 10 : 5)}
+                                            fill={isActive ? `${node.color}18` : 'rgba(22,27,34,0.4)'}
+                                            stroke="none"
+                                        />
+                                        <circle
+                                            r={node.radius}
+                                            fill="#0d1117"
+                                            stroke={node.color}
+                                            strokeWidth={isActive ? 3 : 1.5}
+                                        />
+                                        {isActive && (
+                                            <circle r={node.radius + 6} fill="none" stroke={node.color} strokeOpacity="0.38">
+                                                <animate attributeName="r" values={`${node.radius + 4};${node.radius + 10};${node.radius + 4}`} dur="2.2s" repeatCount="indefinite" />
+                                                <animate attributeName="stroke-opacity" values="0.35;0.08;0.35" dur="2.2s" repeatCount="indefinite" />
+                                            </circle>
+                                        )}
+                                        <text x="0" y={node.radius + 22} textAnchor="middle" fill="#c9d1d9" style={{ fontSize: '11px', fontFamily: 'monospace', fontWeight: 800 }}>
+                                            {node.label}
+                                        </text>
+                                    </g>
+                                );
+                            })}
+                        </svg>
                     </div>
 
                     {/* Elite X-TERM Console */}

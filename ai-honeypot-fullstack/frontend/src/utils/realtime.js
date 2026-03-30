@@ -1,3 +1,5 @@
+import { getAuthToken } from "./auth";
+
 export function safeParseJson(payload) {
   try {
     return JSON.parse(payload);
@@ -15,6 +17,7 @@ export function createManagedWebSocket(url, handlers = {}, options = {}) {
   } = handlers;
 
   const {
+    auth = true,
     reconnect = true,
     initialDelayMs = 1000,
     maxDelayMs = 15000,
@@ -45,7 +48,12 @@ export function createManagedWebSocket(url, handlers = {}, options = {}) {
     if (closedByUser) return;
     clearReconnectTimer();
     try {
-      socket = new WebSocket(url);
+      const targetUrl = new URL(url, window.location.origin);
+      const token = auth ? getAuthToken() : "";
+      if (token) {
+        targetUrl.searchParams.set("token", token);
+      }
+      socket = new WebSocket(targetUrl.toString());
     } catch (err) {
       onError?.(err);
       scheduleReconnect();

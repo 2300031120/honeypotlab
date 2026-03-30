@@ -3,6 +3,21 @@ import { API_BASE } from "../apiConfig";
 const SESSION_STORAGE_KEY = "csa_analytics_session";
 const EVENT_ENDPOINT = `${API_BASE}/analytics/event`;
 
+function toBool(value) {
+  return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
+}
+
+function analyticsEnabled() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  if (toBool(import.meta.env.VITE_ENABLE_LOCAL_ANALYTICS)) {
+    return true;
+  }
+  const host = String(window.location?.hostname || "").toLowerCase();
+  return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
+}
+
 function safeText(value, maxLen = 255) {
   const normalized = String(value ?? "")
     .replace(/[\u0000-\u001F\u007F]/g, "")
@@ -81,7 +96,7 @@ function postEvent(payload) {
 }
 
 export function trackEvent(eventName, options = {}) {
-  if (typeof window === "undefined") {
+  if (!analyticsEnabled()) {
     return;
   }
   const normalizedEvent = safeEventName(eventName);

@@ -1,45 +1,54 @@
 import React from "react";
-import { Link } from "react-router-dom";
-import { Shield } from "lucide-react";
+import { PUBLIC_SITE, toMailto } from "./siteConfig";
 import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
+import PublicHeader from "./PublicHeader";
 import PublicFooter from "./PublicFooter";
 
 export default function SecurityDisclosure() {
   useSeo({
-    title: "Security and Responsible Disclosure | CyberSentinel AI",
-    description: "Security practices and responsible disclosure process for CyberSentinel AI platform.",
+    title: `Security and Responsible Disclosure | ${PUBLIC_SITE.siteName}`,
+    description: `Security practices and responsible disclosure process for ${PUBLIC_SITE.siteName}.`,
   });
   usePageAnalytics("security_disclosure");
 
   return (
     <div className="cred-page">
-      <header className="cred-nav">
-        <Link to="/" className="cred-brand">
-          <Shield size={16} />
-          CYBERSENTINEL
-        </Link>
-        <nav className="cred-nav-links">
-          <Link to="/">Home</Link>
-          <Link to="/platform">Platform</Link>
-          <Link to="/terms">Terms</Link>
-          <Link to="/contact">Contact</Link>
-        </nav>
-      </header>
+      <PublicHeader variant="cred" pagePath="/security" />
       <main className="cred-main">
         <section className="legal-card">
           <h1>Security and Responsible Disclosure</h1>
-          <p>Last updated: March 7, 2026</p>
-          <h2>Security Controls</h2>
-          <p>The platform uses role-based access control, server-side validation, lead intake protection, and notification idempotency safeguards.</p>
-          <h2>Data Isolation</h2>
-          <p>Deception environments are designed to remain believable for attackers while controlled for operational safety.</p>
-          <h2>Responsible Disclosure</h2>
-          <p>If you identify a vulnerability, report it to security@cybersentinel.ai with clear reproduction details.</p>
-          <h2>Disclosure Process</h2>
-          <p>We acknowledge reports quickly, triage severity, and coordinate remediation updates responsibly.</p>
+          <p>Last updated: March 29, 2026</p>
+          <h2>How to Report</h2>
+          <p>
+            Send vulnerability reports to <a href={toMailto(PUBLIC_SITE.securityEmail)}>{PUBLIC_SITE.securityEmail}</a> with affected asset,
+            impact summary, reproduction steps, and any supporting logs or screenshots.
+          </p>
+          <h2>Safe Handling</h2>
+          <p>
+            We ask researchers to avoid privacy impact, service disruption, persistence, lateral movement, or data exfiltration. Good-faith reports
+            that respect these limits help us triage quickly and responsibly.
+          </p>
+          <h2>Response Targets</h2>
+          <p>
+            We aim to acknowledge valid reports promptly, assess severity, and coordinate remediation updates with reasonable transparency based on
+            risk and operational safety.
+          </p>
+          <h2>Platform Controls</h2>
+          <p>
+            The platform uses authenticated operator workflows, server-side validation, rate limiting, lead-intake protections, and deployment
+            isolation guidance to reduce exposure.
+          </p>
           <h2>Out of Scope</h2>
-          <p>Testing that impacts production stability, privacy, or third-party systems is prohibited without written approval.</p>
+          <p>
+            Testing that degrades availability, touches customer data without authorization, targets third-party infrastructure, or bypasses written
+            approval is out of scope.
+          </p>
+          <h2>No Offensive Use</h2>
+          <p>
+            {PUBLIC_SITE.siteName} is built for deception-led defense. We do not authorize use of the platform for retaliation, attack-back behavior,
+            or unlawful collection.
+          </p>
         </section>
         <PublicFooter />
       </main>

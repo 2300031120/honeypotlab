@@ -27,6 +27,7 @@ const Terminal = () => {
     const [aiMetadata, setAiMetadata] = useState(null);
     const [executionMode, setExecutionMode] = useState("emulated");
     const [executionStatus, setExecutionStatus] = useState("idle");
+    const [sessionId, setSessionId] = useState(null);
 
     useEffect(() => {
         if (inputRef.current) inputRef.current.focus();
@@ -91,13 +92,14 @@ const Terminal = () => {
             try {
                 const res = await axios.post(
                     `${API_BASE}/terminal/cmd`,
-                    { cmd: cmd },
+                    { cmd: cmd, session_id: sessionId },
                     {
                         headers: buildAuthHeaders({ "Content-Type": "application/json" }),
                         timeout: 30000,
                     }
                 );
 
+                setSessionId(res.data.session_id || sessionId);
                 if (res.data.ai_metadata) {
                     setAiMetadata(res.data.ai_metadata);
                 }

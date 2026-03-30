@@ -25,6 +25,8 @@ vi.mock("./utils/seo", () => ({
 }));
 
 describe("ContactDemo tracking", () => {
+  const routerFuture = { v7_startTransition: true, v7_relativeSplatPath: true };
+
   beforeEach(() => {
     vi.clearAllMocks();
     axios.get.mockResolvedValue({
@@ -41,7 +43,7 @@ describe("ContactDemo tracking", () => {
     window.history.pushState({}, "", "/demo");
 
     render(
-      <MemoryRouter initialEntries={["/demo"]}>
+      <MemoryRouter initialEntries={["/demo"]} future={routerFuture}>
         <ContactDemo mode="demo" />
       </MemoryRouter>
     );
@@ -72,7 +74,7 @@ describe("ContactDemo tracking", () => {
     });
 
     render(
-      <MemoryRouter initialEntries={["/demo"]}>
+      <MemoryRouter initialEntries={["/demo"]} future={routerFuture}>
         <ContactDemo mode="demo" />
       </MemoryRouter>
     );

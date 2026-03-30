@@ -4,6 +4,9 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { Activity, Command, Search, Sparkles, X } from "lucide-react";
 import { API_BASE } from "../apiConfig";
 import { trackCtaClick, trackEvent } from "../utils/analytics";
+import { isAuthenticated } from "../utils/auth";
+import { loadAuthProviders } from "../utils/authProviders";
+import { fetchPublicTelemetrySnapshot } from "../utils/publicTelemetry";
 
 const BASE_ACTIONS = [
   {
@@ -113,6 +116,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
   const inputRef = useRef(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [signupEnabled, setSignupEnabled] = useState(true);
   const [live, setLive] = useState({
     status: "checking",
     uptime: "--",
@@ -123,11 +127,12 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
   });
 
   const actions = useMemo(() => {
+    const baseActions = signupEnabled ? BASE_ACTIONS : BASE_ACTIONS.filter((item) => item.id !== "signup");
     if (location.pathname === "/") {
-      return [...HOME_ANCHOR_ACTIONS, ...BASE_ACTIONS];
+      return [...HOME_ANCHOR_ACTIONS, ...baseActions];
     }
-    return BASE_ACTIONS;
-  }, [location.pathname]);
+    return baseActions;
+  }, [location.pathname, signupEnabled]);
 
   const filteredActions = useMemo(() => {
     const searchText = String(query || "").trim().toLowerCase();
@@ -143,6 +148,22 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     if (!open) {
       return undefined;
     }
+    let cancelled = false;
+
+    const loadAuthAvailability = async () => {
+      try {
+        const providers = await loadAuthProviders({ skipAuthRedirect: true });
+        if (!cancelled) {
+          setSignupEnabled(providers.signupEnabled !== false);
+        }
+      } catch {
+        if (!cancelled) {
+          setSignupEnabled(true);
+        }
+      }
+    };
+
+    loadAuthAvailability();
     setQuery("");
     setActiveIndex(0);
     trackEvent("command_center_open", {
@@ -153,7 +174,10 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     const focusTimer = setTimeout(() => {
       inputRef.current?.focus();
     }, 30);
-    return () => clearTimeout(focusTimer);
+    return () => {
+      cancelled = true;
+      clearTimeout(focusTimer);
+    };
   }, [open, analyticsPath, location.pathname]);
 
   useEffect(() => {
@@ -168,12 +192,15 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
 
     const loadLiveStatus = async () => {
       try {
+        const authenticated = isAuthenticated();
         const [healthResult, statsResult] = await Promise.allSettled([
           axios.get(`${API_BASE}/health`, { skipAuthRedirect: true }),
-          axios.get(`${API_BASE}/dashboard/stats`, {
-            params: { include_training: false },
-            skipAuthRedirect: true,
-          }),
+          authenticated
+            ? axios.get(`${API_BASE}/dashboard/stats`, {
+                params: { include_training: false },
+                skipAuthRedirect: true,
+              })
+            : fetchPublicTelemetrySnapshot(),
         ]);
 
         if (cancelled) {
@@ -202,11 +229,11 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
         }
 
         if (statsResult.status === "fulfilled") {
-          const statsPayload = statsResult.value?.data || {};
+          const statsPayload = authenticated ? statsResult.value?.data || {} : statsResult.value || {};
           nextState = {
             ...nextState,
-            totalAttacks: Number(statsPayload?.summary?.total || 0),
-            criticalThreats: Number(statsPayload?.summary?.critical || 0),
+            totalAttacks: Number(statsPayload?.summary?.total ?? statsPayload?.summary?.total_events ?? 0),
+            criticalThreats: Number(statsPayload?.summary?.critical ?? statsPayload?.summary?.critical_events ?? 0),
           };
         }
 

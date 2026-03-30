@@ -1,21 +1,24 @@
 ﻿import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import axios from "axios";
+import "./styles.css";
 import {
     Activity, Shield, AlertTriangle, Terminal as TerminalIcon, FileSearch, LogOut,
     Wifi, Clock, BarChart3, Globe as GlobeIcon, Target, Fingerprint, Settings, Network, HeartPulse,
     Bot, MessageSquare, Sparkles, Cpu, ShieldAlert, ChevronRight, Zap, Target as TargetIcon, Info, BookOpen, Link2
 } from "lucide-react";
 import { API_BASE } from "./apiConfig";
+import { PUBLIC_SITE } from "./siteConfig";
 import { clearAuthSession, getAuthToken, getUserProfile, setAuthSession } from "./utils/auth";
 
-import { motion } from "framer-motion";
+import { motion } from "./utils/motionLite.jsx";
 
 const MainLayout = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
     const [userProfile, setUserProfile] = useState(() => getUserProfile());
+    const productLabel = String(PUBLIC_SITE.shortName || PUBLIC_SITE.siteName || "CyberSentinel").trim().toUpperCase();
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
@@ -69,7 +72,7 @@ const MainLayout = () => {
                         <Shield color="#fff" size={24} />
                     </div>
                     <div>
-                        <div style={{ fontSize: '16px', fontWeight: '950', letterSpacing: '1px', color: '#e6edf3' }}>CYBERSENTINEL</div>
+                        <div style={{ fontSize: '16px', fontWeight: '950', letterSpacing: '1px', color: '#e6edf3' }}>{productLabel}</div>
                         <div style={{ fontSize: '10px', color: '#3fb950', fontWeight: '900', display: 'flex', alignItems: 'center', gap: '4px' }}>
                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#3fb950' }} />
                             NEURAL_DEFENSE_ON

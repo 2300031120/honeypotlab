@@ -13,15 +13,13 @@ import {
     BaseEdge,
     getBezierPath,
 } from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
-import { motion, AnimatePresence } from 'framer-motion';
-import * as d3 from 'd3';
+import { motion, AnimatePresence } from './utils/motionLite.jsx';
 import { getEventDate, getEventTimestampValue, isSyntheticEvent, stableHexFromText } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 import {
     Search, Zap, Shield, Lock, Database, AlertCircle,
     Terminal, Activity, TrendingUp, Info, ChevronRight,
-    X, Target, ZapOff, Fingerprint, Map, Share2, Network, Sparkles,
+    X, Target, Fingerprint, Map, Network, Sparkles,
     Play, Pause, RotateCcw
 } from 'lucide-react';
 
@@ -115,6 +113,10 @@ const AttackGraph = () => {
     const [allEvents, setAllEvents] = useState([]);
     const timerRef = useRef();
 
+    useEffect(() => {
+        void import('@xyflow/react/dist/style.css');
+    }, []);
+
     const normalizeEvent = useCallback((event, seed = '') => {
         const timestamp = getEventTimestampValue(event) || new Date().toISOString();
         const sessionId = event?.session_id || `${event?.ip || 'unknown'}-${String(timestamp).slice(0, 16)}-${seed || 'evt'}`;
@@ -162,18 +164,12 @@ const AttackGraph = () => {
     }, [allEvents, stats.blocked]);
 
     const runSimulation = useCallback((nodesToSim, edgesToSim) => {
-        const simulation = d3.forceSimulation(nodesToSim)
-            .force('link', d3.forceLink(edgesToSim).id(d => d.id).distance(200))
-            .force('charge', d3.forceManyBody().strength(-500))
-            .force('center', d3.forceCenter(window.innerWidth / 2, window.innerHeight / 2))
-            .force('x', d3.forceX(window.innerWidth / 2).strength(0.1))
-            .force('y', d3.forceY(window.innerHeight / 2).strength(0.1));
-
-        for (let i = 0; i < 300; ++i) simulation.tick();
-
-        setNodes(nodesToSim.map(n => ({
-            ...n,
-            position: { x: n.x, y: n.y }
+        setNodes(nodesToSim.map((node) => ({
+            ...node,
+            position: {
+                x: Number.isFinite(node.x) ? node.x : 0,
+                y: Number.isFinite(node.y) ? node.y : 0,
+            }
         })));
         setEdges(edgesToSim);
     }, [setNodes, setEdges]);
@@ -193,21 +189,27 @@ const AttackGraph = () => {
             sessions[sid].push(event);
         });
 
+        const sessionIds = Object.keys(sessions).slice(0, 8);
+        const laneSpacing = 260;
+        const rowSpacing = 170;
+        const originX = 140;
+        const rootX = originX + (Math.max(sessionIds.length - 1, 0) * laneSpacing) / 2;
+
         const newNodes = [{
             id: 'root',
             type: 'attack',
-            x: 0, y: 0,
+            x: rootX, y: 40,
             data: { label: 'Neural Defense Hub', sub: 'SYSTEM_STABLE', icon: Shield, risk: 'low', status: 'active' }
         }];
         const newEdges = [];
 
-        const sessionIds = Object.keys(sessions).slice(0, 8);
         sessionIds.forEach((sid, sIdx) => {
             const sessionEvents = sessions[sid].sort((a, b) => {
                 const aTime = getEventDate(a)?.getTime() || 0;
                 const bTime = getEventDate(b)?.getTime() || 0;
                 return aTime - bTime;
             });
+            const laneX = originX + (sIdx * laneSpacing);
             sessionEvents.forEach((event, eIdx) => {
                 const eventIdentifier = event.id || stableHexFromText(`${sid}|${event.ip}|${event.cmd}|${event.ts}|${eIdx}`, 12);
                 const nodeId = `event-${eventIdentifier}`;
@@ -221,6 +223,8 @@ const AttackGraph = () => {
                 newNodes.push({
                     id: nodeId,
                     type: 'attack',
+                    x: laneX + (eIdx % 2 === 0 ? -18 : 18),
+                    y: 190 + (eIdx * rowSpacing),
                     data: {
                         label: event.cmd || 'N/A',
                         sub: `${event.ip || 'UNKNOWN'} | ${event.country || event.geo || 'UNK'}`,

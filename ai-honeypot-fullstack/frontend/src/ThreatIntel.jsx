@@ -1,10 +1,8 @@
 ﻿import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
-import { Globe, Shield, MapPin, Activity, AlertCircle, TrendingUp, Search, Zap, Crosshair, Network, Sparkles, User, Database } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
-import * as d3 from 'd3';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Globe, Shield, Activity, AlertCircle, TrendingUp, Search, Zap, Crosshair, Network, Sparkles, User, Database } from 'lucide-react';
+import { motion, AnimatePresence } from './utils/motionLite.jsx';
 import { isSyntheticEvent, stableGeoPoint, stableHexFromText } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 
@@ -165,110 +163,126 @@ const ThreatIntel = () => {
         };
     }, []);
 
-    // --- Elite D3 Actor Relationship Graph Component ---
     const ActorRelationshipGraph = ({ activeAttacks }) => {
-        const svgRef = useRef();
         const [selectedEntity, setSelectedEntity] = useState(null);
+        const selectionRef = useRef(null);
+        selectionRef.current = selectedEntity;
 
-        useEffect(() => {
-            if (!activeAttacks.length) return;
+        const { nodes, links } = useMemo(() => {
+            const actorMap = new Map();
+            const toolMap = new Map();
 
-            const width = 400;
-            const height = 400;
+            activeAttacks.slice(0, 8).forEach((attack, idx) => {
+                const actorId = attack.actorId || attack.ip || `Actor_${idx}`;
+                const toolId = attack.toolId || attack.attacker_type || 'Unknown Bot';
 
-            // Generate nodes and links from active attacks
-            const nodes = [{ id: 'Honeypot', type: 'target', label: 'SENTINEL_ALPHA', icon: Shield, color: '#58a6ff' }];
-            const links = [];
-
-            activeAttacks.forEach((a, idx) => {
-                const actorId = a.actorId || a.ip || `Actor_${idx}`;
-                const toolId = a.toolId || a.attacker_type || 'Unknown Bot';
-
-                if (!nodes.find(n => n.id === actorId)) {
-                    nodes.push({ id: actorId, type: 'actor', label: actorId, icon: User, color: '#f85149' });
+                if (!actorMap.has(actorId)) {
+                    actorMap.set(actorId, { id: actorId, type: 'actor', label: actorId, icon: User, color: '#f85149' });
                 }
-                if (!nodes.find(n => n.id === toolId)) {
-                    nodes.push({ id: toolId, type: 'tool', label: toolId, icon: Database, color: '#d29922' });
+                if (!toolMap.has(toolId)) {
+                    toolMap.set(toolId, { id: toolId, type: 'tool', label: toolId, icon: Database, color: '#d29922' });
                 }
-
-                links.push({ source: actorId, target: 'Honeypot' });
-                links.push({ source: actorId, target: toolId });
             });
 
-            const svg = d3.select(svgRef.current);
-            svg.selectAll("*").remove();
+            const target = {
+                id: 'Honeypot',
+                type: 'target',
+                label: 'SENTINEL_ALPHA',
+                icon: Shield,
+                color: '#58a6ff',
+                x: 200,
+                y: 86,
+            };
 
-            const simulation = d3.forceSimulation(nodes)
-                .force("link", d3.forceLink(links).id(d => d.id).distance(80))
-                .force("charge", d3.forceManyBody().strength(-150))
-                .force("center", d3.forceCenter(width / 2, height / 2));
+            const actors = Array.from(actorMap.values()).map((node, index, list) => ({
+                ...node,
+                x: 82,
+                y: list.length === 1 ? 192 : 92 + ((220 / Math.max(list.length - 1, 1)) * index),
+            }));
 
-            const link = svg.append("g")
-                .attr("stroke", "#30363d")
-                .attr("stroke-opacity", 0.6)
-                .selectAll("line")
-                .data(links)
-                .join("line")
-                .attr("stroke-width", 1.5);
+            const tools = Array.from(toolMap.values()).map((node, index, list) => ({
+                ...node,
+                x: 318,
+                y: list.length === 1 ? 192 : 92 + ((220 / Math.max(list.length - 1, 1)) * index),
+            }));
 
-            const node = svg.append("g")
-                .selectAll("g")
-                .data(nodes)
-                .join("g")
-                .call(d3.drag()
-                    .on("start", dragstarted)
-                    .on("drag", dragged)
-                    .on("end", dragended))
-                .on("click", (e, d) => setSelectedEntity(d));
-
-            node.append("circle")
-                .attr("r", 14)
-                .attr("fill", "#0d1117")
-                .attr("stroke", d => d.color)
-                .attr("stroke-width", 2);
-
-            node.append("text")
-                .text(d => d.label.length > 10 ? d.label.substring(0, 8) + '...' : d.label)
-                .attr("x", 18)
-                .attr("y", 4)
-                .attr("fill", "#8b949e")
-                .style("font-size", "9px")
-                .style("font-family", "monospace");
-
-            simulation.on("tick", () => {
-                link
-                    .attr("x1", d => d.source.x)
-                    .attr("y1", d => d.source.y)
-                    .attr("x2", d => d.target.x)
-                    .attr("y2", d => d.target.y);
-
-                node
-                    .attr("transform", d => `translate(${d.x},${d.y})`);
+            const nextLinks = [];
+            actors.forEach((actor) => {
+                nextLinks.push({ id: `${actor.id}-root`, source: actor.id, target: target.id });
             });
 
-            function dragstarted(event) {
-                if (!event.active) simulation.alphaTarget(0.3).restart();
-                event.subject.fx = event.subject.x;
-                event.subject.fy = event.subject.y;
-            }
+            activeAttacks.slice(0, 8).forEach((attack, idx) => {
+                const actorId = attack.actorId || attack.ip || `Actor_${idx}`;
+                const toolId = attack.toolId || attack.attacker_type || 'Unknown Bot';
+                if (actorMap.has(actorId) && toolMap.has(toolId)) {
+                    nextLinks.push({ id: `${actorId}-${toolId}-${idx}`, source: actorId, target: toolId });
+                }
+            });
 
-            function dragged(event) {
-                event.subject.fx = event.x;
-                event.subject.fy = event.y;
-            }
-
-            function dragended(event) {
-                if (!event.active) simulation.alphaTarget(0);
-                event.subject.fx = null;
-                event.subject.fy = null;
-            }
-
-            return () => simulation.stop();
+            return { nodes: [target, ...actors, ...tools], links: nextLinks };
         }, [activeAttacks]);
+
+        const nodeLookup = useMemo(() => Object.fromEntries(nodes.map((node) => [node.id, node])), [nodes]);
 
         return (
             <div style={{ position: 'relative' }}>
-                <svg ref={svgRef} width="100%" height="400" />
+                <svg width="100%" height="400" viewBox="0 0 400 400" preserveAspectRatio="xMidYMid meet">
+                    <defs>
+                        <linearGradient id="relationshipLink" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" stopColor="rgba(248,81,73,0.45)" />
+                            <stop offset="50%" stopColor="rgba(88,166,255,0.28)" />
+                            <stop offset="100%" stopColor="rgba(210,153,34,0.45)" />
+                        </linearGradient>
+                    </defs>
+
+                    {links.map((link) => {
+                        const source = nodeLookup[link.source];
+                        const target = nodeLookup[link.target];
+                        if (!source || !target) return null;
+                        const midX = (source.x + target.x) / 2;
+                        return (
+                            <path
+                                key={link.id}
+                                d={`M ${source.x} ${source.y} C ${midX} ${source.y}, ${midX} ${target.y}, ${target.x} ${target.y}`}
+                                fill="none"
+                                stroke="url(#relationshipLink)"
+                                strokeWidth="1.6"
+                                strokeOpacity="0.8"
+                            />
+                        );
+                    })}
+
+                    {nodes.map((node) => (
+                        <g
+                            key={node.id}
+                            transform={`translate(${node.x}, ${node.y})`}
+                            onClick={() => setSelectedEntity(node)}
+                            style={{ cursor: 'pointer' }}
+                        >
+                            <circle
+                                r={node.type === 'target' ? 18 : 13}
+                                fill="#0d1117"
+                                stroke={node.color}
+                                strokeWidth={node.type === 'target' ? 2.4 : 1.8}
+                            />
+                            <circle
+                                r={node.type === 'target' ? 30 : 22}
+                                fill="none"
+                                stroke={node.color}
+                                strokeOpacity="0.14"
+                            />
+                            <text
+                                x={node.type === 'actor' ? 20 : node.type === 'tool' ? -20 : 0}
+                                y={4}
+                                textAnchor={node.type === 'actor' ? 'start' : node.type === 'tool' ? 'end' : 'middle'}
+                                fill="#8b949e"
+                                style={{ fontSize: '9px', fontFamily: 'monospace' }}
+                            >
+                                {node.label.length > 12 ? `${node.label.slice(0, 10)}..` : node.label}
+                            </text>
+                        </g>
+                    ))}
+                </svg>
                 <AnimatePresence>
                     {selectedEntity && (
                         <motion.div
