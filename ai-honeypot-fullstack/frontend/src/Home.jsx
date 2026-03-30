@@ -19,6 +19,7 @@ import {
 import { API_BASE } from "./apiConfig";
 import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
+import { useScrollReveal } from "./hooks/useScrollReveal";
 import { trackCtaClick } from "./utils/analytics";
 import { buildAuthHeaders, isAuthenticated } from "./utils/auth";
 import { buildCampaignAwarePath } from "./utils/campaignLinks";
@@ -330,6 +331,11 @@ export default function Home() {
   const [showRichSections, setShowRichSections] = useState(false);
   const [telemetryEnabled, setTelemetryEnabled] = useState(false);
   const [motionEnabled, setMotionEnabled] = useState(false);
+  useScrollReveal(".marketing-lazy-section", {
+    enabled: motionEnabled,
+    refreshToken: showRichSections,
+  });
+
   useEffect(() => {
     if (!telemetryEnabled) {
       return undefined;

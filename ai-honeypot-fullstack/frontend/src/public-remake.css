@@ -19,6 +19,11 @@
   --entry-pink-soft: #ffc2de;
   --entry-ink: #250611;
   --entry-ink-soft: #4a1321;
+  --mk-motion-fast: 180ms;
+  --mk-motion-medium: 280ms;
+  --mk-motion-slow: 440ms;
+  --mk-ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --mk-ease-emphasis: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body {
@@ -1171,6 +1176,50 @@ body {
 .marketing-lazy-section {
   content-visibility: auto;
   contain-intrinsic-size: 980px;
+}
+
+.marketing-shell-home.marketing-motion-on .marketing-lazy-section.reveal-ready {
+  opacity: 0;
+  transform: translate3d(0, 24px, 0) scale(0.985);
+  filter: saturate(0.95);
+  transition:
+    transform var(--mk-motion-slow) var(--mk-ease-emphasis),
+    opacity var(--mk-motion-slow) var(--mk-ease-standard),
+    filter var(--mk-motion-medium) var(--mk-ease-standard);
+  transition-delay: var(--reveal-delay, 0ms);
+  will-change: transform, opacity;
+}
+
+.marketing-shell-home.marketing-motion-on .marketing-lazy-section.reveal-ready.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: saturate(1);
+}
+
+.marketing-shell-home.marketing-motion-paused .marketing-lazy-section.reveal-ready {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  .marketing-shell-home *,
+  .marketing-shell-home *::before,
+  .marketing-shell-home *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+
+  .marketing-lazy-section.reveal-ready {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
 }
 
 .marketing-proof-band {
