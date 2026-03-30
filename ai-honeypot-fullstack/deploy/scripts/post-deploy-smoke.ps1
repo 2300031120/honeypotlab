@@ -94,7 +94,7 @@ if (-not $Email) {
 Write-Host "API base: $apiBase"
 
 Write-Host "[1/7] Health check"
-$healthResponse = Invoke-WebRequest -Method Get -Uri "$apiBase/health" -TimeoutSec 20
+$healthResponse = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$apiBase/health" -TimeoutSec 20
 $healthPayload = $healthResponse.Content | ConvertFrom-Json
 if ([string]$healthPayload.status -ne "healthy") {
     throw "Health endpoint did not return status=healthy."
