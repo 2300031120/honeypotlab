@@ -111,8 +111,9 @@ export default function Login() {
           setFingerprintSupported(true);
           setFingerprintAvailable(available);
         }
-      } catch (e) {
-        console.log('Fingerprint not supported');
+      } catch {
+        setFingerprintSupported(false);
+        setFingerprintAvailable(false);
       }
     };
     checkFingerprintSupport();
