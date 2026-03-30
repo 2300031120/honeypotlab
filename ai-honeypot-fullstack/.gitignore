@@ -48,6 +48,8 @@ copilot-messages.log
 .DS_Store
 .project/attachments/files/**
 .env
+frontend/.env.*
+!frontend/.env.example
 .integration.env.local
 deploy/integrations/generated/
 deploy/integrations/cloudflare/.dev.vars.generated
@@ -55,6 +57,10 @@ deploy/integrations/cloudflare/wrangler.generated.toml
 .venv/
 frontend/node_modules/
 frontend/dist/
+frontend/dist-ssr/
+frontend/lighthouse-*.json
+frontend/lighthouse-after-fix*.json
+frontend/lighthouse-latest.json
 backend/honeypot.log
 backend/protocol_runtime_state.json
 backend/session_transcripts/
@@ -64,7 +70,14 @@ backend/elite_honeypot.db
 backend/malware_samples/
 backend/dynamic_infrastructure_state.json
 elite_honeypot.db
+tmp_*.db
+tmp_*.sqlite
 .pytest_tmp/
+.pytest_tmp*/
 .pytest_cache/
+.project/.temp/
+deploy/nginx/generated/
+deploy/env/
+tmp-*.png
 *.log
 __pycache__/

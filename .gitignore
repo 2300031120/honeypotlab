@@ -1,0 +1,10 @@
+# Local tool state
+.stakpak/
+
+# IDE metadata
+.idea/
+
+# Local archives/backups
+*.tgz
+*.tar
+*.tar.gz
