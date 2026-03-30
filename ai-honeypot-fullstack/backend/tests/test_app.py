@@ -149,6 +149,27 @@ def test_health_endpoint(monkeypatch, tmp_path):
     assert response.headers["permissions-policy"] == "camera=(), microphone=(), geolocation=()"
 
 
+def test_health_endpoint_sets_request_id_header(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        response = client.get("/health")
+
+    request_id = response.headers.get("x-request-id")
+    assert response.status_code == 200
+    assert isinstance(request_id, str)
+    assert len(request_id) >= 16
+
+
+def test_health_endpoint_respects_incoming_request_id(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    request_id = "req-smoke-123"
+    with TestClient(main.app) as client:
+        response = client.get("/health", headers={"X-Request-ID": request_id})
+
+    assert response.status_code == 200
+    assert response.headers.get("x-request-id") == request_id
+
+
 def test_cors_wildcard_disables_credentials_header(monkeypatch, tmp_path):
     monkeypatch.setenv("CORS_ORIGINS", "*")
     main = load_main(monkeypatch, tmp_path)
@@ -326,6 +347,37 @@ def test_production_config_rejects_placeholder_trap_settings(monkeypatch):
     assert "PROTOCOL_SHARED_SECRET must be a strong non-placeholder value" in message
     assert "PROTOCOL_SSH_TRAP_CREDENTIALS must contain non-placeholder user:pass pairs" in message
     assert "PROTOCOL_MYSQL_TRAP_CREDENTIALS must contain non-placeholder user:pass pairs" in message
+
+
+def test_production_config_rejects_invalid_sentry_settings(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "s" * 40)
+    monkeypatch.setenv("ENABLE_DEMO_SEED", "false")
+    monkeypatch.setenv("ALLOW_SIGNUP", "false")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://cybersentinel:StrongPostgresPass123!@postgres:5432/cybersentinel")
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://cybersentil.online")
+    monkeypatch.setenv("CORS_ORIGINS", "https://cybersentil.online")
+    monkeypatch.setenv("TRUSTED_HOSTS", "cybersentil.online,www.cybersentil.online")
+    monkeypatch.setenv("FORCE_HTTPS_REDIRECT", "true")
+    monkeypatch.setenv("SECURITY_HEADERS_ENABLED", "true")
+    monkeypatch.setenv("DECOY_COOKIE_SECURE", "true")
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_PASSWORD", "StrongAdminPass123!")
+    monkeypatch.setenv("TERMINAL_REAL_EXEC_ENABLED", "false")
+    monkeypatch.setenv("PROTOCOL_SSH_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("PROTOCOL_MYSQL_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("SENTRY_DSN", "ftp://invalid-sentry-dsn")
+    monkeypatch.setenv("SENTRY_TRACES_SAMPLE_RATE", "2")
+
+    sys.modules.pop("core.config", None)
+    config = importlib.import_module("core.config")
+    config = importlib.reload(config)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        config.validate_runtime_config()
+
+    message = str(excinfo.value)
+    assert "SENTRY_DSN must be a valid HTTP/HTTPS URL." in message
+    assert "SENTRY_TRACES_SAMPLE_RATE must be between 0.0 and 1.0." in message
 
 
 def test_auth_site_and_ingest_flow(monkeypatch, tmp_path):

@@ -60,6 +60,16 @@ def env_int(name: str, default: int) -> int:
         raise RuntimeError(f"{name} must be an integer.") from exc
 
 
+def env_float(name: str, default: float) -> float:
+    raw = os.getenv(name)
+    if raw is None or not str(raw).strip():
+        return default
+    try:
+        return float(str(raw).strip())
+    except ValueError as exc:
+        raise RuntimeError(f"{name} must be a float.") from exc
+
+
 def is_placeholder_secret(value: str) -> bool:
     lowered = str(value or "").strip().lower()
     if not lowered:
@@ -145,6 +155,12 @@ SPLUNK_HEC_URL = os.getenv("SPLUNK_HEC_URL", "").strip()
 SPLUNK_HEC_TOKEN = os.getenv("SPLUNK_HEC_TOKEN", "").strip()
 SPLUNK_HEC_VERIFY_TLS = env_flag("SPLUNK_HEC_VERIFY_TLS", default=True)
 SPLUNK_HEC_TIMEOUT_SECONDS = max(1, env_int("SPLUNK_HEC_TIMEOUT_SECONDS", 4))
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO"
+JSON_LOGS = env_flag("JSON_LOGS", default=APP_ENV == "production")
+LOG_REQUESTS = env_flag("LOG_REQUESTS", default=True)
+SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
+SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", APP_ENV).strip() or APP_ENV
+SENTRY_TRACES_SAMPLE_RATE = env_float("SENTRY_TRACES_SAMPLE_RATE", 0.0)
 PROTOCOL_SHARED_SECRET = os.getenv("PROTOCOL_SHARED_SECRET", "").strip() or ("dev-protocol-shared-secret" if APP_ENV != "production" else "")
 PROTOCOL_SSH_AUTH_TRAP_ENABLED = env_flag("PROTOCOL_SSH_AUTH_TRAP_ENABLED", default=True)
 PROTOCOL_SSH_TRAP_CREDENTIALS = os.getenv("PROTOCOL_SSH_TRAP_CREDENTIALS", "").strip()
@@ -182,6 +198,12 @@ def validate_runtime_config() -> None:
             failures.append("SPLUNK_HEC_URL must be a valid HTTPS URL.")
         elif is_placeholder_secret(SPLUNK_HEC_URL) or is_placeholder_secret(SPLUNK_HEC_TOKEN):
             failures.append("Splunk HEC settings cannot use placeholder/example values.")
+    if SENTRY_DSN:
+        parsed_sentry = urlparse(SENTRY_DSN)
+        if parsed_sentry.scheme not in {"http", "https"} or not parsed_sentry.netloc:
+            failures.append("SENTRY_DSN must be a valid HTTP/HTTPS URL.")
+        if not 0.0 <= SENTRY_TRACES_SAMPLE_RATE <= 1.0:
+            failures.append("SENTRY_TRACES_SAMPLE_RATE must be between 0.0 and 1.0.")
 
     if APP_ENV == "production":
         if BOOTSTRAP_ADMIN_PASSWORD == "Admin@123":

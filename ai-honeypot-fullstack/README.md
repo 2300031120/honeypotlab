@@ -191,6 +191,11 @@ Integration verification:
 powershell -ExecutionPolicy Bypass -File deploy/scripts/verify-integrations.ps1
 ```
 
+Post-deploy smoke verification (health + auth + site key + ingest + dashboard + public snapshot):
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/post-deploy-smoke.ps1 -BaseUrl "https://your-public-domain" -Username "ops_check_user" -Password "Strong@123456"
+```
+
 ---
 
 ## “Startup” positioning (real world)

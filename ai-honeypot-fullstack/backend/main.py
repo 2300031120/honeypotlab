@@ -10,6 +10,12 @@ from core.config import (
     APP_TITLE,
     CORS_ORIGINS,
     FORCE_HTTPS_REDIRECT,
+    JSON_LOGS,
+    LOG_LEVEL,
+    LOG_REQUESTS,
+    SENTRY_DSN,
+    SENTRY_ENVIRONMENT,
+    SENTRY_TRACES_SAMPLE_RATE,
     SECURITY_CONTENT_SECURITY_POLICY,
     SECURITY_HEADERS_ENABLED,
     SECURITY_HSTS_SECONDS,
@@ -17,6 +23,7 @@ from core.config import (
     validate_runtime_config,
 )
 from core.database import build_summary, db, seed_database
+from core.observability import RequestIdMiddleware, configure_logging, init_sentry
 from core.request_security import SecurityHeadersMiddleware
 from core.time_utils import utc_now
 from routers.auth import router as auth_router
@@ -26,16 +33,19 @@ from routers.telemetry import router as telemetry_router
 
 
 APP_STARTED_AT = utc_now()
+configure_logging(level=LOG_LEVEL, json_logs=JSON_LOGS)
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     validate_runtime_config()
+    init_sentry(dsn=SENTRY_DSN, environment=SENTRY_ENVIRONMENT, traces_sample_rate=SENTRY_TRACES_SAMPLE_RATE)
     seed_database()
     yield
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
+app.add_middleware(RequestIdMiddleware, log_requests=LOG_REQUESTS)
 resolved_cors_origins = CORS_ORIGINS or ["*"]
 allow_all_cors_origins = "*" in resolved_cors_origins
 app.add_middleware(
