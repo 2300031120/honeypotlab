@@ -4,6 +4,7 @@ import { Activity, Menu, Shield, X } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 import { PUBLIC_SITE, resolvePublicBrandText } from "./siteConfig";
 import { trackCtaClick } from "./utils/analytics";
+import { buildCampaignAwarePath } from "./utils/campaignLinks";
 
 const CORE_LINKS = [
   { label: "Home", to: "/" },
@@ -67,6 +68,7 @@ export default function PublicHeader({
   const currentPath = location.pathname || "/";
   const analyticsPath = pagePath || currentPath;
   const resolvedBrandText = resolvePublicBrandText(brandText);
+  const toCampaignPath = (path) => buildCampaignAwarePath(path, location.search);
 
   useEffect(() => {
     if (!PUBLIC_SITE.showStatusPill) {
@@ -134,7 +136,7 @@ export default function PublicHeader({
   return (
     <header className={`${navClass} public-nav-shell`}>
       <div className="public-brand-block">
-        <Link to="/" className={brandClass} onClick={() => handleTrackedClick("brand_home")}>
+        <Link to={toCampaignPath("/")} className={brandClass} onClick={() => handleTrackedClick("brand_home")}>
           <span className="public-brand-mark">
             <Shield size={16} />
           </span>
@@ -154,12 +156,12 @@ export default function PublicHeader({
           }
 
           return (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
-              onClick={() => handleTrackedClick(link.label)}
-            >
+              <Link
+                key={link.to}
+                to={toCampaignPath(link.to)}
+                className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
+                onClick={() => handleTrackedClick(link.label)}
+              >
               {link.label}
             </Link>
           );
@@ -180,7 +182,7 @@ export default function PublicHeader({
         <a href={PUBLIC_SITE.loginUrl} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
           Login
         </a>
-        <Link to="/demo" className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
+        <Link to={toCampaignPath("/demo")} className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
           Request Demo
         </Link>
       </div>
@@ -209,7 +211,7 @@ export default function PublicHeader({
             return (
               <Link
                 key={`m-${link.to}`}
-                to={link.to}
+                to={toCampaignPath(link.to)}
                 className={isActiveRoute(currentPath, link.to) ? "is-active" : ""}
                 onClick={() => handleTrackedClick(link.label)}
               >
@@ -219,13 +221,13 @@ export default function PublicHeader({
           })}
         </div>
         <div className="public-nav-mobile-actions">
-          <Link to="/" className={ghostBtnClass} onClick={() => handleTrackedClick("mobile_home")}>
+          <Link to={toCampaignPath("/")} className={ghostBtnClass} onClick={() => handleTrackedClick("mobile_home")}>
             Home
           </Link>
           <a href={PUBLIC_SITE.loginUrl} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
             Login
           </a>
-          <Link to="/demo" className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
+          <Link to={toCampaignPath("/demo")} className={primaryBtnClass} onClick={() => handleTrackedClick("request_demo")}>
             Request Demo
           </Link>
         </div>

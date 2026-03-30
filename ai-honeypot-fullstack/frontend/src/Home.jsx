@@ -1,5 +1,5 @@
 import React, { startTransition, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   Activity,
   ArrowRight,
@@ -21,6 +21,7 @@ import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
 import { trackCtaClick } from "./utils/analytics";
 import { buildAuthHeaders, isAuthenticated } from "./utils/auth";
+import { buildCampaignAwarePath } from "./utils/campaignLinks";
 import { fetchPublicTelemetrySnapshot } from "./utils/publicTelemetry";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
@@ -299,6 +300,8 @@ function toTimelineItem(event, index = 0) {
 }
 
 export default function Home() {
+  const location = useLocation();
+  const toCampaignPath = (path) => buildCampaignAwarePath(path, location.search);
   usePageAnalytics("home");
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName || "CyberSentinel";
   useSeo({
@@ -603,13 +606,13 @@ export default function Home() {
               ))}
             </div>
             <div className="marketing-actions">
-              <Link to="/platform" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("explore_platform", "/")}>
+              <Link to={toCampaignPath("/platform")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("explore_platform", "/")}>
                 Start Live Tour <ArrowRight size={16} />
               </Link>
-              <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/")}>
+              <Link to={toCampaignPath("/demo")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/")}>
                 Request Demo
               </Link>
-              <Link to="/screenshots" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_screenshots_gallery", "/")}>
+              <Link to={toCampaignPath("/screenshots")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_screenshots_gallery", "/")}>
                 See Product Proof
               </Link>
             </div>
@@ -998,13 +1001,13 @@ export default function Home() {
                     </li>
                   </ul>
                   <div className="marketing-actions">
-                    <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/")}>
+                    <Link to={toCampaignPath("/demo")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/")}>
                       Request Demo
                     </Link>
-                    <Link to="/platform" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("explore_platform", "/")}>
+                    <Link to={toCampaignPath("/platform")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("explore_platform", "/")}>
                       Explore Platform
                     </Link>
-                    <Link to="/case-study" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/")}>
+                    <Link to={toCampaignPath("/case-study")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/")}>
                       View Case Study
                     </Link>
                   </div>
@@ -1025,7 +1028,7 @@ export default function Home() {
                       <span className="marketing-impact-signal">{item.title}</span>
                     </div>
                     <p>{item.detail}</p>
-                    <Link to={item.to} className="marketing-route-link" onClick={() => trackCtaClick(`launch_${item.cta.toLowerCase()}`, "/")}>
+                    <Link to={toCampaignPath(item.to)} className="marketing-route-link" onClick={() => trackCtaClick(`launch_${item.cta.toLowerCase()}`, "/")}>
                       {item.cta} <ArrowRight size={15} />
                     </Link>
                   </article>
@@ -1058,14 +1061,14 @@ export default function Home() {
               </div>
               <div className="marketing-actions">
                 <Link
-                  to="/screenshots"
+                  to={toCampaignPath("/screenshots")}
                   className="marketing-btn marketing-btn-primary"
                   onClick={() => trackCtaClick("view_screenshots_gallery", "/")}
                 >
                   Open Screenshots Gallery
                 </Link>
                 <Link
-                  to="/demo"
+                  to={toCampaignPath("/demo")}
                   className="marketing-btn marketing-btn-secondary"
                   onClick={() => trackCtaClick("request_demo", "/")}
                 >
@@ -1112,7 +1115,7 @@ export default function Home() {
                 </div>
                 <h3>{item.title}</h3>
                 <p>{item.detail}</p>
-                <Link to={item.to} className="marketing-route-link" onClick={() => trackCtaClick(`home_${item.cta.replace(/\s+/g, "_").toLowerCase()}`, "/")}>
+                <Link to={toCampaignPath(item.to)} className="marketing-route-link" onClick={() => trackCtaClick(`home_${item.cta.replace(/\s+/g, "_").toLowerCase()}`, "/")}>
                   {item.cta} <ArrowRight size={15} />
                 </Link>
               </article>
@@ -1221,10 +1224,10 @@ export default function Home() {
             <p>{productName} helps teams catch suspicious interaction earlier, preserve the attacker path, and move from public attack traffic to response-ready evidence fast.</p>
           </div>
           <div className="marketing-actions">
-            <Link to="/platform" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_platform", "/")}>
+            <Link to={toCampaignPath("/platform")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_platform", "/")}>
               View Platform
             </Link>
-            <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/")}>
+            <Link to={toCampaignPath("/contact")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/")}>
               Contact Team
             </Link>
           </div>

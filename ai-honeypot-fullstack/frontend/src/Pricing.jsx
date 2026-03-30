@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -11,6 +11,7 @@ import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
 import { PUBLIC_SITE } from "./siteConfig";
 import { trackCtaClick } from "./utils/analytics";
+import { buildCampaignAwarePath } from "./utils/campaignLinks";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
 
@@ -107,6 +108,8 @@ const BUYING_FLOW = [
 ];
 
 export default function Pricing() {
+  const location = useLocation();
+  const toCampaignPath = (path) => buildCampaignAwarePath(path, location.search);
   usePageAnalytics("pricing");
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
   useSeo({
@@ -139,10 +142,10 @@ export default function Pricing() {
               ))}
             </div>
             <div className="marketing-actions">
-              <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/pricing")}>
+              <Link to={toCampaignPath("/demo")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/pricing")}>
                 Request Demo <ArrowRight size={16} />
               </Link>
-              <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/pricing")}>
+              <Link to={toCampaignPath("/contact")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/pricing")}>
                 Talk to Team
               </Link>
             </div>
@@ -244,7 +247,7 @@ export default function Pricing() {
                     </li>
                   ))}
                 </ul>
-                <Link to={plan.to} className="marketing-route-link" onClick={() => trackCtaClick(`plan_${plan.title.toLowerCase()}`, "/pricing")}>
+                <Link to={toCampaignPath(plan.to)} className="marketing-route-link" onClick={() => trackCtaClick(`plan_${plan.title.toLowerCase()}`, "/pricing")}>
                   {plan.cta} <ArrowRight size={15} />
                 </Link>
               </article>
@@ -284,10 +287,10 @@ export default function Pricing() {
             <p>We can map the right plan based on your attack surface, deployment path, integrations, and operator workflow.</p>
           </div>
           <div className="marketing-actions">
-            <Link to="/contact" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("contact_team", "/pricing")}>
+            <Link to={toCampaignPath("/contact")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("contact_team", "/pricing")}>
               Contact Team
             </Link>
-            <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/pricing")}>
+            <Link to={toCampaignPath("/demo")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/pricing")}>
               Request Demo
             </Link>
           </div>
