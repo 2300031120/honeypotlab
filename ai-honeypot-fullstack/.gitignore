@@ -62,6 +62,7 @@ frontend/lighthouse-*.json
 frontend/lighthouse-after-fix*.json
 frontend/lighthouse-latest.json
 backend/honeypot.log
+backend/runtime.db
 backend/protocol_runtime_state.json
 backend/session_transcripts/
 backend/.tmp_load/
