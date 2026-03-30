@@ -75,6 +75,11 @@ python -m pytest backend/tests/test_api_contract_smoke.py -q
 python -m pytest backend/tests -q
 ```
 
+One-command full quality gate (backend tests + frontend lint/tests/build):
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/check-all.ps1
+```
+
 Optional HTTPS (Let's Encrypt + Certbot):
 1. Set `TLS_DOMAIN` and `TLS_EMAIL` in `.env`.
 2. Keep port `80` reachable from the internet for HTTP-01 validation.
