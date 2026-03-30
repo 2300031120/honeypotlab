@@ -196,6 +196,15 @@ Post-deploy smoke verification (health + auth + site key + ingest + dashboard + 
 powershell -ExecutionPolicy Bypass -File deploy/scripts/post-deploy-smoke.ps1 -BaseUrl "https://your-public-domain" -Username "ops_check_user" -Password "Strong@123456"
 ```
 
+One-command remote redeploy (for VPS folders that are not git repos):
+```bash
+py -3 -m pip install paramiko
+py -3 deploy/scripts/remote_redeploy.py --host 72.61.248.44 --user root --ssh-key C:/Users/you/.ssh/id_rsa --base-url https://your-public-domain --smoke-user admin --smoke-password "<admin-password>"
+```
+This uploads tracked source from your local `main`, rebuilds backend, restarts frontend, verifies `/api/health`, and runs full smoke checks.
+If passwords contain special characters (like `$`), use single quotes in PowerShell or set env vars:
+`REMOTE_DEPLOY_SSH_PASSWORD`, `REMOTE_DEPLOY_SMOKE_PASSWORD`.
+
 ---
 
 ## “Startup” positioning (real world)
