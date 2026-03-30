@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ErrorBoundary } from "react-error-boundary";
 import { AUTH_CHANGED_EVENT, clearAuthSession, isAuthenticated } from "./utils/auth";
 import Home from "./Home.jsx";
@@ -83,10 +83,27 @@ function AppErrorFallback() {
   );
 }
 
+function RouteLifecycleEffects() {
+  const location = useLocation();
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    if (location.hash) {
+      return;
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location.pathname, location.hash]);
+
+  return null;
+}
+
 export function AppShell({ authenticated, isSsr = false }) {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <Suspense fallback={<RouteFallback />}>
+        <RouteLifecycleEffects />
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />} />

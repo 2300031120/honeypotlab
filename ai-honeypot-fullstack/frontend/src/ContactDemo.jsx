@@ -224,7 +224,7 @@ function applyPrefillFromSearch(searchValue, currentValue) {
 
 function resolveSubmitErrorMessage(error) {
   if (error?.code === "ECONNABORTED" || String(error?.message || "").toLowerCase().includes("timeout")) {
-    return "Request timed out. Please retry, or use contact@ support if urgent.";
+    return `Request timed out. Please retry, or email ${PUBLIC_SITE.contactEmail} if urgent.`;
   }
   return (
     error?.response?.data?.detail ||
