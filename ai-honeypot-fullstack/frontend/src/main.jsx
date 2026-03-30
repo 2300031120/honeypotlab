@@ -1,5 +1,5 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { ErrorBoundary } from "react-error-boundary";
 import App from "./App.jsx";
 import "./public-remake.css";
@@ -181,9 +181,16 @@ const app = (
 );
 
 const rootEl = document.getElementById("root");
-if (rootEl?.hasChildNodes()) {
-  rootEl.textContent = "";
-}
 if (rootEl) {
-  createRoot(rootEl).render(app);
+  const hasServerMarkup = rootEl.hasChildNodes() && String(rootEl.innerHTML || "").trim().length > 0;
+  if (hasServerMarkup) {
+    try {
+      hydrateRoot(rootEl, app);
+    } catch {
+      rootEl.textContent = "";
+      createRoot(rootEl).render(app);
+    }
+  } else {
+    createRoot(rootEl).render(app);
+  }
 }

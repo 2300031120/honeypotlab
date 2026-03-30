@@ -38,58 +38,52 @@
     {"@context":"https://schema.org","@type":"WebSite","name":"%VITE_PUBLIC_SITE_NAME%","url":"%VITE_PUBLIC_SITE_URL%"}
   </script>
   <script>
-    // Remove stale PWA/service-worker caches before app scripts run.
+    // Runtime cache cleanup is opt-in only.
+    // Trigger with ?cleanup_runtime_caches=1 (or localStorage key with same name).
     (() => {
       if (typeof window === "undefined" || typeof navigator === "undefined") {
         return;
       }
 
-      const cleanupKey = "public_site_sw_cleanup_done_v2";
-      let alreadyReloaded = false;
-      try {
-        alreadyReloaded = window.sessionStorage?.getItem(cleanupKey) === "1";
-      } catch {
-        alreadyReloaded = false;
+      const flagName = "cleanup_runtime_caches";
+      const params = new URLSearchParams(window.location.search || "");
+      const shouldCleanup =
+        params.get(flagName) === "1" ||
+        (() => {
+          try {
+            return window.localStorage?.getItem(flagName) === "1";
+          } catch {
+            return false;
+          }
+        })();
+
+      if (!shouldCleanup) {
+        return;
       }
 
-      const markReloaded = () => {
-        try {
-          window.sessionStorage?.setItem(cleanupKey, "1");
-        } catch {
-          // ignore storage failures
-        }
-      };
-
       const runCleanup = async () => {
-        if (!("serviceWorker" in navigator)) {
-          return;
+        if ("serviceWorker" in navigator) {
+          try {
+            const registrations = await navigator.serviceWorker.getRegistrations();
+            await Promise.allSettled(registrations.map((registration) => registration.unregister()));
+          } catch {
+            // Ignore service worker cleanup failures.
+          }
         }
-
-        let registrations = [];
-        try {
-          registrations = await navigator.serviceWorker.getRegistrations();
-        } catch {
-          return;
-        }
-
-        if (!registrations.length) {
-          return;
-        }
-
-        await Promise.allSettled(registrations.map((registration) => registration.unregister()));
 
         if ("caches" in window) {
           try {
             const cacheNames = await caches.keys();
             await Promise.allSettled(cacheNames.map((name) => caches.delete(name)));
           } catch {
-            // ignore cache cleanup failures
+            // Ignore cache cleanup failures.
           }
         }
 
-        markReloaded();
-        if (!alreadyReloaded) {
-          window.location.reload();
+        try {
+          window.localStorage?.removeItem(flagName);
+        } catch {
+          // Ignore storage failures.
         }
       };
 

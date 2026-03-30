@@ -98,6 +98,9 @@ describe("ContactDemo tracking", () => {
           utm_source: "ads",
           utm_medium: "search",
           utm_campaign: "pilot",
+        }),
+        expect.objectContaining({
+          timeout: 20000,
         })
       );
     });

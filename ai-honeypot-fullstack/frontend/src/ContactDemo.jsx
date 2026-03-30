@@ -208,6 +208,7 @@ const INITIAL_FORM = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SUBMIT_TIMEOUT_MS = 20000;
 
 function applyPrefillFromSearch(searchValue, currentValue) {
   const params = new URLSearchParams(searchValue || "");
@@ -219,6 +220,17 @@ function applyPrefillFromSearch(searchValue, currentValue) {
     message: currentValue.message || params.get("message") || "",
     website: currentValue.website || "",
   };
+}
+
+function resolveSubmitErrorMessage(error) {
+  if (error?.code === "ECONNABORTED" || String(error?.message || "").toLowerCase().includes("timeout")) {
+    return "Request timed out. Please retry, or use contact@ support if urgent.";
+  }
+  return (
+    error?.response?.data?.detail ||
+    error?.response?.data?.message ||
+    "Unable to submit right now. Please try again in a moment."
+  );
 }
 
 export default function ContactDemo({ mode = "contact" }) {
@@ -384,7 +396,10 @@ export default function ContactDemo({ mode = "contact" }) {
         payload.utm_campaign = params.get("utm_campaign") || undefined;
       }
 
-      const response = await axios.post(`${API_BASE}/${resolvedMode}/submit`, payload);
+      const response = await axios.post(`${API_BASE}/${resolvedMode}/submit`, payload, {
+        timeout: SUBMIT_TIMEOUT_MS,
+        headers: { "Content-Type": "application/json" },
+      });
       const responseData = response?.data || {};
 
       setStatus("success");
@@ -435,10 +450,7 @@ export default function ContactDemo({ mode = "contact" }) {
         });
       }
     } catch (error) {
-      const detail =
-        error?.response?.data?.detail ||
-        error?.response?.data?.message ||
-        "Unable to submit right now. Please try again in a moment.";
+      const detail = resolveSubmitErrorMessage(error);
 
       setStatus("error");
       setServerMessage(String(detail));

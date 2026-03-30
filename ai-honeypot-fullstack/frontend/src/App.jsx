@@ -21,6 +21,7 @@ const SecurityDisclosure = lazy(() => import("./SecurityDisclosure.jsx"));
 const AIAssistant = lazy(() => import("./AIAssistant.jsx"));
 const MainLayout = lazy(() => import("./MainLayout.jsx"));
 const ProtectedPageOutlet = lazy(() => import("./ProtectedPageOutlet.jsx"));
+const NotFound = lazy(() => import("./NotFound.jsx"));
 
 function RequireAuth({ children, authenticated }) {
   return authenticated ? children : <Navigate to="/auth/login" replace />;
@@ -133,7 +134,7 @@ export function AppShell({ authenticated, isSsr = false }) {
             <Route path="/about" element={<ProtectedPageOutlet page="about" />} />
             <Route path="/url-scanner" element={<ProtectedPageOutlet page="url_scanner" />} />
           </Route>
-          <Route path="*" element={<Navigate to={authenticated ? "/dashboard" : "/"} replace />} />
+          <Route path="*" element={<NotFound authenticated={authenticated} />} />
         </Routes>
       </Suspense>
       <Suspense fallback={null}>{isSsr ? null : <AIAssistant />}</Suspense>
