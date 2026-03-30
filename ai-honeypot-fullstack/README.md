@@ -205,6 +205,11 @@ This uploads tracked source from your local `main`, rebuilds backend, restarts f
 If passwords contain special characters (like `$`), use single quotes in PowerShell or set env vars:
 `REMOTE_DEPLOY_SSH_PASSWORD`, `REMOTE_DEPLOY_SMOKE_PASSWORD`.
 
+Full release gate (local tests + strict preflight + remote redeploy + smoke):
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/release-gate.ps1 -BaseUrl "https://your-public-domain" -RemoteHost "72.61.248.44" -User "root" -SshKey "C:\Users\you\.ssh\id_rsa" -SmokeUser "admin" -SmokePassword "<admin-password>"
+```
+
 ---
 
 ## “Startup” positioning (real world)
