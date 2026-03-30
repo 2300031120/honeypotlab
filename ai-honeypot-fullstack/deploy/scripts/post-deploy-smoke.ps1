@@ -165,6 +165,11 @@ if (-not $apiKey) {
     throw "API key was not returned from site create/rotate flow."
 }
 
+$resolvedSiteDomain = $SiteDomain
+if ($null -ne $site -and ($site.PSObject.Properties.Name -contains "domain")) {
+    $resolvedSiteDomain = [string]$site.domain
+}
+
 Write-Host "[5/7] Ingest check"
 $sessionId = "post-deploy-smoke-$runId"
 $ingestBody = @{
@@ -206,4 +211,4 @@ if ($snapshotFeed.Count -lt 1) {
 
 Write-Host ""
 Write-Host "Post-deploy smoke checks passed."
-Write-Host "request_id=$healthRequestId user=$Username site=$($site.domain) session=$sessionId"
+Write-Host "request_id=$healthRequestId user=$Username site=$resolvedSiteDomain session=$sessionId"
