@@ -52,6 +52,10 @@ Open:
 - Frontend: `http://localhost/`
 - Backend API health: `http://localhost/api/health`
 
+**Note:** If using `docker-compose.hardened.yml`, the frontend runs on port 8080 to avoid conflicts with host services:
+- Frontend (hardened): `http://localhost:8080/`
+- Backend API health (hardened): `http://localhost:8080/api/health`
+
 ---
 
 ## Quick start (Docker)
@@ -77,6 +81,8 @@ docker compose up --build
 - Frontend: `http://localhost/`
 - Backend API (via reverse proxy): `http://localhost/api/`
 - Backend direct port is internal-only in secure mode.
+
+**Note:** The hardened configuration (`docker-compose.hardened.yml`) uses port 8080 to avoid conflicts with host services that may be using port 80. Access the hardened frontend at `http://localhost:8080/`.
 
 ## Launch preflight (do before market launch)
 Run automated launch checks against your `.env`:
