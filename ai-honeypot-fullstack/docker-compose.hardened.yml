@@ -193,10 +193,11 @@ services:
     restart: unless-stopped
     expose:
       - "5000"
-    # SECURITY: Network Segmentation - Backend bridges app and data tiers
+    # SECURITY: Network Segmentation - Backend bridges app and data tiers, plus dmz for external access
     networks:
       - app-tier
       - data-tier
+      - dmz-tier
     # SECURITY: Resource Limits
     deploy:
       resources:
