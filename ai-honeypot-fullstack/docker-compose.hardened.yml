@@ -231,7 +231,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
-      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver,backend,172.28.1.1,172.28.2.1,frontend}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-}
       - FORCE_HTTPS_REDIRECT=${FORCE_HTTPS_REDIRECT:-false}
       - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
       - SECURITY_HSTS_SECONDS=${SECURITY_HSTS_SECONDS:-31536000}
