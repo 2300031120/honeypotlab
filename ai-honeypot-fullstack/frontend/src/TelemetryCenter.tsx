@@ -1,18 +1,18 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { Activity, AlertTriangle, Clock3, RefreshCw, ShieldAlert, Target } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 
 const HOURS_OPTIONS = [6, 24, 72, 168];
 
-const panelStyle = {
+const panelStyle: React.CSSProperties = {
   border: "1px solid #30363d",
   borderRadius: "12px",
   background: "rgba(13,17,23,0.85)",
 };
 
-const statCardStyle = {
+const statCardStyle: React.CSSProperties = {
   ...panelStyle,
   padding: "14px",
   minHeight: "110px",
@@ -21,7 +21,85 @@ const statCardStyle = {
   gap: "8px",
 };
 
-function severityTone(value) {
+type TelemetrySummaryTotals = {
+  events: number;
+  unique_ips: number;
+  unique_sessions: number;
+  high_risk_events: number;
+  avg_score: number;
+};
+
+type TelemetrySummary = {
+  totals: TelemetrySummaryTotals;
+  top_event_types?: Array<{ event_type?: string; count?: number }>;
+  behavior_breakdown?: Array<{ behavior?: string; count?: number }>;
+  top_decoys?: Array<{ decoy?: string; count?: number }>;
+  top_source_ips?: Array<{ ip?: string; count?: number; blocked?: boolean }>;
+  response_posture?: {
+    active_blocks: number;
+    repeat_offenders: number;
+    repeat_threshold: number;
+    window_minutes: number;
+    auto_block_enabled: boolean;
+  };
+  ai_summary?: string;
+  demo_mode?: boolean;
+};
+
+type TelemetrySession = {
+  session_id: string;
+  severity?: string;
+  event_count?: number;
+  max_score?: number;
+  last_seen?: string | number | null;
+};
+
+type TelemetryEvent = {
+  id?: string | number;
+  event_type?: string;
+  behavior?: string;
+  ip?: string;
+  score?: number;
+  decoy?: string;
+};
+
+type SessionTimelineItem = {
+  event_id?: string | number;
+  step?: number;
+  event_type?: string;
+  severity?: string;
+  score?: number;
+  path?: string;
+  command?: string;
+  behavior?: string;
+  timestamp?: string | number | null;
+};
+
+type TelemetrySessionsResponse = {
+  items?: TelemetrySession[];
+  demo_mode?: boolean;
+};
+
+type TelemetryEventsResponse = {
+  items?: TelemetryEvent[];
+  demo_mode?: boolean;
+};
+
+type TimelineResponse = {
+  items?: SessionTimelineItem[];
+  summary?: string;
+  demo_mode?: boolean;
+};
+
+type MetricCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+  hint: string;
+  color: string;
+};
+
+function severityTone(value: string | undefined) {
   const normalized = String(value || "").toLowerCase();
   if (normalized === "high") {
     return { color: "#fca5a5", bg: "rgba(248,113,113,0.16)", border: "rgba(248,113,113,0.4)" };
@@ -32,7 +110,7 @@ function severityTone(value) {
   return { color: "#86efac", bg: "rgba(34,197,94,0.16)", border: "rgba(34,197,94,0.38)" };
 }
 
-function toLocalTimestamp(value) {
+function toLocalTimestamp(value: string | number | null | undefined) {
   if (!value) {
     return "n/a";
   }
@@ -43,7 +121,7 @@ function toLocalTimestamp(value) {
   return parsed.toLocaleString();
 }
 
-function suggestedFileName(format) {
+function suggestedFileName(format: string) {
   if (format === "cloudflare-json") {
     return "cybersentinel-blocked-ips.cloudflare.json";
   }
@@ -53,12 +131,12 @@ function suggestedFileName(format) {
   return "cybersentinel-blocked-ips.conf";
 }
 
-function fileNameFromDisposition(headerValue, fallback) {
+function fileNameFromDisposition(headerValue: string | undefined, fallback: string) {
   const match = /filename="?([^"]+)"?/i.exec(String(headerValue || ""));
   return match?.[1] || fallback;
 }
 
-function MetricCard({ icon, label, value, hint, color }) {
+function MetricCard({ icon, label, value, hint, color }: MetricCardProps) {
   return (
     <article style={statCardStyle}>
       <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#8b949e", fontSize: "11px", letterSpacing: "1px", textTransform: "uppercase", fontWeight: 700 }}>
@@ -72,20 +150,23 @@ function MetricCard({ icon, label, value, hint, color }) {
 }
 
 export default function TelemetryCenter() {
-  const [hours, setHours] = useState(24);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [error, setError] = useState("");
-  const [summary, setSummary] = useState(null);
-  const [sessions, setSessions] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [selectedSessionId, setSelectedSessionId] = useState("");
-  const [sessionTimeline, setSessionTimeline] = useState([]);
-  const [timelineSummary, setTimelineSummary] = useState("");
-  const [timelineLoading, setTimelineLoading] = useState(false);
-  const [exportingFormat, setExportingFormat] = useState("");
+  const [hours, setHours] = useState<number>(24);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+  const [summary, setSummary] = useState<TelemetrySummary | null>(null);
+  const [sessions, setSessions] = useState<TelemetrySession[]>([]);
+  const [events, setEvents] = useState<TelemetryEvent[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string>("");
+  const [sessionTimeline, setSessionTimeline] = useState<SessionTimelineItem[]>([]);
+  const [timelineSummary, setTimelineSummary] = useState<string>("");
+  const [timelineLoading, setTimelineLoading] = useState<boolean>(false);
+  const [exportingFormat, setExportingFormat] = useState<string>("");
+  const [sessionsDemoMode, setSessionsDemoMode] = useState<boolean>(false);
+  const [eventsDemoMode, setEventsDemoMode] = useState<boolean>(false);
+  const [timelineDemoMode, setTimelineDemoMode] = useState<boolean>(false);
 
-  const loadSessionTimeline = useCallback(async (sessionId) => {
+  const loadSessionTimeline = useCallback(async (sessionId: string) => {
     const normalized = String(sessionId || "").trim();
     if (!normalized) {
       setSelectedSessionId("");
@@ -95,23 +176,29 @@ export default function TelemetryCenter() {
     }
     setTimelineLoading(true);
     try {
-      const response = await axios.get(`${API_BASE}/admin/telemetry/sessions/${encodeURIComponent(normalized)}/timeline`, {
+      const response = await axios.get<TimelineResponse>(
+        `${API_BASE}/admin/telemetry/sessions/${encodeURIComponent(normalized)}/timeline`,
+        {
         params: { include_training: false, limit: 150 },
-      });
+        }
+      );
       setSelectedSessionId(normalized);
       setSessionTimeline(Array.isArray(response.data?.items) ? response.data.items : []);
       setTimelineSummary(response.data?.summary || "");
+      setTimelineDemoMode(Boolean(response.data?.demo_mode));
     } catch (err) {
       setSelectedSessionId(normalized);
       setSessionTimeline([]);
-      setTimelineSummary(err?.response?.data?.detail || "Unable to load session timeline.");
+      const message = axios.isAxiosError(err) ? err.response?.data?.detail || err.message : "Unable to load session timeline.";
+      setTimelineSummary(message);
+      setTimelineDemoMode(false);
     } finally {
       setTimelineLoading(false);
     }
   }, []);
 
   const loadTelemetry = useCallback(
-    async ({ silent = false } = {}) => {
+    async ({ silent = false }: { silent?: boolean } = {}) => {
       if (silent) {
         setRefreshing(true);
       } else {
@@ -120,25 +207,29 @@ export default function TelemetryCenter() {
       setError("");
       try {
         const [summaryRes, sessionsRes, eventsRes] = await Promise.all([
-          axios.get(`${API_BASE}/admin/telemetry/summary`, { params: { hours, include_training: false } }),
-          axios.get(`${API_BASE}/admin/telemetry/sessions`, { params: { hours, include_training: false, limit: 20 } }),
-          axios.get(`${API_BASE}/admin/telemetry/events`, { params: { hours, include_training: false, limit: 30, offset: 0 } }),
+          axios.get<TelemetrySummary>(`${API_BASE}/admin/telemetry/summary`, { params: { hours, include_training: false } }),
+          axios.get<TelemetrySessionsResponse>(`${API_BASE}/admin/telemetry/sessions`, { params: { hours, include_training: false, limit: 20 } }),
+          axios.get<TelemetryEventsResponse>(`${API_BASE}/admin/telemetry/events`, { params: { hours, include_training: false, limit: 30, offset: 0 } }),
         ]);
         setSummary(summaryRes.data || null);
         const nextSessions = Array.isArray(sessionsRes.data?.items) ? sessionsRes.data.items : [];
+        setSessionsDemoMode(Boolean(sessionsRes.data?.demo_mode));
         setSessions(nextSessions);
+        setEventsDemoMode(Boolean(eventsRes.data?.demo_mode));
         setEvents(Array.isArray(eventsRes.data?.items) ? eventsRes.data.items : []);
         if (nextSessions.length === 0) {
           setSelectedSessionId("");
           setSessionTimeline([]);
           setTimelineSummary("");
+          setTimelineDemoMode(false);
         } else {
           const hasCurrent = Boolean(selectedSessionId) && nextSessions.some((row) => row.session_id === selectedSessionId);
           const nextSessionId = hasCurrent ? selectedSessionId : nextSessions[0].session_id;
           await loadSessionTimeline(nextSessionId);
         }
       } catch (err) {
-        setError(err?.response?.data?.detail || "Unable to load telemetry right now.");
+        const message = axios.isAxiosError(err) ? err.response?.data?.detail || err.message : "Unable to load telemetry right now.";
+        setError(message);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -147,7 +238,7 @@ export default function TelemetryCenter() {
     [hours, loadSessionTimeline, selectedSessionId]
   );
 
-  const downloadBlockedExport = useCallback(async (format) => {
+  const downloadBlockedExport = useCallback(async (format: string) => {
     setExportingFormat(format);
     try {
       const response = await axios.get(`${API_BASE}/soc/blocked-ips/export`, {
@@ -164,7 +255,8 @@ export default function TelemetryCenter() {
       link.remove();
       window.URL.revokeObjectURL(target);
     } catch (err) {
-      setError(err?.response?.data?.detail || "Unable to export blocked IP list right now.");
+      const message = axios.isAxiosError(err) ? err.response?.data?.detail || err.message : "Unable to export blocked IP list right now.";
+      setError(message);
     } finally {
       setExportingFormat("");
     }
@@ -174,7 +266,8 @@ export default function TelemetryCenter() {
     loadTelemetry();
   }, [loadTelemetry]);
 
-  const totals = summary?.totals || { events: 0, unique_ips: 0, unique_sessions: 0, high_risk_events: 0, avg_score: 0 };
+  const totals: TelemetrySummaryTotals =
+    summary?.totals || { events: 0, unique_ips: 0, unique_sessions: 0, high_risk_events: 0, avg_score: 0 };
   const topEventTypes = Array.isArray(summary?.top_event_types) ? summary.top_event_types : [];
   const behaviorBreakdown = Array.isArray(summary?.behavior_breakdown) ? summary.behavior_breakdown : [];
   const topDecoys = Array.isArray(summary?.top_decoys) ? summary.top_decoys : [];
@@ -191,8 +284,9 @@ export default function TelemetryCenter() {
     if (behaviorBreakdown.length === 0) {
       return "unknown";
     }
-    return String(behaviorBreakdown[0]?.behavior || "unknown").replaceAll("_", " ");
+    return String(behaviorBreakdown[0]?.behavior || "unknown").replace(/_/g, " ");
   }, [behaviorBreakdown]);
+  const usingDemoMode = Boolean(summary?.demo_mode || sessionsDemoMode || eventsDemoMode || timelineDemoMode);
 
   return (
     <div style={{ padding: "24px", color: "#e6edf3", fontFamily: "var(--font-body)" }}>
@@ -249,6 +343,43 @@ export default function TelemetryCenter() {
         <div style={{ ...panelStyle, borderColor: "rgba(248,113,113,0.5)", color: "#fecaca", padding: "12px 14px", marginBottom: "16px" }}>{error}</div>
       ) : null}
 
+      {usingDemoMode ? (
+        <section
+          style={{
+            ...panelStyle,
+            marginBottom: "16px",
+            padding: "16px",
+            borderColor: "rgba(88,166,255,0.35)",
+            background: "linear-gradient(135deg, rgba(17,24,39,0.96), rgba(15,23,42,0.92))",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
+            <div style={{ maxWidth: "720px" }}>
+              <div style={{ color: "#93c5fd", fontSize: "11px", fontWeight: 900, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>
+                Sample Incident Walkthrough
+              </div>
+              <h2 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 900, color: "#f8fafc" }}>
+                Telemetry Center is currently showing the seeded incident instead of live workspace traffic.
+              </h2>
+              <p style={{ margin: 0, color: "#94a3b8", fontSize: "13px", lineHeight: 1.6 }}>
+                Review the analyst summary, open the first active session timeline, then pivot into forensics and audit logs. This mode is for demos and first-run evaluation only, and it will disappear once live tenant events arrive.
+              </p>
+            </div>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <Link to="/forensics/detail" style={{ textDecoration: "none", padding: "9px 12px", borderRadius: "8px", background: "rgba(245,158,11,0.12)", border: "1px solid rgba(245,158,11,0.28)", color: "#fcd34d", fontSize: "12px", fontWeight: 800 }}>
+                Open Forensics
+              </Link>
+              <Link to="/audit" style={{ textDecoration: "none", padding: "9px 12px", borderRadius: "8px", background: "rgba(34,197,94,0.12)", border: "1px solid rgba(34,197,94,0.24)", color: "#86efac", fontSize: "12px", fontWeight: 800 }}>
+                Open Audit Trail
+              </Link>
+              <Link to="/simulator" style={{ textDecoration: "none", padding: "9px 12px", borderRadius: "8px", background: "rgba(59,130,246,0.14)", border: "1px solid rgba(59,130,246,0.28)", color: "#bfdbfe", fontSize: "12px", fontWeight: 800 }}>
+                Start Live Simulation
+              </Link>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
       <section style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: "16px" }}>
         <MetricCard icon={<Activity size={16} />} label="Telemetry Events" value={totals.events} hint={`Window: ${hours}h`} color="#58a6ff" />
         <MetricCard icon={<Target size={16} />} label="Unique Sessions" value={totals.unique_sessions} hint="Sessionized attacker activity" color="#22d3ee" />
@@ -274,8 +405,8 @@ export default function TelemetryCenter() {
             <div style={{ color: "#6b7280", fontSize: "13px" }}>No attack telemetry yet.</div>
           ) : (
             topEventTypes.map((row) => (
-              <div key={row.event_type} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(48,54,61,0.45)" }}>
-                <span style={{ color: "#e6edf3" }}>{String(row.event_type || "unknown").replaceAll("_", " ")}</span>
+              <div key={row.event_type || "unknown"} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(48,54,61,0.45)" }}>
+                <span style={{ color: "#e6edf3" }}>{String(row.event_type || "unknown").replace(/_/g, " ")}</span>
                 <span style={{ color: "#93c5fd", fontWeight: 700 }}>{row.count}</span>
               </div>
             ))
@@ -289,8 +420,8 @@ export default function TelemetryCenter() {
             <div style={{ color: "#6b7280", fontSize: "13px" }}>No behavior clusters yet.</div>
           ) : (
             behaviorBreakdown.map((row) => (
-              <div key={row.behavior} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(48,54,61,0.45)" }}>
-                <span style={{ color: "#e6edf3" }}>{String(row.behavior || "unknown").replaceAll("_", " ")}</span>
+              <div key={row.behavior || "unknown"} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid rgba(48,54,61,0.45)" }}>
+                <span style={{ color: "#e6edf3" }}>{String(row.behavior || "unknown").replace(/_/g, " ")}</span>
                 <span style={{ color: "#34d399", fontWeight: 700 }}>{row.count}</span>
               </div>
             ))
@@ -465,9 +596,9 @@ export default function TelemetryCenter() {
                 </tr>
               ) : (
                 events.map((row) => (
-                  <tr key={row.id} style={{ borderTop: "1px solid rgba(48,54,61,0.45)" }}>
-                    <td style={{ padding: "8px 6px", color: "#e6edf3" }}>{String(row.event_type || "unknown").replaceAll("_", " ")}</td>
-                    <td style={{ padding: "8px 6px", color: "#34d399" }}>{String(row.behavior || "unknown").replaceAll("_", " ")}</td>
+                  <tr key={row.id ?? `${row.event_type}-${row.ip}`} style={{ borderTop: "1px solid rgba(48,54,61,0.45)" }}>
+                    <td style={{ padding: "8px 6px", color: "#e6edf3" }}>{String(row.event_type || "unknown").replace(/_/g, " ")}</td>
+                    <td style={{ padding: "8px 6px", color: "#34d399" }}>{String(row.behavior || "unknown").replace(/_/g, " ")}</td>
                     <td style={{ padding: "8px 6px", color: "#93c5fd", fontFamily: "monospace" }}>{row.ip || "unknown"}</td>
                     <td style={{ padding: "8px 6px", color: "#fde047", fontWeight: 700 }}>{row.score}</td>
                     <td style={{ padding: "8px 6px", color: "#8b949e" }}>{row.decoy || "-"}</td>
@@ -503,14 +634,14 @@ export default function TelemetryCenter() {
                 <div key={`${item.event_id}-${item.step}`} style={{ ...panelStyle, padding: "10px", background: "rgba(2,6,23,0.85)" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: "10px", flexWrap: "wrap" }}>
                     <div style={{ color: "#e2e8f0", fontSize: "13px", fontWeight: 700 }}>
-                      Step {item.step}: {String(item.event_type || "unknown").replaceAll("_", " ")}
+                      Step {item.step}: {String(item.event_type || "unknown").replace(/_/g, " ")}
                     </div>
                     <div style={{ color: tone.color, fontSize: "12px", fontWeight: 700 }}>
                       {String(item.severity || "low").toUpperCase()} | Score {item.score}
                     </div>
                   </div>
                   <div style={{ color: "#8b949e", fontSize: "12px", marginTop: "4px" }}>
-                    {item.path || item.command || "-"} | {String(item.behavior || "unknown").replaceAll("_", " ")} | {toLocalTimestamp(item.timestamp)}
+                    {item.path || item.command || "-"} | {String(item.behavior || "unknown").replace(/_/g, " ")} | {toLocalTimestamp(item.timestamp)}
                   </div>
                 </div>
               );

@@ -1,7 +1,18 @@
-// @ts-nocheck
 const GOOGLE_GSI_SCRIPT = "https://accounts.google.com/gsi/client";
-let gsiLoadPromise = null;
+let gsiLoadPromise: Promise<any> | null = null;
 const preferFedCm = String(import.meta.env.VITE_GOOGLE_USE_FEDCM || "").trim().toLowerCase() === "true";
+
+type GoogleWindow = Window & {
+  google?: {
+    accounts?: {
+      id: {
+        initialize: (opts: Record<string, unknown>) => void;
+        prompt?: (cb: (notification: any) => void) => void;
+        renderButton: (el: HTMLElement, opts: Record<string, unknown>) => void;
+      };
+    };
+  };
+};
 
 function ensureWindow() {
   if (typeof window === "undefined") {
@@ -11,8 +22,9 @@ function ensureWindow() {
 
 export function loadGoogleIdentityScript() {
   ensureWindow();
-  if (window.google?.accounts?.id) {
-    return Promise.resolve(window.google);
+  const gsiWindow = window as GoogleWindow;
+  if (gsiWindow.google?.accounts?.id) {
+    return Promise.resolve(gsiWindow.google);
   }
   if (gsiLoadPromise) {
     return gsiLoadPromise;
@@ -21,7 +33,7 @@ export function loadGoogleIdentityScript() {
   gsiLoadPromise = new Promise((resolve, reject) => {
     const existing = document.querySelector(`script[src="${GOOGLE_GSI_SCRIPT}"]`);
     if (existing) {
-      existing.addEventListener("load", () => resolve(window.google), { once: true });
+      existing.addEventListener("load", () => resolve((window as GoogleWindow).google), { once: true });
       existing.addEventListener("error", () => reject(new Error("Failed to load Google authentication script.")), { once: true });
       return;
     }
@@ -30,7 +42,7 @@ export function loadGoogleIdentityScript() {
     script.src = GOOGLE_GSI_SCRIPT;
     script.async = true;
     script.defer = true;
-    script.onload = () => resolve(window.google);
+    script.onload = () => resolve((window as GoogleWindow).google);
     script.onerror = () => reject(new Error("Failed to load Google authentication script."));
     document.head.appendChild(script);
   });
@@ -38,7 +50,7 @@ export function loadGoogleIdentityScript() {
   return gsiLoadPromise;
 }
 
-function requestGoogleCredentialWithRenderedButton(clientId) {
+function requestGoogleCredentialWithRenderedButton(clientId: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const overlay = document.createElement("div");
     overlay.style.position = "fixed";
@@ -106,7 +118,7 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
       finish(new Error("Google sign-in timed out. Please try again."));
     }, 90000);
 
-    const finish = (error, credential) => {
+    const finish = (error?: Error | null, credential?: string) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timeoutId);
@@ -115,11 +127,15 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
       if (error) {
         reject(error);
       } else {
+        if (!credential) {
+          reject(new Error("Google sign-in did not return a credential."));
+          return;
+        }
         resolve(credential);
       }
     };
 
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         finish(new Error("Google sign-in was cancelled."));
       }
@@ -136,9 +152,9 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
       }
     });
 
-    window.google.accounts.id.initialize({
+    (window as GoogleWindow).google?.accounts?.id.initialize({
       client_id: clientId,
-      callback: (response) => {
+      callback: (response: { credential?: string }) => {
         if (!response?.credential) {
           finish(new Error("Google sign-in did not return a credential."));
           return;
@@ -155,8 +171,8 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
     });
 
     // Prompt moment diagnostics helps detect OAuth origin issues early in dev/local setups.
-    if (window.google?.accounts?.id?.prompt) {
-      window.google.accounts.id.prompt((notification) => {
+    if ((window as GoogleWindow).google?.accounts?.id?.prompt) {
+      (window as GoogleWindow).google?.accounts?.id.prompt?.((notification: any) => {
         if (settled) return;
         const notDisplayedReason = String(notification?.getNotDisplayedReason?.() || "").toLowerCase();
         const skippedReason = String(notification?.getSkippedReason?.() || "").toLowerCase();
@@ -178,7 +194,7 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
       });
     }
 
-    window.google.accounts.id.renderButton(buttonHost, {
+    (window as GoogleWindow).google?.accounts?.id.renderButton(buttonHost, {
       type: "standard",
       shape: "rectangular",
       size: "large",
@@ -189,7 +205,7 @@ function requestGoogleCredentialWithRenderedButton(clientId) {
   });
 }
 
-export async function requestGoogleCredential(clientId) {
+export async function requestGoogleCredential(clientId: string) {
   if (!clientId) {
     throw new Error("Google client ID is not configured.");
   }

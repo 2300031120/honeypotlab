@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -6,9 +5,37 @@ import { Search, Zap, Target, Shield, Lock, Crosshair, Activity, Globe, ChevronR
 import { isSyntheticEvent } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 
+type MitreTactic = {
+    id: string;
+    name: string;
+    icon: React.ReactNode;
+    description: string;
+    techniques: string[];
+    active: boolean;
+};
+
+type MitreMappingEvent = {
+    cmd?: string;
+    tactic?: string;
+    technique?: string;
+    severity?: string;
+    timestamp?: string | number | null;
+};
+
+type IncidentEvent = {
+    cmd?: string;
+    mitre_tactic?: string;
+    mitre_technique?: string;
+    severity?: string;
+    event_type?: string | null;
+    session_id?: string | null;
+    ip?: string | null;
+    ua?: string | null;
+};
+
 const MitreMapping = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [tactics, setTactics] = useState([
+    const [tactics, setTactics] = useState<MitreTactic[]>([
         { id: 'TA0001', name: 'Reconnaissance', icon: <Search size={24} />, description: 'Information gathering for target selection.', techniques: ['Active Scanning', 'Search Victim-Owned Websites'], active: false },
         { id: 'TA0002', name: 'Initial Access', icon: <Zap size={24} />, description: 'Vectors used to gain a foothold.', techniques: ['Exploit Public-Facing Application', 'Valid Accounts'], active: false },
         { id: 'TA0007', name: 'Discovery', icon: <Target size={24} />, description: 'Knowledge gathering about the environment.', techniques: ['System Network Configuration Discovery', 'Process Discovery'], active: false },
@@ -17,18 +44,18 @@ const MitreMapping = () => {
         { id: 'TA0010', name: 'Exfiltration', icon: <Crosshair size={24} />, description: 'Stealing data from the target network.', techniques: ['Exfiltration Over Web Service', 'Archive Collected Data'], active: false }
     ]);
 
-    const [commandMappings, setCommandMappings] = useState([]);
+    const [commandMappings, setCommandMappings] = useState<MitreMappingEvent[]>([]);
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/mapping/mitre`, REAL_ONLY_PARAMS);
+            const res = await axios.get<Record<string, MitreMappingEvent[]>>(`${API_BASE}/mapping/mitre`, REAL_ONLY_PARAMS);
             const data = res.data || {};
 
             // Flatten data for the mapping log
-            const allMappings = [];
-            Object.keys(data).forEach(tactic => {
+            const allMappings: MitreMappingEvent[] = [];
+            Object.keys(data).forEach((tactic) => {
                 if (Array.isArray(data[tactic])) {
-                    data[tactic].forEach(ev => {
+                    data[tactic].forEach((ev) => {
                         allMappings.push({
                             ...ev,
                             tactic: tactic
@@ -37,7 +64,9 @@ const MitreMapping = () => {
                 }
             });
 
-            setCommandMappings(allMappings.sort((a, b) => new Date(b?.timestamp || 0) - new Date(a?.timestamp || 0)));
+            setCommandMappings(
+                allMappings.sort((a, b) => new Date(b?.timestamp || 0).getTime() - new Date(a?.timestamp || 0).getTime())
+            );
 
             // Update active tactics
             const seenStages = new Set(Object.keys(data));
@@ -59,21 +88,21 @@ const MitreMapping = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
-                    if (!data || isSyntheticEvent(data)) return;
+                    const payload = typeof event.data === "string" ? safeParseJson<IncidentEvent>(event.data) : null;
+                    if (!payload || isSyntheticEvent(payload)) return;
 
                     const newIncident = {
-                        cmd: data.cmd || 'LOG_ENTRY',
-                        tactic: data.mitre_tactic || 'Unknown',
-                        technique: data.mitre_technique || 'General Behavior',
-                        severity: data.severity
+                        cmd: payload.cmd || 'LOG_ENTRY',
+                        tactic: payload.mitre_tactic || 'Unknown',
+                        technique: payload.mitre_technique || 'General Behavior',
+                        severity: payload.severity || 'low'
                     };
                     setCommandMappings(prev => [newIncident, ...prev.slice(0, 19)]);
 
-                    if (data.mitre_tactic) {
+                    if (payload.mitre_tactic) {
                         setTactics(prev => prev.map(t => ({
                             ...t,
-                            active: t.active || t.name === data.mitre_tactic
+                            active: t.active || t.name === payload.mitre_tactic
                         })));
                     }
                 },

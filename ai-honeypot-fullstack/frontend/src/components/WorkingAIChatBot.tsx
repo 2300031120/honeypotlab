@@ -1,10 +1,31 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
-import axios from "axios";
+import axios, { type AxiosError, type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { API_BASE } from "../apiConfig";
 import { buildAuthHeaders } from "../utils/auth";
 
-const PERSONAS = [
+type PersonaId = "GENERAL_SENTINEL" | "FORENSICS" | "ARCHITECT" | "INTEL";
+
+type PersonaOption = {
+  id: PersonaId;
+  label: PersonaId;
+};
+
+type MessageRole = "assistant" | "user";
+
+type ChatMessage = {
+  role: MessageRole;
+  content: string;
+  source?: string;
+  persona?: PersonaId | string;
+};
+
+type AdvisorResponse = {
+  response?: string;
+  persona_active?: string;
+  response_source?: string;
+};
+
+const PERSONAS: PersonaOption[] = [
   { id: "GENERAL_SENTINEL", label: "GENERAL_SENTINEL" },
   { id: "FORENSICS", label: "FORENSICS" },
   { id: "ARCHITECT", label: "ARCHITECT" },
@@ -14,7 +35,7 @@ const PERSONAS = [
 const INITIAL_MESSAGE =
   "AI companion online. Select a persona and ask any tech or security question.";
 
-function normalizeResponseSource(raw) {
+function normalizeResponseSource(raw: unknown) {
   const source = String(raw || "").trim().toLowerCase();
   if (!source) return "unknown";
   if (source === "llm") return "llm";
@@ -22,7 +43,7 @@ function normalizeResponseSource(raw) {
   return source;
 }
 
-function sourceBadgeMeta(source) {
+function sourceBadgeMeta(source: string) {
   if (source === "llm") {
     return {
       label: "LLM",
@@ -47,14 +68,16 @@ function sourceBadgeMeta(source) {
   };
 }
 
-function shouldRetryWithoutApiPrefix(error) {
-  const status = error?.response?.status;
-  const hasResponse = !!error?.response;
+const isAxiosError = (error: unknown): error is AxiosError => axios.isAxiosError(error);
+
+function shouldRetryWithoutApiPrefix(error: unknown) {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  const hasResponse = isAxiosError(error) && !!error.response;
   return String(API_BASE).endsWith("/api") && (!hasResponse || status === 404 || status === 405);
 }
 
 async function pingBackend(timeoutMs = 20000) {
-  const config = { timeout: timeoutMs, headers: buildAuthHeaders() };
+  const config: AxiosRequestConfig = { timeout: timeoutMs, headers: buildAuthHeaders() };
   try {
     return await axios.get(`${API_BASE}/health`, config);
   } catch (error) {
@@ -65,8 +88,8 @@ async function pingBackend(timeoutMs = 20000) {
   }
 }
 
-async function askAdvisor(payload, timeoutMs = 130000) {
-  const config = {
+async function askAdvisor(payload: { query: string; persona: string; history: ChatMessage[] }, timeoutMs = 130000) {
+  const config: AxiosRequestConfig = {
     timeout: timeoutMs,
     headers: buildAuthHeaders({ "Content-Type": "application/json" }),
   };
@@ -80,30 +103,32 @@ async function askAdvisor(payload, timeoutMs = 130000) {
   }
 }
 
-function toFriendlyError(error) {
-  if (error?.response?.status === 401) {
+function toFriendlyError(error: unknown) {
+  const status = isAxiosError(error) ? error.response?.status : undefined;
+  const message = isAxiosError(error) ? error.message : String((error as Error | undefined)?.message || "");
+  if (status === 401) {
     return "Session expired. Please login again.";
   }
-  if (error?.response?.status === 404) {
+  if (status === 404) {
     return "AI endpoint not found. Backend route mapping check cheyyali.";
   }
-  if (error?.response?.status >= 500) {
+  if (typeof status === "number" && status >= 500) {
     return "Backend server error. Backend logs check cheyyali.";
   }
-  if (String(error?.message || "").toLowerCase().includes("timeout")) {
+  if (String(message || "").toLowerCase().includes("timeout")) {
     return "Request timeout. Try again in a few seconds.";
   }
-  return `Request failed: ${error?.message || "Unknown error"}`;
+  return `Request failed: ${message || "Unknown error"}`;
 }
 
 const WorkingAIChatBot = () => {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     { role: "assistant", content: INITIAL_MESSAGE, source: "local", persona: "GENERAL_SENTINEL" },
   ]);
   const [input, setInput] = useState("");
-  const [persona, setPersona] = useState("GENERAL_SENTINEL");
+  const [persona, setPersona] = useState<PersonaId>("GENERAL_SENTINEL");
   const [isLoading, setIsLoading] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState("checking");
+  const [connectionStatus, setConnectionStatus] = useState<"checking" | "connected" | "failed">("checking");
 
   const trimmedInput = useMemo(() => String(input || "").trim(), [input]);
 
@@ -135,13 +160,13 @@ const WorkingAIChatBot = () => {
 
   const handleSend = async () => {
     if (!trimmedInput || isLoading) return;
-    const userMessage = { role: "user", content: trimmedInput };
+    const userMessage: ChatMessage = { role: "user", content: trimmedInput };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      const response = await askAdvisor({
+      const response: AxiosResponse<AdvisorResponse> = await askAdvisor({
         query: trimmedInput,
         persona,
         history: messages.slice(-6),
@@ -174,7 +199,7 @@ const WorkingAIChatBot = () => {
   const testConnection = async () => {
     setIsLoading(true);
     try {
-      const response = await askAdvisor({
+      const response: AxiosResponse<AdvisorResponse> = await askAdvisor({
         query: "Summarize the top SOC priorities in 3 concise bullets.",
         persona: "GENERAL_SENTINEL",
         history: [],
@@ -201,7 +226,7 @@ const WorkingAIChatBot = () => {
   const fetchSystemSnapshot = async () => {
     setIsLoading(true);
     try {
-      const response = await askAdvisor({
+      const response: AxiosResponse<AdvisorResponse> = await askAdvisor({
         query: "status",
         persona: "GENERAL_SENTINEL",
         history: [],
@@ -255,7 +280,7 @@ const WorkingAIChatBot = () => {
         <label style={{ fontSize: "13px", color: "#8b949e" }}>Persona</label>
         <select
           value={persona}
-          onChange={(e) => setPersona(e.target.value)}
+          onChange={(e) => setPersona(e.target.value as PersonaId)}
           style={{
             background: "#161b22",
             border: "1px solid #30363d",

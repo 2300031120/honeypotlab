@@ -1,10 +1,21 @@
-// @ts-nocheck
 import { API_BASE } from "../apiConfig";
 
 const SESSION_STORAGE_KEY = "csa_analytics_session";
 const EVENT_ENDPOINT = `${API_BASE}/analytics/event`;
 
-function toBool(value) {
+type AnalyticsProperties = Record<string, string | number | boolean | null>;
+
+type TrackEventOptions = {
+  category?: string;
+  pagePath?: string;
+  source?: string;
+  sessionId?: string;
+  requestType?: string;
+  leadId?: string | number | null;
+  properties?: Record<string, unknown>;
+};
+
+function toBool(value?: string | number | boolean | null) {
   return ["1", "true", "yes", "on"].includes(String(value || "").trim().toLowerCase());
 }
 
@@ -19,7 +30,7 @@ function analyticsEnabled() {
   return host !== "localhost" && host !== "127.0.0.1" && host !== "::1";
 }
 
-function safeText(value, maxLen = 255) {
+function safeText(value: string | number | null | undefined, maxLen = 255) {
   const normalized = String(value ?? "")
     .replace(/[\u0000-\u001F\u007F]/g, "")
     .replace(/\s+/g, " ")
@@ -30,7 +41,7 @@ function safeText(value, maxLen = 255) {
   return normalized.slice(0, maxLen);
 }
 
-function safeEventName(value) {
+function safeEventName(value: string | number | null | undefined) {
   return safeText(value, 120).toLowerCase().replace(/[^a-z0-9_./:-]+/g, "_").replace(/^_+|_+$/g, "");
 }
 
@@ -48,11 +59,11 @@ function getSessionId() {
   }
 }
 
-function cleanProperties(value) {
+function cleanProperties(value?: Record<string, unknown> | null): AnalyticsProperties {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
-  const result = {};
+  const result: AnalyticsProperties = {};
   Object.entries(value).forEach(([rawKey, rawVal]) => {
     const key = safeText(rawKey, 80);
     if (!key) {
@@ -75,7 +86,7 @@ function cleanProperties(value) {
   return result;
 }
 
-function postEvent(payload) {
+function postEvent(payload: Record<string, unknown>) {
   const body = JSON.stringify(payload);
   if (typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
     try {
@@ -96,7 +107,7 @@ function postEvent(payload) {
   }).catch(() => undefined);
 }
 
-export function trackEvent(eventName, options = {}) {
+export function trackEvent(eventName: string, options: TrackEventOptions = {}) {
   if (!analyticsEnabled()) {
     return;
   }
@@ -118,7 +129,7 @@ export function trackEvent(eventName, options = {}) {
   postEvent(payload);
 }
 
-export function trackCtaClick(label, location, extra = {}) {
+export function trackCtaClick(label: string, location: string, extra: Record<string, unknown> = {}) {
   trackEvent("cta_click", {
     category: "conversion",
     pagePath: location,
@@ -130,7 +141,7 @@ export function trackCtaClick(label, location, extra = {}) {
   });
 }
 
-export function trackPageVisit(pageName, pagePath) {
+export function trackPageVisit(pageName: string, pagePath: string) {
   trackEvent("page_visit", {
     category: "engagement",
     pagePath,

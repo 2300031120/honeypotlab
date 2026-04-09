@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import axios from "axios";
+import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Activity, Command, Search, Sparkles, X } from "lucide-react";
 import { API_BASE } from "../apiConfig";
@@ -9,7 +8,32 @@ import { isAuthenticated } from "../utils/auth";
 import { loadAuthProviders } from "../utils/authProviders";
 import { fetchPublicTelemetrySnapshot } from "../utils/publicTelemetry";
 
-const BASE_ACTIONS = [
+type CommandAction = {
+  id: string;
+  label: string;
+  description?: string;
+  to?: string;
+  href?: string;
+  keywords?: string;
+  ctaLabel?: string;
+};
+
+type LiveStatus = {
+  status: "checking" | "offline" | "online" | "degraded";
+  uptime: string;
+  activeSessions: number;
+  totalEvents: number;
+  totalAttacks: number | null;
+  criticalThreats: number | null;
+};
+
+type PublicCommandCenterProps = {
+  open: boolean;
+  onClose: () => void;
+  analyticsPath?: string;
+};
+
+const BASE_ACTIONS: CommandAction[] = [
   {
     id: "home",
     label: "Open Home",
@@ -70,7 +94,7 @@ const BASE_ACTIONS = [
   },
 ];
 
-const HOME_ANCHOR_ACTIONS = [
+const HOME_ANCHOR_ACTIONS: CommandAction[] = [
   {
     id: "problem_anchor",
     label: "Jump to Problem",
@@ -101,7 +125,7 @@ const HOME_ANCHOR_ACTIONS = [
   },
 ];
 
-function formatUptime(totalSeconds) {
+function formatUptime(totalSeconds: number | string | null | undefined) {
   const safeSeconds = Math.max(0, Number(totalSeconds || 0));
   const hours = Math.floor(safeSeconds / 3600);
   const minutes = Math.floor((safeSeconds % 3600) / 60);
@@ -111,14 +135,14 @@ function formatUptime(totalSeconds) {
   return `${minutes}m`;
 }
 
-export default function PublicCommandCenter({ open, onClose, analyticsPath = "/" }) {
+export default function PublicCommandCenter({ open, onClose, analyticsPath = "/" }: PublicCommandCenterProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const inputRef = useRef(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const [signupEnabled, setSignupEnabled] = useState(true);
-  const [live, setLive] = useState({
+  const [live, setLive] = useState<LiveStatus>({
     status: "checking",
     uptime: "--",
     activeSessions: 0,
@@ -127,7 +151,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     criticalThreats: null,
   });
 
-  const actions = useMemo(() => {
+  const actions = useMemo<CommandAction[]>(() => {
     const baseActions = signupEnabled ? BASE_ACTIONS : BASE_ACTIONS.filter((item) => item.id !== "signup");
     if (location.pathname === "/") {
       return [...HOME_ANCHOR_ACTIONS, ...baseActions];
@@ -135,7 +159,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     return baseActions;
   }, [location.pathname, signupEnabled]);
 
-  const filteredActions = useMemo(() => {
+  const filteredActions = useMemo<CommandAction[]>(() => {
     const searchText = String(query || "").trim().toLowerCase();
     if (!searchText) {
       return actions;
@@ -194,12 +218,15 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     const loadLiveStatus = async () => {
       try {
         const authenticated = isAuthenticated();
+        const axiosConfig: AxiosRequestConfig & { skipAuthRedirect?: boolean } = {
+          skipAuthRedirect: true,
+        };
         const [healthResult, statsResult] = await Promise.allSettled([
-          axios.get(`${API_BASE}/health`, { skipAuthRedirect: true }),
+          axios.get(`${API_BASE}/health`, axiosConfig),
           authenticated
             ? axios.get(`${API_BASE}/dashboard/stats`, {
                 params: { include_training: false },
-                skipAuthRedirect: true,
+                ...axiosConfig,
               })
             : fetchPublicTelemetrySnapshot(),
         ]);
@@ -208,7 +235,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
           return;
         }
 
-        let nextState = {
+        let nextState: LiveStatus = {
           status: "offline",
           uptime: "--",
           activeSessions: 0,
@@ -230,7 +257,11 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
         }
 
         if (statsResult.status === "fulfilled") {
-          const statsPayload = authenticated ? statsResult.value?.data || {} : statsResult.value || {};
+          const rawStats = statsResult.value as AxiosResponse | Record<string, any>;
+          const statsPayload =
+            authenticated && rawStats && typeof rawStats === "object" && "data" in rawStats
+              ? (rawStats as AxiosResponse).data || {}
+              : rawStats || {};
           nextState = {
             ...nextState,
             totalAttacks: Number(statsPayload?.summary?.total ?? statsPayload?.summary?.total_events ?? 0),
@@ -259,7 +290,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
       return undefined;
     }
 
-    const onKeyDown = (event) => {
+    const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
         onClose();
@@ -288,7 +319,7 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, filteredActions, activeIndex]);
 
-  const handleAction = (item) => {
+  const handleAction = (item: CommandAction) => {
     const targetPath = item.href ? `/${item.href}` : item.to || "/";
     trackEvent("command_center_select", {
       category: "engagement",

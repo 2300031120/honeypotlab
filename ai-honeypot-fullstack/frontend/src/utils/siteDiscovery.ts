@@ -1,7 +1,21 @@
-// @ts-nocheck
-export const PUBLIC_ROUTE_ENTRIES = [
+type RouteEntry = {
+  path: string;
+  title: string;
+  changefreq: string;
+  priority: string;
+};
+
+type SiteMeta = {
+  siteName: string;
+  siteDescription: string;
+  siteUrl: string;
+  companyName?: string;
+};
+
+export const PUBLIC_ROUTE_ENTRIES: RouteEntry[] = [
   { path: "/", title: "Home", changefreq: "daily", priority: "1.0" },
   { path: "/platform", title: "Platform", changefreq: "weekly", priority: "0.9" },
+  { path: "/resources", title: "Resources", changefreq: "weekly", priority: "0.8" },
   { path: "/integrations", title: "Integrations", changefreq: "weekly", priority: "0.8" },
   { path: "/deployment", title: "Deployment", changefreq: "weekly", priority: "0.8" },
   { path: "/pricing", title: "Pricing", changefreq: "weekly", priority: "0.8" },
@@ -40,17 +54,17 @@ export const PRIVATE_ROUTE_PREFIXES = [
   "/api/",
 ];
 
-export function trimTrailingSlash(value) {
+export function trimTrailingSlash(value: string | null | undefined) {
   return String(value || "").replace(/\/+$/, "");
 }
 
-export function buildAbsoluteUrl(siteUrl, path = "/") {
+export function buildAbsoluteUrl(siteUrl: string, path = "/") {
   const base = trimTrailingSlash(siteUrl);
   const normalizedPath = path === "/" ? "/" : `/${String(path || "").replace(/^\/+/, "")}`;
   return `${base}${normalizedPath}`;
 }
 
-function escapeXml(value) {
+function escapeXml(value: string) {
   return String(value)
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -59,7 +73,7 @@ function escapeXml(value) {
     .replace(/'/g, "&apos;");
 }
 
-export function renderSitemap(siteUrl) {
+export function renderSitemap(siteUrl: string) {
   const lastModified = new Date().toISOString();
   const rows = PUBLIC_ROUTE_ENTRIES.map(
     ({ path, changefreq, priority }) => `  <url>
@@ -77,7 +91,7 @@ ${rows}
 `;
 }
 
-export function renderRobots(siteUrl) {
+export function renderRobots(siteUrl: string) {
   const rules = PRIVATE_ROUTE_PREFIXES.map((path) => `Disallow: ${path}`);
   return [
     "User-agent: *",
@@ -88,7 +102,7 @@ export function renderRobots(siteUrl) {
   ].join("\n");
 }
 
-export function renderLlmsTxt({ siteName, siteDescription, siteUrl }) {
+export function renderLlmsTxt({ siteName, siteDescription, siteUrl }: SiteMeta) {
   const routes = PUBLIC_ROUTE_ENTRIES.map(
     ({ title, path }) => `- ${title}: ${buildAbsoluteUrl(siteUrl, path)}`
   );
@@ -110,7 +124,7 @@ export function renderLlmsTxt({ siteName, siteDescription, siteUrl }) {
   ].join("\n");
 }
 
-export function renderStructuredData({ siteName, siteDescription, siteUrl, companyName }) {
+export function renderStructuredData({ siteName, siteDescription, siteUrl, companyName }: SiteMeta) {
   const base = trimTrailingSlash(siteUrl);
   const organizationId = `${base}/#organization`;
   const websiteId = `${base}/#website`;

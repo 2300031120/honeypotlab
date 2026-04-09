@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -20,7 +19,157 @@ import {
     Lock, CheckCircle, AlertTriangle, Play, Pause, Rewind, FastForward
 } from "lucide-react";
 
-const HexViewer = ({ data }) => {
+type ForensicAiMetadata = {
+    intent?: string;
+    confidence?: number;
+    stage?: string;
+    thought?: string;
+    explanation?: string | null;
+    mode?: string;
+    entropy?: number;
+};
+
+type RawForensicEvent = {
+    id?: string | number;
+    session_id?: string;
+    sessionId?: string;
+    ip?: string;
+    timestamp_utc?: string;
+    ts?: string;
+    timestamp?: string;
+    cmd?: string;
+    url_path?: string;
+    event_type?: string;
+    score?: number;
+    risk_score?: number;
+    risk?: number;
+    country?: string;
+    geo?: string;
+    geo_country?: string;
+    sha256?: string;
+    ai_stage?: string;
+    analysis?: string;
+    ai_explanation?: string;
+    ai_intent?: string;
+    confidence?: number;
+    ai_confidence?: number;
+    entropy?: number;
+    severity?: string;
+    ai_metadata?: ForensicAiMetadata;
+    deception_mode?: string;
+    reputation?: number;
+    mitre_tactic?: string;
+    mitre_technique?: string;
+    http_method?: string;
+    res?: string;
+};
+
+type ForensicEvent = RawForensicEvent & {
+    session_id: string;
+    timestamp_utc: string;
+    ts: string;
+    cmd: string;
+    score: number;
+    country: string;
+    geo: string;
+    sha256: string;
+    ai_stage: string;
+    analysis: string;
+    confidence: number;
+    entropy: number;
+    severity: string;
+    ai_metadata: ForensicAiMetadata;
+};
+
+type Artifact = {
+    ip?: string;
+    kind?: string;
+    name?: string;
+    value?: string;
+    path?: string;
+    summary?: string;
+    first_seen?: string;
+    hash?: string;
+    cmd?: string;
+    content?: string;
+};
+
+type BehaviorProfile = {
+    bot_probability: number;
+    human_likelihood: number;
+    skill_level: string;
+    exploit_chain_depth: number;
+};
+
+type ReplayStep = {
+    cmd?: string;
+    res?: string;
+    ts?: string;
+    timestamp_utc?: string;
+    timestamp?: string;
+};
+
+type PlaybookEntry = Record<string, unknown>;
+
+type ActionNotice = {
+    type: 'success' | 'warning' | 'error';
+    message: string;
+};
+
+type ThreatReport = {
+    report: string;
+    integrityCode: string;
+    generatedAt: string;
+    caseId: string;
+    ip: string;
+};
+
+type SessionSummary = {
+    id: string;
+    ip?: string | undefined;
+    country: string;
+    risk: number;
+    strategy: string;
+    startTime?: string | number | Date | null;
+    reputation: number;
+    simulatedCount: number;
+    realCount: number;
+    events: ForensicEvent[];
+};
+
+type DashboardStatsResponse = {
+    feed?: RawForensicEvent[];
+};
+
+type FinalReportResponse = {
+    report?: string;
+    integrity_code?: string;
+};
+
+type NarrativeResponse = {
+    narrative?: string;
+};
+
+type BlockIpResponse = {
+    status?: string;
+    message?: string;
+};
+
+type ApiErrorResponse = {
+    detail?: string;
+};
+
+function getErrorMessage(error: unknown, fallback: string) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        return error.response?.data?.detail || error.message || fallback;
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return fallback;
+}
+
+const HexViewer = ({ data }: { data?: string | null | undefined }) => {
     if (!data) return null;
     const bytes = new TextEncoder().encode(data);
     const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0').toUpperCase());
@@ -43,16 +192,28 @@ const HexViewer = ({ data }) => {
     );
 };
 
-function escapeHtml(value) {
+function escapeHtml(value: unknown) {
     return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
+        .split("&").join("&amp;")
+        .split("<").join("&lt;")
+        .split(">").join("&gt;")
+        .split('"').join("&quot;")
+        .split("'").join("&#39;");
 }
 
-function buildPrintableReportHtml({ session, caseId, behaviorProfile, sessionEvents, artifacts }) {
+function buildPrintableReportHtml({
+    session,
+    caseId,
+    behaviorProfile,
+    sessionEvents,
+    artifacts
+}: {
+    session: SessionSummary | null;
+    caseId: string;
+    behaviorProfile: BehaviorProfile;
+    sessionEvents: ForensicEvent[];
+    artifacts: Artifact[];
+}) {
     const eventsMarkup = sessionEvents
         .slice(0, 14)
         .map((event, index) => `
@@ -82,7 +243,7 @@ function buildPrintableReportHtml({ session, caseId, behaviorProfile, sessionEve
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <title>CyberSentinel Forensics Report</title>
+  <title>CyberSentil Forensics Report</title>
   <style>
     :root {
       color-scheme: light;
@@ -188,7 +349,7 @@ function buildPrintableReportHtml({ session, caseId, behaviorProfile, sessionEve
 </head>
 <body>
   <div class="header">
-    <div class="eyebrow">CyberSentinel Forensics Report</div>
+    <div class="eyebrow">CyberSentil Forensics Report</div>
     <h1>${escapeHtml(caseId)}</h1>
     <p style="margin-top: 8px; color: #475569;">Generated ${escapeHtml(new Date().toLocaleString())} for session ${escapeHtml(session?.id || "unknown")}</p>
   </div>
@@ -247,34 +408,34 @@ function buildPrintableReportHtml({ session, caseId, behaviorProfile, sessionEve
 
 const ForensicsPage = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [events, setEvents] = useState([]);
-    const [artifacts, setArtifacts] = useState([]);
+    const [events, setEvents] = useState<ForensicEvent[]>([]);
+    const [artifacts, setArtifacts] = useState<Artifact[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedSessionId, setSelectedSessionId] = useState(null);
+    const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
     const [selectedCommandIndex, setSelectedCommandIndex] = useState(0);
     const [playbackActive, setPlaybackActive] = useState(false);
-    const [playbook, setPlaybook] = useState(null);
+    const [playbook, setPlaybook] = useState<PlaybookEntry | null>(null);
     const [narrative, setNarrative] = useState("");
     const [narrativeLoading, setNarrativeLoading] = useState(false);
-    const [behaviorProfile, setBehaviorProfile] = useState({
+    const [behaviorProfile, setBehaviorProfile] = useState<BehaviorProfile>({
         bot_probability: 0,
         human_likelihood: 0,
         skill_level: "Unknown",
         exploit_chain_depth: 0
     });
     const [isReplayOpen, setIsReplayOpen] = useState(false);
-    const [replayHistory, setReplayHistory] = useState([]);
+    const [replayHistory, setReplayHistory] = useState<ReplayStep[]>([]);
     const [replayIndex, setReplayIndex] = useState(0);
     const [isReplaying, setIsReplaying] = useState(false);
-    const [forensicTab, setForensicTab] = useState("AI_JOURNEY");
-    const [actionNotice, setActionNotice] = useState(null);
+    const [forensicTab, setForensicTab] = useState<'AI_JOURNEY' | 'BEHAVIOR' | 'CUSTODY'>("AI_JOURNEY");
+    const [actionNotice, setActionNotice] = useState<ActionNotice | null>(null);
     const [blockingIp, setBlockingIp] = useState(false);
     const [reportLoading, setReportLoading] = useState(false);
-    const [threatReport, setThreatReport] = useState(null);
+    const [threatReport, setThreatReport] = useState<ThreatReport | null>(null);
     const [showSimulatedData, setShowSimulatedData] = useState(false);
 
-    const showNotice = (type, message) => {
+    const showNotice = (type: ActionNotice['type'], message: string) => {
         setActionNotice({ type, message });
     };
 
@@ -284,12 +445,18 @@ const ForensicsPage = () => {
         return () => clearTimeout(timer);
     }, [actionNotice]);
 
-    const normalizeEvent = (event, fallbackSeed = "") => {
+    const normalizeEvent = (event: RawForensicEvent, fallbackSeed = ""): ForensicEvent => {
         const rawTimestamp = getEventTimestampValue(event);
-        const timestamp =
+        const timestampValue =
             rawTimestamp ||
             (typeof event?.timestamp === "string" ? event.timestamp : null) ||
             new Date().toISOString();
+        const timestamp =
+            typeof timestampValue === "string"
+                ? timestampValue
+                : timestampValue instanceof Date
+                    ? timestampValue.toISOString()
+                    : new Date(timestampValue).toISOString();
         const sessionId =
             event?.session_id ||
             event?.sessionId ||
@@ -323,7 +490,7 @@ const ForensicsPage = () => {
         };
     };
 
-    const isSimulatedEvent = (event) => {
+    const isSimulatedEvent = (event: Partial<ForensicEvent>) => {
         const eventType = String(event?.event_type || "").toLowerCase();
         const aiIntent = String(event?.ai_intent || event?.ai_metadata?.intent || "").toLowerCase();
         const httpMethod = String(event?.http_method || "").toUpperCase();
@@ -339,10 +506,10 @@ const ForensicsPage = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const statsRes = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
-                const artifactsRes = await axios.get(`${API_BASE}/forensics/artifacts`, REAL_ONLY_PARAMS);
+                const statsRes = await axios.get<DashboardStatsResponse>(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
+                const artifactsRes = await axios.get<Artifact[]>(`${API_BASE}/forensics/artifacts`, REAL_ONLY_PARAMS);
 
-                const allEvents = (statsRes.data.feed || []).map((event, idx) => normalizeEvent(event, idx));
+                const allEvents = (statsRes.data.feed || []).map((event, idx) => normalizeEvent(event, String(idx)));
                 setEvents(allEvents);
                 setArtifacts(Array.isArray(artifactsRes.data) ? artifactsRes.data : []);
 
@@ -365,8 +532,9 @@ const ForensicsPage = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
-                    if (!data || isSyntheticEvent(data)) return;
+                    const raw = safeParseJson(event.data);
+                    if (!raw || typeof raw !== 'object' || isSyntheticEvent(raw)) return;
+                    const data = raw as RawForensicEvent;
                     setEvents(prev => {
                         const normalized = normalizeEvent(data, "ws");
                         if (prev.find(e => String(e.id) === String(normalized.id) && String(e.session_id) === String(normalized.session_id))) {
@@ -388,9 +556,9 @@ const ForensicsPage = () => {
 
     useEffect(() => {
         if (selectedSessionId) {
-            const fetchSessionDetails = async (sessionId) => {
+            const fetchSessionDetails = async (sessionId: string) => {
                 try {
-                    const res = await axios.get(`${API_BASE}/forensics/behavior/${sessionId}`, REAL_ONLY_PARAMS);
+                    const res = await axios.get<BehaviorProfile>(`${API_BASE}/forensics/behavior/${sessionId}`, REAL_ONLY_PARAMS);
                     setBehaviorProfile(res.data);
                 } catch (e) {
                     console.error("Failed to fetch behavior profile", e);
@@ -398,7 +566,7 @@ const ForensicsPage = () => {
 
                 // Fetch Phase 5 Playbook
                 try {
-                    const pbRes = await axios.get(`${API_BASE}/soc/playbooks/${sessionId}`);
+                    const pbRes = await axios.get<PlaybookEntry[]>(`${API_BASE}/soc/playbooks/${sessionId}`);
                     if (pbRes.data && pbRes.data.length > 0) {
                         setPlaybook(pbRes.data[0]);
                     } else {
@@ -409,8 +577,8 @@ const ForensicsPage = () => {
                 // Fetch AI Narrative
                 setNarrativeLoading(true);
                 try {
-                    const narRes = await axios.get(`${API_BASE}/forensics/narrative/${sessionId}`, REAL_ONLY_PARAMS);
-                    setNarrative(narRes.data.narrative);
+                    const narRes = await axios.get<NarrativeResponse>(`${API_BASE}/forensics/narrative/${sessionId}`, REAL_ONLY_PARAMS);
+                    setNarrative(narRes.data.narrative || "Narrative data synthesis offline.");
                 } catch (e) {
                     setNarrative("Narrative data synthesis offline.");
                 } finally {
@@ -460,10 +628,10 @@ const ForensicsPage = () => {
         downloadAnchorNode.remove();
     };
 
-    const fetchReplay = async (sid) => {
+    const fetchReplay = async (sid: string) => {
         try {
-            const res = await axios.get(`${API_BASE}/forensics/timeline/${sid}`, REAL_ONLY_PARAMS);
-            setReplayHistory(res.data);
+            const res = await axios.get<ReplayStep[]>(`${API_BASE}/forensics/timeline/${sid}`, REAL_ONLY_PARAMS);
+            setReplayHistory(Array.isArray(res.data) ? res.data : []);
             setReplayIndex(0);
             setIsReplayOpen(true);
             setIsReplaying(true);
@@ -480,14 +648,14 @@ const ForensicsPage = () => {
         }
         try {
             setBlockingIp(true);
-            const res = await axios.post(`${API_BASE}/soc/block-ip`, {
+            const res = await axios.post<BlockIpResponse>(`${API_BASE}/soc/block-ip`, {
                 ip: activeSession.ip,
                 reason: `Manual block from forensics console (${activeSessionCaseId})`,
             });
             const payload = res.data || {};
             showNotice(payload.status === "success" ? "success" : "warning", payload.message || "Block request completed.");
         } catch (e) {
-            const message = e?.response?.data?.detail || "Failed to block adversary IP.";
+            const message = getErrorMessage(e, "Failed to block adversary IP.");
             showNotice("error", message);
         } finally {
             setBlockingIp(false);
@@ -501,7 +669,7 @@ const ForensicsPage = () => {
         }
         try {
             setReportLoading(true);
-            const res = await axios.post(`${API_BASE}/forensics/final-report`, {
+            const res = await axios.post<FinalReportResponse>(`${API_BASE}/forensics/final-report`, {
                 ip: activeSession.ip,
                 session_id: activeSession.id,
             }, REAL_ONLY_PARAMS);
@@ -515,7 +683,7 @@ const ForensicsPage = () => {
             });
             showNotice("success", `Threat summary generated for ${activeSession.ip}.`);
         } catch (e) {
-            const message = e?.response?.data?.detail || "Threat summary generation failed.";
+            const message = getErrorMessage(e, "Threat summary generation failed.");
             showNotice("error", message);
         } finally {
             setReportLoading(false);
@@ -523,7 +691,7 @@ const ForensicsPage = () => {
     };
 
     useEffect(() => {
-        let timer;
+        let timer: ReturnType<typeof setTimeout> | undefined;
         if (isReplaying && replayIndex < replayHistory.length - 1) {
             timer = setTimeout(() => {
                 setReplayIndex(prev => prev + 1);
@@ -538,7 +706,7 @@ const ForensicsPage = () => {
         ? events
         : events.filter((event) => !isSimulatedEvent(event));
 
-    const sessionGroups = visibleEvents.reduce((acc, event) => {
+    const sessionGroups = visibleEvents.reduce<Record<string, SessionSummary>>((acc, event) => {
         const sid = event.session_id || `${event.ip || "unknown"}-${String(getEventTimestampValue(event) || "unknown").slice(0, 16)}`;
         if (!acc[sid]) {
             acc[sid] = {
@@ -563,13 +731,13 @@ const ForensicsPage = () => {
         return acc;
     }, {});
 
-    const sortedSessions = Object.values(sessionGroups).sort((a, b) => {
+    const sortedSessions: SessionSummary[] = Object.values(sessionGroups).sort((a, b) => {
         const aTime = a.startTime ? new Date(a.startTime).getTime() : 0;
         const bTime = b.startTime ? new Date(b.startTime).getTime() : 0;
         return bTime - aTime;
     });
-    const activeSession = sessionGroups[selectedSessionId] || sortedSessions[0] || null;
-    const sessionEvents = activeSession
+    const activeSession: SessionSummary | null = (selectedSessionId ? sessionGroups[selectedSessionId] : undefined) || sortedSessions[0] || null;
+    const sessionEvents: ForensicEvent[] = activeSession
         ? (activeSession.events || []).sort((a, b) => {
             const aDate = getEventDate(a);
             const bDate = getEventDate(b);
@@ -594,13 +762,13 @@ const ForensicsPage = () => {
     }, [selectedSessionId, sessionGroups, sortedSessions]);
 
     // Simulation Data for Risk Graph
-    const graphData = sessionEvents.map((e, i) => ({
+    const graphData = sessionEvents.map((e: ForensicEvent, i: number) => ({
         step: i + 1,
         risk: e.score || 10,
         cmd: e.cmd
     }));
 
-    const generatePDF = async (session) => {
+    const generatePDF = async (session: SessionSummary) => {
         try {
             const printableEvents = [...sessionEvents];
             const printableArtifacts = artifacts.filter((artifact) => artifact?.ip === session?.ip);
@@ -905,7 +1073,7 @@ const ForensicsPage = () => {
                             <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: '800' }}>SESSION: {selectedSessionId?.substring(0, 12)}</div>
                         </div>
                         <div style={{ flex: 1, padding: '20px' }} className="custom-scrollbar">
-                            {sessionEvents.map((event, idx) => (
+                            {sessionEvents.map((event: ForensicEvent, idx: number) => (
                                 <div
                                     key={idx}
                                     onClick={() => setSelectedCommandIndex(idx)}
@@ -1122,7 +1290,7 @@ const ForensicsPage = () => {
                         gap: '20px'
                     }}>
                         <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid #1e293b', paddingBottom: '10px' }}>
-                            {["AI_JOURNEY", "BEHAVIOR", "CUSTODY"].map(tab => (
+                            {(["AI_JOURNEY", "BEHAVIOR", "CUSTODY"] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setForensicTab(tab)}
@@ -1191,7 +1359,7 @@ const ForensicsPage = () => {
                                     <span style={{ fontSize: '11px', fontWeight: '900', color: '#f59e0b' }}>CHAIN_OF_CUSTODY_LOG</span>
                                 </div>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    {sessionEvents.slice(0, 5).map((e, i) => (
+                                    {sessionEvents.slice(0, 5).map((e: ForensicEvent, i: number) => (
                                         <div key={i} style={{ padding: '10px', background: '#0f172a', borderRadius: '8px', border: '1px solid #1e293b', fontSize: '10px' }}>
                                             <div style={{ color: '#64748b', marginBottom: '4px' }}>{getEventIsoTime(e)}</div>
                                             <div style={{ color: '#f8fafc', fontWeight: '700', marginBottom: '4px' }}>SHA-256: {e.sha256 || stableHexFromText(`${e.session_id}|${e.cmd}|${e.ip}`, 24)}</div>
@@ -1287,8 +1455,8 @@ const ForensicsPage = () => {
                             transition: '0.2s',
                             boxShadow: '0 0 10px rgba(14, 165, 233, 0.1)'
                         }}
-                        onMouseOver={(e) => e.target.style.background = 'rgba(56, 189, 248, 0.2)'}
-                        onMouseOut={(e) => e.target.style.background = 'rgba(56, 189, 248, 0.1)'}
+                        onMouseOver={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.2)'; }}
+                        onMouseOut={(e: React.MouseEvent<HTMLButtonElement>) => { e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)'; }}
                     >
                         <FileText size={18} /> PRINT / SAVE PDF
                     </button>

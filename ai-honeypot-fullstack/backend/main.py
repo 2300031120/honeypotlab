@@ -1,10 +1,15 @@
 from contextlib import asynccontextmanager
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.exceptions import RequestValidationError
+from starlette.responses import JSONResponse
 
 from core.config import (
     APP_TITLE,
@@ -35,6 +40,9 @@ from routers.telemetry import router as telemetry_router
 APP_STARTED_AT = utc_now()
 configure_logging(level=LOG_LEVEL, json_logs=JSON_LOGS)
 
+# Rate limiting for public endpoints
+limiter = Limiter(key_func=get_remote_address)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -45,6 +53,15 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title=APP_TITLE, lifespan=lifespan)
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please try again later."},
+    )
 app.add_middleware(RequestIdMiddleware, log_requests=LOG_REQUESTS)
 resolved_cors_origins = CORS_ORIGINS or ["*"]
 allow_all_cors_origins = "*" in resolved_cors_origins
@@ -69,7 +86,8 @@ if SECURITY_HEADERS_ENABLED:
 
 
 @app.get("/health")
-def health() -> dict[str, Any]:
+@limiter.limit("60/minute")
+def health(request: Request) -> dict[str, Any]:
     with db() as conn:
         summary = build_summary(conn)["summary"]
     now = utc_now()

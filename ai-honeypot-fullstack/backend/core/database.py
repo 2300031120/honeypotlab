@@ -31,6 +31,7 @@ INSERT_ID_TABLES = {
     "sites",
     "events",
     "blocked_ips",
+    "operator_actions",
     "leads",
     "lead_notes",
     "lead_status_history",

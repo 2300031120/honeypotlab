@@ -53,6 +53,7 @@ def load_main(monkeypatch, tmp_path):
         "main",
         "core.config",
         "core.database",
+        "core.lead_notifications",
         "core.request_security",
         "core.security",
         "core.splunk",
@@ -141,7 +142,7 @@ def test_health_endpoint(monkeypatch, tmp_path):
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "healthy"
-    assert payload["service"] == "CyberSentinel Backend"
+    assert payload["service"] == "CyberSentil Backend"
     assert payload["metrics"]["total_events"] == 0
     assert response.headers["x-frame-options"] == "DENY"
     assert response.headers["x-content-type-options"] == "nosniff"
@@ -241,6 +242,151 @@ def test_admin_routes_require_admin_role(monkeypatch, tmp_path):
             response = client.get(path, headers=headers)
             assert response.status_code == 403, path
             assert response.json()["detail"] == "Insufficient permissions."
+
+
+def test_signup_creates_workspace_owner_with_operator_access(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "workspaceowner", "email": "owner@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "workspaceowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        assert login.json()["role"] == "owner"
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        for path in ["/admin/leads/statuses", "/admin/telemetry/summary", "/deception/profiles"]:
+            response = client.get(path, headers=headers)
+            assert response.status_code == 200, path
+
+
+def test_login_sets_auth_cookie_and_cookie_authenticates_auth_me(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    config = sys.modules["core.config"]
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "cookieowner", "email": "cookieowner@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "cookieowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        set_cookie = login.headers.get("set-cookie", "")
+        assert f"{config.AUTH_COOKIE_NAME}=" in set_cookie
+
+        me = client.get("/auth/me")
+        assert me.status_code == 200
+        assert me.json()["username"] == "cookieowner"
+
+
+def test_cookie_authenticated_mutation_requires_trusted_origin(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "csrfowner", "email": "csrfowner@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "csrfowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+
+        blocked = client.post("/sites", json={"name": "Blocked Site", "domain": "blocked.example.com"})
+        assert blocked.status_code == 403
+        assert blocked.json()["detail"] == "Cross-site session request blocked."
+
+        allowed = client.post(
+            "/sites",
+            headers={"Origin": "http://testserver"},
+            json={"name": "Allowed Site", "domain": "allowed.example.com"},
+        )
+        assert allowed.status_code == 200
+        assert "id" in allowed.json()
+        assert "api_key" in allowed.json()
+
+
+def test_bearer_authenticated_mutation_does_not_require_origin(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "bearerowner", "email": "bearerowner@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "bearerowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        created = client.post("/sites", headers=headers, json={"name": "Bearer Site", "domain": "bearer.example.com"})
+        assert created.status_code == 200
+        assert "id" in created.json()
+        assert "api_key" in created.json()
+
+
+def test_server_side_token_version_bump_revokes_existing_session(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    database = sys.modules["core.database"]
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "revokedowner", "email": "revoked@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "revokedowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        assert client.get("/auth/me", headers=headers).status_code == 200
+
+        with database.db() as conn:
+            conn.execute("update users set token_version = token_version + 1 where username = ?", ("revokedowner",))
+
+        revoked = client.get("/auth/me", headers=headers)
+        assert revoked.status_code == 401
+        assert revoked.json()["detail"] == "Session has been revoked. Please sign in again."
+
+        refreshed = client.post("/auth/login", json={"username": "revokedowner", "password": "StrongPass123"})
+        assert refreshed.status_code == 200
+        refreshed_headers = {"Authorization": f"Bearer {refreshed.json()['token']}"}
+        assert client.get("/auth/me", headers=refreshed_headers).status_code == 200
+
+
+def test_logout_revokes_current_session(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    config = sys.modules["core.config"]
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "logoutowner", "email": "logout@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "logoutowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+        assert client.get("/auth/me").status_code == 200
+
+        logout = client.post("/auth/logout", headers={"Origin": "http://testserver"})
+        assert logout.status_code == 200
+        assert logout.json()["status"] == "logged_out"
+        cleared_cookie = logout.headers.get("set-cookie", "").lower()
+        assert f"{config.AUTH_COOKIE_NAME.lower()}=" in cleared_cookie
+        assert "max-age=0" in cleared_cookie
+
+        revoked = client.get("/auth/me", headers=headers)
+        assert revoked.status_code == 401
+        assert revoked.json()["detail"] == "Session has been revoked. Please sign in again."
 
 
 def test_public_web_decoy_cookie_uses_runtime_security_flags(monkeypatch, tmp_path):
@@ -412,6 +558,140 @@ def test_auth_site_and_ingest_flow(monkeypatch, tmp_path):
         dashboard = client.get("/dashboard/stats", headers={"Authorization": f"Bearer {token}"})
         assert dashboard.status_code == 200
         assert dashboard.json()["summary"]["total"] == 1
+
+
+def test_site_creation_rejects_overlapping_or_invalid_domains(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(
+            client,
+            username="domainowner",
+            email="domainowner@example.com",
+            domain="https://Example.com/admin",
+        )
+        assert tenant["site"]["api_key"]
+
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "domainowner2", "email": "domainowner2@example.com", "password": "StrongPass123!"},
+        )
+        assert signup.status_code == 200
+        login = client.post("/auth/login", json={"username": "domainowner2", "password": "StrongPass123!"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        overlap = client.post(
+            "/sites",
+            headers=headers,
+            json={"name": "Overlap", "domain": "portal.example.com"},
+        )
+        assert overlap.status_code == 409
+        assert "overlaps with existing site" in overlap.json()["detail"]
+
+        invalid = client.post(
+            "/sites",
+            headers=headers,
+            json={"name": "Invalid", "domain": "localhost"},
+        )
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"] == "Enter a valid public hostname for this site."
+
+
+def test_internal_telemetry_surfaces_use_sample_incident_when_tenant_has_no_events(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "sampleops", "email": "sampleops@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "sampleops", "password": "StrongPass123"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        dashboard = client.get("/dashboard/stats", headers=headers)
+        assert dashboard.status_code == 200
+        dashboard_payload = dashboard.json()
+        assert dashboard_payload["demo_mode"] is True
+        assert dashboard_payload["summary"]["total"] >= 1
+        session_id = dashboard_payload["feed"][0]["session_id"]
+
+        adaptive = client.get("/deception/adaptive/metrics", headers=headers)
+        assert adaptive.status_code == 200
+        assert adaptive.json()["summary"]["total_sessions"] >= 1
+
+        sessions = client.get("/admin/telemetry/sessions", headers=headers)
+        assert sessions.status_code == 200
+        sessions_payload = sessions.json()
+        assert sessions_payload["demo_mode"] is True
+        assert len(sessions_payload["items"]) >= 1
+
+        summary = client.get("/admin/telemetry/summary", headers=headers)
+        assert summary.status_code == 200
+        summary_payload = summary.json()
+        assert summary_payload["demo_mode"] is True
+        assert "Sample incident mode is active" in summary_payload["ai_summary"]
+
+        events = client.get("/admin/telemetry/events", headers=headers)
+        assert events.status_code == 200
+        events_payload = events.json()
+        assert events_payload["demo_mode"] is True
+        assert len(events_payload["items"]) >= 1
+
+        artifacts = client.get("/forensics/artifacts", headers=headers)
+        assert artifacts.status_code == 200
+        assert len(artifacts.json()) >= 1
+
+        timeline = client.get(f"/admin/telemetry/sessions/{session_id}/timeline", headers=headers)
+        assert timeline.status_code == 200
+        timeline_payload = timeline.json()
+        assert timeline_payload["demo_mode"] is True
+        assert len(timeline_payload["items"]) >= 1
+
+        reputation = client.get("/intelligence/reputation/198.51.100.44", headers=headers)
+        assert reputation.status_code == 200
+        assert reputation.json()["platform_history_count"] >= 1
+
+        readiness = client.get("/ops/readiness", headers=headers)
+        assert readiness.status_code == 200
+        readiness_payload = readiness.json()
+        assert readiness_payload["coverage"]["events_total"] == 0
+        assert readiness_payload["coverage"]["latest_event_at"] is None
+
+
+def test_final_report_returns_signed_integrity_payload(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    security = sys.modules["core.security"]
+
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "reportowner", "email": "report@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "reportowner", "password": "StrongPass123"})
+        assert login.status_code == 200
+        headers = {"Authorization": f"Bearer {login.json()['token']}"}
+
+        response = client.post(
+            "/forensics/final-report",
+            headers=headers,
+            json={"ip": "203.0.113.10", "session_id": "sess-report-1"},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+
+    assert payload["status"] == "success"
+    assert payload["integrity_algorithm"] == "hmac-sha256"
+    assert payload["integrity_code"].startswith("IR-")
+    assert payload["integrity_payload"]["report_sha256"] == hashlib.sha256(payload["report"].encode("utf-8")).hexdigest()
+    assert security.verify_integrity_signature(payload["integrity_payload"], payload["integrity_signature"]) is True
+
+    tampered_payload = dict(payload["integrity_payload"])
+    tampered_payload["ip"] = "203.0.113.11"
+    assert security.verify_integrity_signature(tampered_payload, payload["integrity_signature"]) is False
 
 
 def test_site_api_keys_are_hashed_at_rest(monkeypatch, tmp_path):
@@ -1294,6 +1574,142 @@ def test_auto_mode_blocks_are_tenant_scoped(monkeypatch, tmp_path):
         assert reputation_b.json()["is_blacklisted"] is False
 
 
+def test_operator_audit_logs_include_site_soc_and_deception_mutations(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="auditops", email="auditops@example.com", domain="audit.example.com")
+        headers = tenant["headers"]
+        site_id = tenant["site"]["id"]
+
+        rotate = client.post(f"/sites/{site_id}/rotate-key", headers=headers)
+        assert rotate.status_code == 200
+
+        block = client.post("/soc/block-ip", headers=headers, json={"ip": "203.0.113.77", "reason": "manual"})
+        assert block.status_code == 200
+
+        deploy = client.post(
+            "/deception/deploy",
+            headers=headers,
+            json={"profile": "aggressive", "protocols": {"credential_injection": True, "honeyfile_generation": True}},
+        )
+        assert deploy.status_code == 200
+
+        canary = client.post("/deception/canary-tokens/generate", headers=headers, json={"label": "Audit Canary", "type": "URL"})
+        assert canary.status_code == 200
+
+        report = client.post(
+            "/forensics/final-report",
+            headers=headers,
+            json={"ip": "203.0.113.77", "session_id": "audit-session-1"},
+        )
+        assert report.status_code == 200
+
+        audit = client.get("/audit/logs", headers=headers)
+        assert audit.status_code == 200
+        summaries = {str(item.get("cmd") or "") for item in audit.json()}
+
+        assert any(summary.startswith("Created decoy site auditops-site") for summary in summaries)
+        assert any(summary.startswith("Rotated API key for auditops-site") for summary in summaries)
+        assert "Blocked IP 203.0.113.77" in summaries
+        assert "Deployed deception profile aggressive" in summaries
+        assert "Generated canary token Audit Canary" in summaries
+        assert any(summary.startswith("Generated final report ") for summary in summaries)
+
+
+def test_operator_audit_logs_include_lead_admin_mutations(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="leadops", email="leadops@example.com", domain="leadops.example.com")
+        headers = tenant["headers"]
+
+        lead = client.post(
+            "/contact/submit",
+            headers={"Host": "leadops.example.com"},
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "Lead Owner",
+                    "email": "lead-owner@example.com",
+                    "organization": "Lead Org",
+                    "use_case": "Detection",
+                    "message": "Need a follow-up demo.",
+                    "website": "",
+                },
+            ),
+        )
+        assert lead.status_code == 200
+        lead_id = lead.json()["id"]
+
+        status = client.post(f"/admin/leads/{lead_id}/status", headers=headers, json={"status": "contacted"})
+        note = client.post(f"/admin/leads/{lead_id}/notes", headers=headers, json={"note": "Reached out to schedule a review."})
+        assign = client.post(f"/admin/leads/{lead_id}/assign", headers=headers, json={"assigned_to": "leadops"})
+        assert status.status_code == 200
+        assert note.status_code == 200
+        assert assign.status_code == 200
+
+        audit = client.get("/audit/logs", headers=headers)
+        assert audit.status_code == 200
+        summaries = {str(item.get("cmd") or "") for item in audit.json()}
+
+        assert f"Updated lead #{lead_id} status from new to contacted" in summaries
+        assert f"Added note to lead #{lead_id}" in summaries
+        assert f"Assigned lead #{lead_id} to leadops" in summaries
+
+
+def test_audit_logs_support_source_filters_search_and_csv_export(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(
+            client,
+            username="auditfilters",
+            email="auditfilters@example.com",
+            domain="auditfilters.example.com",
+        )
+        headers = tenant["headers"]
+        site_id = tenant["site"]["id"]
+
+        run_high_confidence_public_campaign(client, host="auditfilters.example.com", ip="203.0.113.81")
+
+        rotate = client.post(f"/sites/{site_id}/rotate-key", headers=headers)
+        assert rotate.status_code == 200
+
+        block = client.post("/soc/block-ip", headers=headers, json={"ip": "203.0.113.82", "reason": "manual"})
+        assert block.status_code == 200
+
+        operator_only = client.get(
+            "/audit/logs",
+            headers=headers,
+            params={"source": "operator", "search": "rotated"},
+        )
+        assert operator_only.status_code == 200
+        operator_logs = operator_only.json()
+        assert operator_logs
+        assert all(item["source"] == "operator" for item in operator_logs)
+        assert any("Rotated API key for auditfilters-site" in str(item.get("cmd") or "") for item in operator_logs)
+
+        response_only = client.get(
+            "/audit/logs",
+            headers=headers,
+            params={"source": "response", "severity": "high"},
+        )
+        assert response_only.status_code == 200
+        response_logs = response_only.json()
+        assert response_logs
+        assert all(item["source"] == "response" for item in response_logs)
+        assert any(str(item.get("cmd") or "").startswith("block-ip (manual)") for item in response_logs)
+
+        csv_export = client.get(
+            "/audit/logs",
+            headers=headers,
+            params={"source": "operator", "format": "csv"},
+        )
+        assert csv_export.status_code == 200
+        assert "text/csv" in str(csv_export.headers.get("content-type") or "")
+        assert "cybersentinel-audit-logs.csv" in str(csv_export.headers.get("content-disposition") or "")
+        assert "timestamp_utc,source,severity,risk_score,ip,action_command" in csv_export.text
+        assert "Rotated API key for auditfilters-site" in csv_export.text
+
+
 def test_google_auth_requires_real_verification(monkeypatch, tmp_path):
     main = load_main(monkeypatch, tmp_path)
     with TestClient(main.app) as client:
@@ -1388,6 +1804,207 @@ def test_contact_lead_flow(monkeypatch, tmp_path):
         assert lead.json()["lead_status"] == "new"
         assert lead.json()["review_state"] == "new"
         assert lead.json()["next_step"] == "team_review"
+    with sqlite3.connect(tmp_path / "runtime.db") as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("select * from leads where id = ?", (lead.json()["id"],)).fetchone()
+    assert row is not None
+    assert row["notification_sent_at"] is None
+    assert row["notification_error"] == ""
+    assert json.loads(row["notification_channel_status"]) == {
+        "team_webhook": "disabled",
+        "team_email": "disabled",
+        "lead_autoreply": "disabled",
+        "system": "no_channels",
+    }
+
+
+def test_contact_lead_flow_ignores_legacy_honeypot_autofill(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        lead = client.post(
+            "/contact/submit",
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "Analyst Contact",
+                    "email": "ops@example.com",
+                    "organization": "Cyber Ops",
+                    "use_case": "Honeypot visibility",
+                    "message": "Need a guided walkthrough for telemetry triage.",
+                    "website": "ops@example.com",
+                    "source": "/contact",
+                },
+            ),
+        )
+    assert lead.status_code == 200
+    assert lead.json()["status"] == "accepted"
+
+
+def test_contact_lead_flow_blocks_referral_code_honeypot(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        lead = client.post(
+            "/contact/submit",
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "Bot Contact",
+                    "email": "bot@example.com",
+                    "organization": "Cyber Ops",
+                    "use_case": "Honeypot visibility",
+                    "message": "Need a guided walkthrough for telemetry triage.",
+                    "referral_code": "filled-by-bot",
+                    "source": "/contact",
+                },
+            ),
+        )
+    assert lead.status_code == 400
+    assert lead.json()["detail"] == "Spam trap triggered."
+
+
+def test_lead_follow_up_webhook_records_delivery(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEAD_NOTIFICATION_WEBHOOK_URL", "https://hooks.cybersentil.test/lead")
+    main = load_main(monkeypatch, tmp_path)
+
+    import core.lead_notifications as lead_notifications
+
+    captured: dict[str, object] = {}
+
+    class FakeResponse:
+        status = 202
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        captured["timeout"] = timeout
+        captured["payload"] = json.loads(request.data.decode("utf-8"))
+        return FakeResponse()
+
+    monkeypatch.setattr(lead_notifications.urllib_request, "urlopen", fake_urlopen)
+
+    with TestClient(main.app) as client:
+        lead = client.post(
+            "/demo/submit",
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "Webhook Lead",
+                    "email": "webhook@example.com",
+                    "organization": "Webhook Org",
+                    "use_case": "Demo booking",
+                    "message": "Need a live demo and fast follow-up for the security review.",
+                    "website": "",
+                    "source": "/demo",
+                },
+            ),
+        )
+        assert lead.status_code == 200
+
+    assert captured["url"] == "https://hooks.cybersentil.test/lead"
+    assert captured["timeout"] == 5
+    assert captured["payload"]["event"] == "lead.created"
+    assert captured["payload"]["lead"]["email"] == "webhook@example.com"
+
+    with sqlite3.connect(tmp_path / "runtime.db") as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("select * from leads where id = ?", (lead.json()["id"],)).fetchone()
+    assert row is not None
+    assert row["notification_sent_at"]
+    assert row["notification_error"] == ""
+    assert json.loads(row["notification_channel_status"]) == {
+        "team_webhook": "sent",
+        "team_email": "disabled",
+        "lead_autoreply": "disabled",
+        "system": "sent",
+    }
+
+
+def test_lead_follow_up_sends_team_email_and_autoreply(monkeypatch, tmp_path):
+    monkeypatch.setenv("SMTP_HOST", "smtp.example.test")
+    monkeypatch.setenv("SMTP_PORT", "587")
+    monkeypatch.setenv("SMTP_FROM_EMAIL", "hello@cybersentil.online")
+    monkeypatch.setenv("SMTP_FROM_NAME", "CyberSentil")
+    monkeypatch.setenv("SMTP_USE_TLS", "true")
+    monkeypatch.setenv("SMTP_USE_SSL", "false")
+    monkeypatch.setenv("LEAD_NOTIFICATION_EMAIL_TO", "contact@cybersentil.online,founder@cybersentil.online")
+    monkeypatch.setenv("LEAD_AUTOREPLY_ENABLED", "true")
+    monkeypatch.setenv("LEAD_AUTOREPLY_REPLY_TO", "contact@cybersentil.online")
+    main = load_main(monkeypatch, tmp_path)
+
+    import core.lead_notifications as lead_notifications
+
+    sent_messages: list[dict[str, str]] = []
+
+    class FakeSMTP:
+        def __init__(self, host, port, timeout):
+            assert host == "smtp.example.test"
+            assert port == 587
+            assert timeout == 5
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def starttls(self):
+            return None
+
+        def login(self, username, password):
+            raise AssertionError("login should not be called without SMTP credentials")
+
+        def send_message(self, message):
+            sent_messages.append(
+                {
+                    "to": str(message["To"]),
+                    "subject": str(message["Subject"]),
+                    "reply_to": str(message.get("Reply-To") or ""),
+                    "body": message.get_body(preferencelist=("plain",)).get_content(),
+                }
+            )
+
+    monkeypatch.setattr(lead_notifications.smtplib, "SMTP", FakeSMTP)
+
+    with TestClient(main.app) as client:
+        lead = client.post(
+            "/demo/submit",
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "SMTP Lead",
+                    "email": "smtp-lead@example.com",
+                    "organization": "SMTP Org",
+                    "use_case": "Pilot planning",
+                    "message": "Need a guided pilot discussion and founder follow-up this week.",
+                    "website": "",
+                    "source": "/demo",
+                },
+            ),
+        )
+        assert lead.status_code == 200
+
+    assert len(sent_messages) == 2
+    assert any("contact@cybersentil.online, founder@cybersentil.online" == item["to"] for item in sent_messages)
+    assert any(item["to"] == "smtp-lead@example.com" for item in sent_messages)
+    assert any("received your CyberSentil demo request" in item["subject"] for item in sent_messages)
+
+    with sqlite3.connect(tmp_path / "runtime.db") as conn:
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("select * from leads where id = ?", (lead.json()["id"],)).fetchone()
+    assert row is not None
+    assert row["notification_sent_at"]
+    assert row["notification_error"] == ""
+    assert json.loads(row["notification_channel_status"]) == {
+        "team_webhook": "disabled",
+        "team_email": "sent",
+        "lead_autoreply": "sent",
+        "system": "sent",
+    }
 
 
 def test_lead_challenge_requires_valid_signed_token(monkeypatch, tmp_path):
@@ -1501,7 +2118,7 @@ def test_admin_leads_are_tenant_scoped_by_public_host(monkeypatch, tmp_path):
 
         owners_a = client.get("/admin/leads/owners", headers=tenant_a["headers"])
         assert owners_a.status_code == 200
-        assert owners_a.json()["owners"] == [{"username": "leadownera", "role": "admin"}]
+        assert owners_a.json()["owners"] == [{"username": "leadownera", "role": "owner"}]
 
         lead_b_id = int(lead_b.json()["id"])
         detail_cross = client.get(f"/admin/leads/{lead_b_id}", headers=tenant_a["headers"])
@@ -1560,6 +2177,46 @@ def test_lead_scope_falls_back_to_source_url(monkeypatch, tmp_path):
         assert leads.json()["items"][0]["site_id"] == tenant["site"]["id"]
 
 
+def test_lead_status_transitions_are_enforced(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="leadflow", email="leadflow@example.com", domain="leadflow.example.com")
+        lead = client.post(
+            "/demo/submit",
+            headers={"Host": "leadflow.example.com"},
+            json=with_lead_challenge(
+                client,
+                {
+                    "name": "Lead Flow",
+                    "email": "buyer@example.com",
+                    "organization": "Lead Flow Inc",
+                    "use_case": "Pilot request",
+                    "message": "Need a scoped pilot.",
+                    "website": "",
+                    "source": "https://leadflow.example.com/demo",
+                },
+            ),
+        )
+        assert lead.status_code == 200
+        lead_id = int(lead.json()["id"])
+
+        invalid = client.post(
+            f"/admin/leads/{lead_id}/status",
+            headers=tenant["headers"],
+            json={"status": "closed_won"},
+        )
+        assert invalid.status_code == 400
+        assert invalid.json()["detail"] == "Invalid transition from new to closed_won."
+
+        valid = client.post(
+            f"/admin/leads/{lead_id}/status",
+            headers=tenant["headers"],
+            json={"status": "contacted"},
+        )
+        assert valid.status_code == 200
+        assert valid.json()["lead"]["status"] == "contacted"
+
+
 def test_public_snapshot_and_health_are_demo_safe(monkeypatch, tmp_path):
     main = load_main(monkeypatch, tmp_path)
     with TestClient(main.app) as client:
@@ -1577,6 +2234,7 @@ def test_public_snapshot_and_health_are_demo_safe(monkeypatch, tmp_path):
         )
         assert ingest.status_code == 200
 
+        client.cookies.clear()
         public_snapshot = client.get("/public/telemetry/snapshot")
         assert public_snapshot.status_code == 200
         snapshot_payload = public_snapshot.json()
@@ -1646,6 +2304,9 @@ def test_auth_rate_limit(monkeypatch, tmp_path):
         assert blocked.status_code == 429
         assert blocked.headers["retry-after"] == "60"
 
+        other_identifier = client.post("/auth/login", json={"username": "different-user", "password": "wrong-pass"})
+        assert other_identifier.status_code == 401
+
 
 def test_lead_rate_limit(monkeypatch, tmp_path):
     monkeypatch.setenv("LEAD_RATE_LIMIT_MAX_ATTEMPTS", "1")
@@ -1666,6 +2327,44 @@ def test_lead_rate_limit(monkeypatch, tmp_path):
         blocked = client.post("/contact/submit", json=with_lead_challenge(client, payload))
         assert blocked.status_code == 429
         assert blocked.headers["retry-after"] == "300"
+
+
+def test_terminal_command_rate_limit(monkeypatch, tmp_path):
+    monkeypatch.setenv("TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS", "1")
+    monkeypatch.setenv("TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS", "60")
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="terminalrate", email="terminalrate@example.com", domain="terminalrate.example.com")
+        headers = tenant["headers"]
+
+        first = client.post("/terminal/cmd", headers=headers, json={"cmd": "pwd"})
+        assert first.status_code == 200
+
+        blocked = client.post("/terminal/cmd", headers=headers, json={"cmd": "whoami", "session_id": first.json()["session_id"]})
+        assert blocked.status_code == 429
+        assert blocked.headers["retry-after"] == "60"
+
+        advisor = client.post("/ai/expert-advisor", headers=headers, json={"query": "status", "persona": "GENERAL_SENTINEL"})
+        assert advisor.status_code == 200
+
+
+def test_url_scan_rate_limit_is_user_scoped(monkeypatch, tmp_path):
+    monkeypatch.setenv("URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS", "1")
+    monkeypatch.setenv("URL_SCAN_RATE_LIMIT_WINDOW_SECONDS", "60")
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant_a = create_tenant(client, username="scanratea", email="scanratea@example.com", domain="scan-a.example.com")
+        tenant_b = create_tenant(client, username="scanrateb", email="scanrateb@example.com", domain="scan-b.example.com")
+
+        first = client.post("/intel/url-scan", headers=tenant_a["headers"], json={"url": "https://example.org/admin"})
+        assert first.status_code == 200
+
+        blocked = client.post("/intel/url-scan", headers=tenant_a["headers"], json={"url": "https://example.org/login"})
+        assert blocked.status_code == 429
+        assert blocked.headers["retry-after"] == "60"
+
+        other_user = client.post("/intel/url-scan", headers=tenant_b["headers"], json={"url": "https://example.org/login"})
+        assert other_user.status_code == 200
 
 
 def test_deception_status_and_canary_flow(monkeypatch, tmp_path):
@@ -1874,9 +2573,44 @@ def test_websocket_incidents_require_valid_token(monkeypatch, tmp_path):
         assert login.status_code == 200
         token = login.json()["token"]
 
-        with client.websocket_connect(f"/ws/incidents?token={token}") as websocket:
+        with client.websocket_connect("/ws/incidents") as websocket:
+            websocket.send_json({"type": "auth", "token": token})
             payload = websocket.receive_json()
             assert "ts" in payload
+
+
+def test_websocket_incidents_accept_auth_cookie(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "wscookie", "email": "wscookie@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "wscookie", "password": "StrongPass123"})
+        assert login.status_code == 200
+
+        with client.websocket_connect("/ws/incidents", headers={"origin": "http://testserver"}) as websocket:
+            payload = websocket.receive_json()
+            assert "ts" in payload
+
+
+def test_websocket_cookie_auth_requires_trusted_origin(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        signup = client.post(
+            "/auth/signup",
+            json={"username": "wsblocked", "email": "wsblocked@example.com", "password": "StrongPass123"},
+        )
+        assert signup.status_code == 200
+
+        login = client.post("/auth/login", json={"username": "wsblocked", "password": "StrongPass123"})
+        assert login.status_code == 200
+
+        with pytest.raises(Exception):
+            with client.websocket_connect("/ws/incidents") as websocket:
+                websocket.receive_json()
 
 
 def test_postgres_url_translation_support(monkeypatch, tmp_path):
@@ -1940,3 +2674,32 @@ def test_normalize_event_handles_non_string_captured_data(monkeypatch, tmp_path)
     list_json = database.normalize_event({"captured_data": "[1,2,3]", "geo": "India"})
     assert list_json["captured_data"] == {"items": [1, 2, 3]}
     assert list_json["geo"] == "India"
+
+
+def test_store_event_sanitizes_oversized_captured_data(monkeypatch, tmp_path):
+    main = load_main(monkeypatch, tmp_path)
+    database = sys.modules["core.database"]
+
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="payloadowner", email="payloadowner@example.com", domain="payload.example.com")
+        ingest = client.post(
+            "/ingest",
+            headers={"X-API-Key": tenant["site"]["api_key"]},
+            json={
+                "event_type": "http_probe",
+                "url_path": "/oversized",
+                "http_method": "POST",
+                "captured_data": {
+                    "huge": "A" * 5000,
+                    "nested": {"items": list(range(50))},
+                },
+            },
+        )
+        assert ingest.status_code == 200
+
+    with database.db() as conn:
+        row = conn.execute("select * from events order by id desc limit 1").fetchone()
+
+    captured = json.loads(row["captured_data"])
+    assert len(captured["huge"]) <= 600
+    assert captured["nested"]["items"]["truncated_items"] == 26

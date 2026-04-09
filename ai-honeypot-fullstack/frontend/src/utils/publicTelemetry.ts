@@ -1,7 +1,69 @@
-// @ts-nocheck
 import { API_BASE } from "../apiConfig";
 
-const DEFAULT_RESPONSE = {
+export type TelemetrySummary = {
+  total_events: number;
+  critical_events: number;
+  medium_events: number;
+  low_events: number;
+  blocked_ips: number;
+  unique_ips: number;
+  unique_sessions: number;
+  live_sessions: number;
+  active_decoys: number;
+  threat_score: number;
+  top_target: string;
+  risk_level: string;
+  avg_score: number;
+};
+
+export type TelemetryInsights = {
+  dominant_behavior: string;
+  recommended_action: string;
+};
+
+export type TelemetryTarget = {
+  path: string;
+  hits: number;
+  avg_score: number;
+};
+
+export type TelemetrySourceIp = {
+  ip: string;
+  events: number;
+};
+
+export type TelemetryTimeline = {
+  hour: string;
+  events: number;
+  avg_score: number;
+};
+
+export type TelemetryFeedItem = {
+  id: string | number | null;
+  ts: string | number | null;
+  path: string;
+  severity: string;
+  score: number;
+  event_type: string | null;
+  ip: string | null;
+};
+
+export type PublicTelemetrySnapshot = {
+  scope: string;
+  summary: TelemetrySummary;
+  insights: TelemetryInsights;
+  top_targets: TelemetryTarget[];
+  top_source_ips: TelemetrySourceIp[];
+  timeline: TelemetryTimeline[];
+  feed: TelemetryFeedItem[];
+  ai_summary: string;
+  generated_at: string | null;
+  window_hours: number;
+  include_training: boolean;
+};
+
+const DEFAULT_RESPONSE: PublicTelemetrySnapshot = {
+  scope: "unknown",
   summary: {
     total_events: 0,
     critical_events: 0,
@@ -40,18 +102,18 @@ const DEFAULT_REQUEST_CONFIG = {
   },
 };
 
-const toNumber = (value, fallback = 0) => {
+const toNumber = (value: unknown, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
-const toLabel = (value, fallback = "unknown") => {
+const toLabel = (value: unknown, fallback = "unknown") => {
   const normalized = String(value || "").trim();
   return normalized || fallback;
 };
 
-export function normalizePublicTelemetry(payload) {
-  const source = payload && typeof payload === "object" ? payload : {};
+export function normalizePublicTelemetry(payload: unknown): PublicTelemetrySnapshot {
+  const source = payload && typeof payload === "object" ? (payload as Record<string, any>) : {};
   const summary = source.summary && typeof source.summary === "object" ? source.summary : {};
   const insights = source.insights && typeof source.insights === "object" ? source.insights : {};
   const topTargetsRaw = Array.isArray(source.top_targets) ? source.top_targets : [];
@@ -61,6 +123,7 @@ export function normalizePublicTelemetry(payload) {
 
   return {
     ...DEFAULT_RESPONSE,
+    scope: toLabel(source.scope, "unknown"),
     generated_at: source.generated_at || null,
     window_hours: toNumber(source.window_hours, 24),
     include_training: Boolean(source.include_training),
@@ -113,7 +176,9 @@ export function normalizePublicTelemetry(payload) {
   };
 }
 
-export async function fetchPublicTelemetrySnapshot(config = {}) {
+export async function fetchPublicTelemetrySnapshot(
+  config: { params?: Record<string, string | number | boolean | null | undefined> } = {}
+): Promise<PublicTelemetrySnapshot> {
   const mergedParams = {
     ...DEFAULT_REQUEST_CONFIG.params,
     ...(config?.params || {}),

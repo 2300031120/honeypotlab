@@ -1,0 +1,107 @@
+# Fail2Ban Configuration for CyberSentil
+# Place in: /etc/fail2ban/jail.local (host) or mount as volume in container
+
+[DEFAULT]
+# Ban settings
+bantime = 3600
+findtime = 600
+maxretry = 5
+backend = auto
+usedns = no
+
+# Log level
+loglevel = INFO
+
+# Destination email for alerts
+destemail = admin@cybersentil.online
+sender = fail2ban@cybersentil.online
+
+# Action (ban only, no email for now)
+action = %(action_)s
+
+# Ignore localhost and trusted IPs
+ignoreip = 127.0.0.1/8 10.100.0.0/24 ::1
+
+# ==================================================================
+# JAILS - Active monitoring
+# ==================================================================
+
+[nginx-http-auth]
+enabled = true
+port = http,https
+filter = nginx-http-auth
+logpath = /var/log/nginx/error.log
+maxretry = 5
+bantime = 3600
+findtime = 600
+
+[nginx-botsearch]
+enabled = true
+port = http,https
+filter = nginx-botsearch
+logpath = /var/log/nginx/access.log
+maxretry = 10
+bantime = 7200
+findtime = 300
+
+[nginx-limit-req]
+enabled = true
+port = http,https
+filter = nginx-limit-req
+logpath = /var/log/nginx/error.log
+maxretry = 10
+bantime = 3600
+findtime = 300
+
+# Custom jail for CyberSentil backend API failures
+[cybersentil-auth]
+enabled = true
+port = http,https
+filter = cybersentil-auth
+logpath = /var/log/cybersentil/auth.log
+          /var/log/nginx/auth.log
+maxretry = 5
+bantime = 3600
+findtime = 300
+
+# Custom jail for SQL injection attempts
+[cybersentil-sqli]
+enabled = true
+port = http,https
+filter = cybersentil-sqli
+logpath = /var/log/cybersentil/security.log
+          /var/log/nginx/access.log
+maxretry = 1
+bantime = 86400
+findtime = 60
+
+# Custom jail for command injection attempts
+[cybersentil-cmdi]
+enabled = true
+port = http,https
+filter = cybersentil-cmdi
+logpath = /var/log/cybersentil/security.log
+maxretry = 1
+bantime = 86400
+findtime = 60
+
+# SSH Honeypot monitoring
+[sshd-honeypot]
+enabled = true
+port = 2222
+filter = sshd
+logpath = /var/log/honeypot/ssh.log
+maxretry = 3
+bantime = 86400
+findtime = 300
+
+# ==================================================================
+# AGGRESSIVE MODE - For production
+# ==================================================================
+
+# Uncomment below for aggressive protection
+#[DEFAULT]
+#bantime = 86400
+#findtime = 300
+#maxretry = 3
+#backen = systemd

@@ -1,32 +1,79 @@
-// @ts-nocheck
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import axios from 'axios';
 import { API_BASE } from './apiConfig';
 import { motion, AnimatePresence } from './utils/motionLite';
 import {
     Globe, Search, Shield, AlertTriangle, CheckCircle, XCircle, Wifi,
     ExternalLink, Zap, Activity, Lock, Eye, Clock, BarChart3,
-    AlertCircle, TrendingUp, Database, Copy, RefreshCw, Link2
+    AlertCircle, Database, Copy, RefreshCw, Link2
 } from 'lucide-react';
 
 const SCAN_HISTORY_KEY = 'urlScanHistory';
 const DEFAULT_QUICK_ACCESS_URLS = ['https://example.com', 'https://openai.com', 'https://github.com'];
 
+type ScanIoc = {
+    type?: string;
+    value?: string;
+    note?: string;
+};
+
+type ScanScores = {
+    phishing_probability?: number;
+    malware_probability?: number;
+    legitimacy_score?: number;
+};
+
+type ScanResult = {
+    url: string;
+    risk_score: number;
+    domain?: string;
+    ip?: string;
+    country?: string;
+    registrar?: string;
+    domain_age?: string;
+    http_status?: number | string;
+    redirect_count?: number;
+    content_type?: string;
+    is_phishing?: boolean;
+    has_malware?: boolean;
+    is_safe?: boolean;
+    has_ssl?: boolean;
+    ai_scores?: ScanScores;
+    ai_analysis?: string;
+    security_headers?: Record<string, string | undefined>;
+    iocs?: ScanIoc[];
+};
+
+type ScanHistoryEntry = {
+    url: string;
+    result: ScanResult;
+    ts: string;
+};
+
+type UrlScanErrorResponse = {
+    detail?: string;
+};
+
+type UrlScannerTab = 'overview' | 'ai_analysis' | 'headers' | 'iocs';
+
 const UrlScanner = () => {
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
-    const [result, setResult] = useState(null);
+    const [result, setResult] = useState<ScanResult | null>(null);
     const [error, setError] = useState('');
-    const [history, setHistory] = useState(() => {
+    const [history, setHistory] = useState<ScanHistoryEntry[]>(() => {
         try {
-            return JSON.parse(localStorage.getItem(SCAN_HISTORY_KEY) || '[]');
-        } catch { return []; }
+            const parsed = JSON.parse(localStorage.getItem(SCAN_HISTORY_KEY) || '[]');
+            return Array.isArray(parsed) ? parsed as ScanHistoryEntry[] : [];
+        } catch {
+            return [];
+        }
     });
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState<UrlScannerTab>('overview');
     const [copied, setCopied] = useState(false);
 
-    const saveToHistory = (url, result) => {
-        const entry = { url, result, ts: new Date().toISOString() };
+    const saveToHistory = (urlToStore: string, scanResult: ScanResult) => {
+        const entry: ScanHistoryEntry = { url: urlToStore, result: scanResult, ts: new Date().toISOString() };
         const updated = [entry, ...history].slice(0, 20);
         setHistory(updated);
         localStorage.setItem(SCAN_HISTORY_KEY, JSON.stringify(updated));
@@ -39,12 +86,17 @@ const UrlScanner = () => {
         setError('');
         setResult(null);
         try {
-            const res = await axios.post(`${API_BASE}/intel/url-scan`, { url: trimmed });
+            const res = await axios.post<ScanResult>(`${API_BASE}/intel/url-scan`, { url: trimmed });
             setResult(res.data);
             saveToHistory(trimmed, res.data);
             setActiveTab('overview');
         } catch (e) {
-            setError(e?.response?.data?.detail || 'Scan failed. Backend may be unreachable.');
+            const message = axios.isAxiosError<UrlScanErrorResponse>(e)
+                ? e.response?.data?.detail || e.message
+                : e instanceof Error
+                    ? e.message
+                    : 'Scan failed. Backend may be unreachable.';
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -52,29 +104,29 @@ const UrlScanner = () => {
 
     const copyReport = () => {
         if (result) {
-            navigator.clipboard.writeText(JSON.stringify(result, null, 2));
+            void navigator.clipboard.writeText(JSON.stringify(result, null, 2));
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
     };
 
-    const getRiskColor = (score) => {
+    const getRiskColor = (score: number) => {
         if (score >= 75) return '#f85149';
         if (score >= 45) return '#d29922';
         if (score >= 20) return '#e3b341';
         return '#3fb950';
     };
 
-    const getRiskLabel = (score) => {
+    const getRiskLabel = (score: number) => {
         if (score >= 75) return 'CRITICAL';
         if (score >= 45) return 'HIGH';
         if (score >= 20) return 'MEDIUM';
         return 'SAFE';
     };
 
-    const tabs = ['overview', 'ai_analysis', 'headers', 'iocs'];
+    const tabs: UrlScannerTab[] = ['overview', 'ai_analysis', 'headers', 'iocs'];
     const quickAccessUrls = useMemo(() => {
-        const uniqueRecent = [];
+        const uniqueRecent: string[] = [];
         for (const item of history) {
             const candidate = String(item?.url || '').trim();
             if (!candidate || uniqueRecent.includes(candidate)) continue;

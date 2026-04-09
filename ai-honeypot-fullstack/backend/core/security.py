@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import json
 import secrets
 from datetime import timedelta
 from typing import Any
@@ -114,12 +115,41 @@ def verify_api_key(api_key: str, stored_value: str) -> bool:
     return hmac.compare_digest(str(api_key), str(stored_value))
 
 
+def sha256_hex(value: str | bytes) -> str:
+    if isinstance(value, str):
+        value = value.encode("utf-8")
+    return hashlib.sha256(value).hexdigest()
+
+
+def _canonicalize_integrity_payload(payload: dict[str, Any]) -> bytes:
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+
+
+def sign_integrity_payload(payload: dict[str, Any]) -> str:
+    message = _canonicalize_integrity_payload(payload)
+    digest = hmac.new(SECRET_KEY.encode("utf-8"), message, hashlib.sha256).hexdigest()
+    return f"hmac-sha256:{digest}"
+
+
+def verify_integrity_signature(payload: dict[str, Any], signature: str) -> bool:
+    if not signature:
+        return False
+    expected = sign_integrity_payload(payload)
+    return hmac.compare_digest(expected, signature)
+
+
+def integrity_fingerprint(signature: str, payload_hash: str, *, prefix: str = "IR") -> str:
+    raw_signature = signature.partition(":")[2] or signature
+    return f"{prefix}-{payload_hash[:10].upper()}-{raw_signature[:12].upper()}"
+
+
 def create_token(user: dict[str, Any]) -> str:
     payload = {
         "sub": str(user["id"]),
         "username": user["username"],
         "role": user["role"],
         "email": user.get("email"),
+        "token_version": int(user.get("token_version") or 0),
         "exp": utc_now() + timedelta(hours=JWT_EXP_HOURS),
         "iat": utc_now(),
     }

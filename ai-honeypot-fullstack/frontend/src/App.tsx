@@ -1,10 +1,13 @@
+import axios from "axios";
 import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
-import { AUTH_CHANGED_EVENT, clearAuthSession, isAuthenticated } from "./utils/auth";
+import { API_BASE } from "./apiConfig";
+import { AUTH_CHANGED_EVENT, clearAuthSession, getUserProfile, setAuthSession } from "./utils/auth";
 import Home from "./Home";
 
-const Login = lazy(() => import("./Login"));
+// SECURITY FIX: Using secured authentication component
+const Login = lazy(() => import("./auth_fixed"));
 const Signup = lazy(() => import("./Signup"));
 const ContactDemo = lazy(() => import("./ContactDemo"));
 const Platform = lazy(() => import("./Platform"));
@@ -13,6 +16,7 @@ const Deployment = lazy(() => import("./Deployment"));
 const Pricing = lazy(() => import("./Pricing"));
 const CaseStudy = lazy(() => import("./CaseStudy"));
 const Screenshots = lazy(() => import("./Screenshots"));
+const Resources = lazy(() => import("./Resources"));
 const PublicArchitecture = lazy(() => import("./PublicArchitecture"));
 const UseCases = lazy(() => import("./UseCases"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy"));
@@ -25,15 +29,20 @@ const NotFound = lazy(() => import("./NotFound"));
 
 type RequireAuthProps = {
   children: ReactNode;
+  authChecked: boolean;
   authenticated: boolean;
 };
 
 type AppShellProps = {
+  authChecked: boolean;
   authenticated: boolean;
   isSsr?: boolean;
 };
 
-function RequireAuth({ children, authenticated }: RequireAuthProps) {
+function RequireAuth({ children, authChecked, authenticated }: RequireAuthProps) {
+  if (!authChecked) {
+    return <RouteFallback />;
+  }
   return authenticated ? children : <Navigate to="/auth/login" replace />;
 }
 
@@ -112,17 +121,29 @@ function RouteLifecycleEffects() {
   return null;
 }
 
-export function AppShell({ authenticated, isSsr = false }: AppShellProps) {
+export function AppShell({ authChecked, authenticated, isSsr = false }: AppShellProps) {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
       <Suspense fallback={<RouteFallback />}>
         <RouteLifecycleEffects />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/auth/login" element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-          <Route path="/auth/signup" element={authenticated ? <Navigate to="/dashboard" replace /> : <Signup />} />
-          <Route path="/login" element={<Navigate to={authenticated ? "/dashboard" : "/auth/login"} replace />} />
-          <Route path="/signup" element={<Navigate to={authenticated ? "/dashboard" : "/auth/signup"} replace />} />
+          <Route
+            path="/auth/login"
+            element={!authChecked ? <RouteFallback /> : authenticated ? <Navigate to="/dashboard" replace /> : <Login />}
+          />
+          <Route
+            path="/auth/signup"
+            element={!authChecked ? <RouteFallback /> : authenticated ? <Navigate to="/dashboard" replace /> : <Signup />}
+          />
+          <Route
+            path="/login"
+            element={!authChecked ? <RouteFallback /> : <Navigate to={authenticated ? "/dashboard" : "/auth/login"} replace />}
+          />
+          <Route
+            path="/signup"
+            element={!authChecked ? <RouteFallback /> : <Navigate to={authenticated ? "/dashboard" : "/auth/signup"} replace />}
+          />
           <Route path="/contact" element={<ContactDemo mode="contact" />} />
           <Route path="/demo" element={<ContactDemo mode="demo" />} />
           <Route path="/platform" element={<Platform />} />
@@ -131,6 +152,7 @@ export function AppShell({ authenticated, isSsr = false }: AppShellProps) {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/case-study" element={<CaseStudy />} />
           <Route path="/screenshots" element={<Screenshots />} />
+          <Route path="/resources" element={<Resources />} />
           <Route path="/architecture" element={<PublicArchitecture />} />
           <Route path="/use-cases" element={<UseCases />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -140,7 +162,7 @@ export function AppShell({ authenticated, isSsr = false }: AppShellProps) {
           {/* Protected Routes inside MainLayout */}
           <Route
             element={
-              <RequireAuth authenticated={authenticated}>
+              <RequireAuth authChecked={authChecked} authenticated={authenticated}>
                 <MainLayout />
               </RequireAuth>
             }
@@ -174,6 +196,7 @@ export function AppShell({ authenticated, isSsr = false }: AppShellProps) {
 
 function App() {
   const [authenticated, setAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -187,27 +210,56 @@ function App() {
     if (typeof window === "undefined") {
       return undefined;
     }
-    const syncAuth = () => {
-      const ok = isAuthenticated();
-      if (!ok && localStorage.getItem("token")) {
-        clearAuthSession();
+    let active = true;
+    const syncLocalAuth = () => {
+      if (!active) {
+        return;
       }
-      setAuthenticated(ok);
+      setAuthenticated(Boolean(getUserProfile()));
     };
-    syncAuth();
-    const interval = setInterval(syncAuth, 15000);
-    window.addEventListener(AUTH_CHANGED_EVENT, syncAuth);
-    window.addEventListener("storage", syncAuth);
+    const syncAuth = async () => {
+      try {
+        const response = await axios.get(`${API_BASE}/auth/me`, {
+          withCredentials: true,
+          headers: { "X-Skip-Auth-Redirect": "1" },
+        });
+        const nextProfile = {
+          username: response.data?.username || "operator",
+          role: response.data?.role || "analyst",
+          email: response.data?.email || null,
+        };
+        if (!active) {
+          return;
+        }
+        setAuthSession(nextProfile);
+        setAuthenticated(true);
+      } catch {
+        if (!active) {
+          return;
+        }
+        clearAuthSession();
+        setAuthenticated(false);
+      } finally {
+        if (active) {
+          setAuthChecked(true);
+        }
+      }
+    };
+
+    window.addEventListener(AUTH_CHANGED_EVENT, syncLocalAuth);
+    window.addEventListener("storage", syncLocalAuth);
+    void syncAuth();
+
     return () => {
-      clearInterval(interval);
-      window.removeEventListener(AUTH_CHANGED_EVENT, syncAuth);
-      window.removeEventListener("storage", syncAuth);
+      active = false;
+      window.removeEventListener(AUTH_CHANGED_EVENT, syncLocalAuth);
+      window.removeEventListener("storage", syncLocalAuth);
     };
   }, []);
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <AppShell authenticated={authenticated} />
+      <AppShell authChecked={authChecked} authenticated={authenticated} />
     </Router>
   );
 }

@@ -31,6 +31,7 @@ if (-not $SkipBackend) {
 
 if (-not $SkipFrontend) {
     Invoke-Step -Name "Frontend lint" -WorkingDir $frontendDir -Action { npm run lint }
+    Invoke-Step -Name "Frontend type-check" -WorkingDir $frontendDir -Action { npm run type-check }
     Invoke-Step -Name "Frontend tests" -WorkingDir $frontendDir -Action { npm run test:ci }
     if (-not $SkipBuild) {
         Invoke-Step -Name "Frontend build" -WorkingDir $frontendDir -Action { npm run build }

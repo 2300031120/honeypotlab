@@ -1,25 +1,53 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    Play, RotateCcw, ShieldAlert, Terminal, Eye,
-    AlertCircle, CheckCircle2, Zap, Target,
-    ChevronRight, Activity, Cpu, Shield,
-    Lock, Search, Fingerprint, Database,
-    Info, Sparkles, Network, Terminal as TerminalIcon,
+    Play, Terminal, Zap, Target,
+    Activity, Lock, Database,
     XCircle
 } from 'lucide-react';
 import { motion } from './utils/motionLite';
 import axios from 'axios';
 import { API_BASE } from './apiConfig';
 
+type Scenario = {
+    id: number;
+    title: string;
+    desc: string;
+    steps: string[];
+    severity: 'critical' | 'high';
+    icon: React.ElementType;
+    color: string;
+};
+
+type SimulationLog = {
+    msg: string;
+    type: 'info' | 'exec' | 'error' | 'success';
+    ts: string;
+};
+
+type TopologyNode = {
+    id: string;
+    label: string;
+    type: 'attacker' | 'service' | 'core';
+    x: number;
+    y: number;
+    radius: number;
+    color: string;
+};
+
+type TopologyLink = {
+    id: string;
+    source: string;
+    target: string;
+};
+
 const Simulator = () => {
-    const [activeScenario, setActiveScenario] = useState(null);
+    const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
     const [step, setStep] = useState(0);
     const [isRunning, setIsRunning] = useState(false);
-    const [logs, setLogs] = useState([]);
-    const logEndRef = useRef();
+    const [logs, setLogs] = useState<SimulationLog[]>([]);
+    const logEndRef = useRef<HTMLDivElement | null>(null);
 
-    const scenarios = [
+    const scenarios: Scenario[] = [
         {
             id: 1,
             title: 'Neural Web Shell Injection',
@@ -49,7 +77,7 @@ const Simulator = () => {
         }
     ];
 
-    const topologyNodes = [
+    const topologyNodes: TopologyNode[] = [
         { id: 'Attacker_Node', label: 'ATTACKER', type: 'attacker', x: 120, y: 226, radius: 16, color: '#f85149' },
         { id: 'Web_Front', label: 'WEB_FRONT', type: 'service', x: 320, y: 132, radius: 12, color: '#58a6ff' },
         { id: 'Auth_Gateway', label: 'AUTH_GATEWAY', type: 'service', x: 520, y: 260, radius: 12, color: '#58a6ff' },
@@ -57,7 +85,7 @@ const Simulator = () => {
         { id: 'DB_Cluster', label: 'DB_CLUSTER', type: 'service', x: 900, y: 284, radius: 12, color: '#58a6ff' },
     ];
 
-    const topologyLinks = [
+    const topologyLinks: TopologyLink[] = [
         { id: 'l1', source: 'Attacker_Node', target: 'Web_Front' },
         { id: 'l2', source: 'Web_Front', target: 'Auth_Gateway' },
         { id: 'l3', source: 'Auth_Gateway', target: 'Honeypot_Core' },
@@ -67,7 +95,7 @@ const Simulator = () => {
     const activeLinkCount = isRunning ? Math.min(step + 1, topologyLinks.length) : activeScenario ? 1 : 0;
     const activeNodeCount = isRunning ? Math.min(step + 2, topologyNodes.length) : activeScenario ? 2 : 0;
     const activeNodeIds = new Set(topologyNodes.slice(0, activeNodeCount).map((node) => node.id));
-    const topologyNodeLookup = Object.fromEntries(topologyNodes.map((node) => [node.id, node]));
+    const topologyNodeLookup = Object.fromEntries(topologyNodes.map((node) => [node.id, node])) as Record<string, TopologyNode>;
 
     const startSimulation = () => {
         if (!activeScenario) return;
@@ -111,7 +139,9 @@ const Simulator = () => {
                 setStep(prev => prev + 1);
             }, 2000);
             return () => clearTimeout(timer);
-        } else if (step === activeScenario?.steps.length && isRunning) {
+        }
+
+        if (step === activeScenario?.steps.length && isRunning) {
             setIsRunning(false);
             setLogs(prev => [...prev, {
                 msg: `SIMULATION_COMPLETE: All objectives achieved. Behavior model synchronized.`,
@@ -119,6 +149,8 @@ const Simulator = () => {
                 ts: new Date().toLocaleTimeString()
             }]);
         }
+
+        return undefined;
     }, [isRunning, step, activeScenario]);
 
     useEffect(() => {

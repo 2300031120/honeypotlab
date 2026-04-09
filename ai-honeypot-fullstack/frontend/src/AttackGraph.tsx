@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -14,19 +13,101 @@ import {
     BaseEdge,
     getBezierPath,
 } from '@xyflow/react';
+import type { Connection, Edge, EdgeProps, Node, NodeProps, EdgeTypes, NodeTypes } from '@xyflow/react';
 import { motion, AnimatePresence } from './utils/motionLite';
 import { getEventDate, getEventTimestampValue, isSyntheticEvent, stableHexFromText } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 import {
     Search, Zap, Shield, Lock, Database, AlertCircle,
     Terminal, Activity, TrendingUp, Info, ChevronRight,
-    X, Target, Fingerprint, Map, Network, Sparkles,
+    X, Target, Fingerprint, Map as MapIcon, Network, Sparkles,
     Play, Pause, RotateCcw
 } from 'lucide-react';
 
+type AttackEdgeData = {
+    risk?: string;
+    isActive?: boolean;
+};
+
+type AttackNodeData = {
+    label: string;
+    sub: string;
+    icon: React.ElementType;
+    tactic?: string;
+    risk?: string;
+    isEscalation?: boolean;
+    status?: string;
+    ai_metadata?: {
+        intent?: string;
+        confidence?: number;
+        thought?: string;
+        mode?: string;
+        entropy?: number;
+    };
+};
+
+type GraphStats = {
+    total: number;
+    critical: number;
+    blocked: number;
+};
+
+type RawEvent = {
+    id?: string | number;
+    session_id?: string;
+    ip?: string;
+    url_path?: string;
+    event_type?: string | null;
+    cmd?: string;
+    score?: number;
+    risk_score?: number;
+    risk?: number;
+    country?: string;
+    geo?: string;
+    geo_country?: string;
+    severity?: string;
+    ai_stage?: string;
+    ai_intent?: string;
+    ai_explanation?: string;
+    analysis?: string;
+    ai_metadata?: {
+        stage?: string;
+        intent?: string;
+        thought?: string;
+        confidence?: number;
+        mode?: string;
+        entropy?: number;
+    };
+    confidence?: number;
+    ai_confidence?: number;
+    deception_mode?: string;
+    entropy?: number;
+    ts?: string;
+    timestamp_utc?: string;
+    timestamp?: string;
+};
+
+type NormalizedEvent = RawEvent & {
+    session_id: string;
+    ts: string;
+    timestamp_utc: string;
+    cmd: string;
+    score: number;
+    country: string;
+    severity: string;
+    ai_stage: string;
+    ai_intent: string;
+    ai_explanation: string;
+    ai_metadata: RawEvent['ai_metadata'];
+};
+
 // --- Custom Node Component ---
-const AttackNode = ({ data, selected }) => {
+type GraphNode = Node<AttackNodeData>;
+type GraphEdge = Edge<AttackEdgeData>;
+
+const AttackNode = ({ data, selected }: NodeProps<GraphNode>) => {
     const { label, sub, icon: Icon, tactic, risk, isEscalation, status } = data;
+    const ResolvedIcon = Icon || Activity;
 
     const glowClass = useMemo(() => {
         if (status === 'blocked') return 'glow-green';
@@ -53,7 +134,7 @@ const AttackNode = ({ data, selected }) => {
                     borderRadius: '8px',
                     color: status === 'blocked' ? '#3fb950' : (risk === 'critical' ? '#f85149' : (risk === 'medium' ? '#d29922' : '#58a6ff'))
                 }}>
-                    <Icon size={18} />
+                    <ResolvedIcon size={18} />
                 </div>
                 <div>
                     <div style={{ fontSize: '12px', fontWeight: '800', marginBottom: '2px', color: '#e6edf3' }}>{label}</div>
@@ -63,7 +144,7 @@ const AttackNode = ({ data, selected }) => {
 
             {tactic && (
                 <div className="tactic-badge">
-                    <Map size={10} />
+                    <MapIcon size={10} />
                     <span className="tag">TACTIC: {tactic}</span>
                 </div>
             )}
@@ -75,54 +156,59 @@ const AttackNode = ({ data, selected }) => {
 };
 
 // --- Custom Edge Component ---
-const AttackEdge = ({ id, sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }) => {
+const AttackEdge = ({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition, data }: EdgeProps<GraphEdge>) => {
     const [edgePath] = getBezierPath({
         sourceX, sourceY, sourcePosition, targetPosition, targetX, targetY,
     });
 
     const edgeColor = useMemo(() => {
-        if (data.risk === 'critical') return '#f85149';
-        if (data.risk === 'high') return '#f78166';
-        if (data.risk === 'medium') return '#d29922';
+        if (data?.risk === 'critical') return '#f85149';
+        if (data?.risk === 'high') return '#f78166';
+        if (data?.risk === 'medium') return '#d29922';
         return '#58a6ff';
-    }, [data.risk]);
+    }, [data?.risk]);
 
     return (
         <BaseEdge
             path={edgePath}
             stroke={edgeColor}
-            strokeWidth={data.isActive ? 3 : 1.5}
-            className={data.isActive ? 'edge-path' : ''}
+            strokeWidth={data?.isActive ? 3 : 1.5}
+            className={data?.isActive ? 'edge-path' : ''}
             style={{ filter: `drop-shadow(0 0 4px ${edgeColor}40)` }}
         />
     );
 };
 
-const nodeTypes = { attack: AttackNode };
-const edgeTypes = { attack: AttackEdge };
+const nodeTypes: NodeTypes = { attack: AttackNode };
+const edgeTypes: EdgeTypes = { attack: AttackEdge };
 
 const AttackGraph = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [nodes, setNodes, onNodesChange] = useNodesState([]);
-    const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-    const [selectedNode, setSelectedNode] = useState(null);
-    const [stats, setStats] = useState({ total: 0, critical: 0 });
+    const [nodes, setNodes, onNodesChange] = useNodesState<GraphNode>([]);
+    const [edges, setEdges, onEdgesChange] = useEdgesState<GraphEdge>([]);
+    const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+    const [stats, setStats] = useState<GraphStats>({ total: 0, critical: 0, blocked: 0 });
 
     // Replay State
-    const [isReplaying, setIsReplaying] = useState(false);
-    const [replayProgress, setReplayProgress] = useState(100);
-    const [allEvents, setAllEvents] = useState([]);
-    const timerRef = useRef();
+    const [isReplaying, setIsReplaying] = useState<boolean>(false);
+    const [replayProgress, setReplayProgress] = useState<number>(100);
+    const [allEvents, setAllEvents] = useState<NormalizedEvent[]>([]);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         void import('@xyflow/react/dist/style.css');
     }, []);
 
-    const normalizeEvent = useCallback((event, seed = '') => {
-        const timestamp = getEventTimestampValue(event) || new Date().toISOString();
+    const normalizeEvent = useCallback((event: RawEvent, seed = ''): NormalizedEvent => {
+        const timestamp = String(getEventTimestampValue(event) || new Date().toISOString());
         const sessionId = event?.session_id || `${event?.ip || 'unknown'}-${String(timestamp).slice(0, 16)}-${seed || 'evt'}`;
         const cmd = event?.cmd || event?.url_path || event?.event_type || 'N/A';
         const score = Number(event?.score ?? event?.risk_score ?? event?.risk ?? 0);
+        const modeValue = event?.ai_metadata?.mode || event?.deception_mode;
+        const resolvedIntent = event?.ai_metadata?.intent ?? event?.ai_intent ?? 'Discovery';
+        const resolvedThought = event?.ai_metadata?.thought ?? event?.ai_explanation ?? event?.analysis ?? 'Behavioral inference in progress';
+        const resolvedConfidence = event?.ai_metadata?.confidence ?? event?.confidence ?? event?.ai_confidence ?? 85;
+        const resolvedEntropy = event?.ai_metadata?.entropy ?? event?.entropy ?? 0.12;
         return {
             ...event,
             session_id: sessionId,
@@ -132,10 +218,16 @@ const AttackGraph = () => {
             score: Number.isFinite(score) ? score : 0,
             country: event?.country || event?.geo || event?.geo_country || 'UNK',
             severity: event?.severity || 'low',
-            ai_stage: event?.ai_stage || event?.ai_metadata?.stage || 'Discovery',
-            ai_intent: event?.ai_intent || event?.ai_metadata?.intent || 'Discovery',
-            ai_explanation: event?.ai_explanation || event?.analysis || event?.ai_metadata?.thought || 'Behavioral inference in progress',
-            ai_metadata: event?.ai_metadata || {},
+            ai_stage: event?.ai_stage ?? event?.ai_metadata?.stage ?? 'Discovery',
+            ai_intent: resolvedIntent,
+            ai_explanation: resolvedThought,
+            ai_metadata: {
+                intent: resolvedIntent,
+                confidence: resolvedConfidence,
+                thought: resolvedThought,
+                ...(modeValue ? { mode: modeValue } : {}),
+                entropy: resolvedEntropy,
+            },
         };
     }, []);
 
@@ -164,18 +256,12 @@ const AttackGraph = () => {
         };
     }, [allEvents, stats.blocked]);
 
-    const runSimulation = useCallback((nodesToSim, edgesToSim) => {
-        setNodes(nodesToSim.map((node) => ({
-            ...node,
-            position: {
-                x: Number.isFinite(node.x) ? node.x : 0,
-                y: Number.isFinite(node.y) ? node.y : 0,
-            }
-        })));
+    const runSimulation = useCallback((nodesToSim: Node<AttackNodeData>[], edgesToSim: Edge<AttackEdgeData>[]) => {
+        setNodes(nodesToSim);
         setEdges(edgesToSim);
     }, [setNodes, setEdges]);
 
-    const buildGraph = useCallback((feed, progressLimit = 100) => {
+    const buildGraph = useCallback((feed: NormalizedEvent[], progressLimit = 100) => {
         const limitedFeed = feed.slice(0, Math.ceil((feed.length * progressLimit) / 100));
         const orderedFeed = [...limitedFeed].sort((a, b) => {
             const aTime = getEventDate(a)?.getTime() || 0;
@@ -183,9 +269,9 @@ const AttackGraph = () => {
             return aTime - bTime;
         });
 
-        const sessions = {};
-        orderedFeed.forEach(event => {
-            const sid = event.session_id || event.ip;
+        const sessions: Record<string, NormalizedEvent[]> = {};
+        orderedFeed.forEach((event) => {
+            const sid = String(event.session_id || event.ip || 'unknown');
             if (!sessions[sid]) sessions[sid] = [];
             sessions[sid].push(event);
         });
@@ -196,13 +282,13 @@ const AttackGraph = () => {
         const originX = 140;
         const rootX = originX + (Math.max(sessionIds.length - 1, 0) * laneSpacing) / 2;
 
-        const newNodes = [{
+        const newNodes: Node<AttackNodeData>[] = [{
             id: 'root',
             type: 'attack',
-            x: rootX, y: 40,
+            position: { x: rootX, y: 40 },
             data: { label: 'Neural Defense Hub', sub: 'SYSTEM_STABLE', icon: Shield, risk: 'low', status: 'active' }
         }];
-        const newEdges = [];
+        const newEdges: Edge<AttackEdgeData>[] = [];
 
         sessionIds.forEach((sid, sIdx) => {
             const sessionEvents = sessions[sid].sort((a, b) => {
@@ -212,7 +298,7 @@ const AttackGraph = () => {
             });
             const laneX = originX + (sIdx * laneSpacing);
             sessionEvents.forEach((event, eIdx) => {
-                const eventIdentifier = event.id || stableHexFromText(`${sid}|${event.ip}|${event.cmd}|${event.ts}|${eIdx}`, 12);
+                const eventIdentifier = String(event.id || stableHexFromText(`${sid}|${event.ip}|${event.cmd}|${event.ts}|${eIdx}`, 12));
                 const nodeId = `event-${eventIdentifier}`;
                 const normalizedSeverity = String(event.severity || 'low').toLowerCase();
                 const riskLevel =
@@ -224,8 +310,7 @@ const AttackGraph = () => {
                 newNodes.push({
                     id: nodeId,
                     type: 'attack',
-                    x: laneX + (eIdx % 2 === 0 ? -18 : 18),
-                    y: 190 + (eIdx * rowSpacing),
+                    position: { x: laneX + (eIdx % 2 === 0 ? -18 : 18), y: 190 + (eIdx * rowSpacing) },
                     data: {
                         label: event.cmd || 'N/A',
                         sub: `${event.ip || 'UNKNOWN'} | ${event.country || event.geo || 'UNK'}`,
@@ -237,7 +322,7 @@ const AttackGraph = () => {
                             intent: event.ai_metadata?.intent || event.ai_intent,
                             confidence: event.ai_metadata?.confidence || event.confidence || event.ai_confidence || 85,
                             thought: event.ai_metadata?.thought || event.ai_explanation,
-                            mode: event.ai_metadata?.mode || event.deception_mode,
+                            ...(event.ai_metadata?.mode || event.deception_mode ? { mode: event.ai_metadata?.mode || event.deception_mode } : {}),
                             entropy: event.ai_metadata?.entropy || event.entropy || 0.12,
                         }
                     }
@@ -247,7 +332,7 @@ const AttackGraph = () => {
                     newEdges.push({ id: `edge-root-${nodeId}`, source: 'root', target: nodeId, type: 'attack', data: { risk: riskLevel, isActive: true } });
                 } else {
                     const prevEvent = sessionEvents[eIdx - 1];
-                    const prevNodeId = `event-${prevEvent.id || stableHexFromText(`${sid}|${prevEvent.ip}|${prevEvent.cmd}|${prevEvent.ts}|${eIdx - 1}`, 12)}`;
+                    const prevNodeId = `event-${String(prevEvent.id || stableHexFromText(`${sid}|${prevEvent.ip}|${prevEvent.cmd}|${prevEvent.ts}|${eIdx - 1}`, 12))}`;
                     newEdges.push({ id: `edge-${prevNodeId}-${nodeId}`, source: prevNodeId, target: nodeId, type: 'attack', data: { risk: riskLevel, isActive: true } });
                 }
             });
@@ -259,7 +344,9 @@ const AttackGraph = () => {
     const fetchAttackData = useCallback(async () => {
         try {
             const res = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
-            const feed = Array.isArray(res.data.feed) ? res.data.feed.map((event, idx) => normalizeEvent(event, `stats-${idx}`)) : [];
+            const feed: NormalizedEvent[] = Array.isArray(res.data.feed)
+                ? res.data.feed.map((event: RawEvent, idx: number) => normalizeEvent(event, `stats-${idx}`))
+                : [];
             setAllEvents(feed);
             setStats(res.data.summary || { total: 0, critical: 0, blocked: 0 });
             buildGraph(feed, replayProgress);
@@ -272,13 +359,13 @@ const AttackGraph = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
+                    const data = typeof event.data === "string" ? safeParseJson<RawEvent>(event.data) : null;
                     if (!data || isSyntheticEvent(data)) return;
 
                     const normalized = normalizeEvent(data, 'ws');
                     setAllEvents(prev => {
-                        const merged = [...prev, normalized];
-                        const dedup = new Map();
+                        const merged: NormalizedEvent[] = [...prev, normalized];
+                        const dedup = new Map<string, NormalizedEvent>();
                         merged.forEach((entry) => {
                             const key = `${entry.id || ''}|${entry.session_id}|${entry.ts}`;
                             dedup.set(key, entry);
@@ -306,15 +393,19 @@ const AttackGraph = () => {
         } else if (replayProgress >= 100) {
             setIsReplaying(false);
         }
-        return () => clearTimeout(timerRef.current);
+        return () => {
+            if (timerRef.current) {
+                clearTimeout(timerRef.current);
+            }
+        };
     }, [isReplaying, replayProgress]);
 
     useEffect(() => {
         buildGraph(allEvents, replayProgress);
     }, [replayProgress, allEvents, buildGraph]);
 
-    const onConnect = useCallback((params) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-    const onNodeClick = (_, node) => setSelectedNode(node);
+    const onConnect = useCallback((params: Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
+    const onNodeClick = (_: React.MouseEvent, node: Node<AttackNodeData>) => setSelectedNode(node);
 
     const refreshTelemetry = () => {
         setReplayProgress(100);
@@ -528,14 +619,27 @@ const AttackGraph = () => {
     );
 };
 
-const InferenceEntry = ({ label, value, color }) => (
+type InferenceEntryProps = {
+    label: string;
+    value: React.ReactNode;
+    color: string;
+};
+
+const InferenceEntry = ({ label, value, color }: InferenceEntryProps) => (
     <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid #30363d' }}>
         <div style={{ fontSize: '9px', color: '#8b949e', marginBottom: '4px' }}>{label}</div>
         <div style={{ fontSize: '12px', fontWeight: '800', color: color }}>{value}</div>
     </div>
 );
 
-const MetricBox = ({ label, value, color, sub }) => (
+type MetricBoxProps = {
+    label: string;
+    value: React.ReactNode;
+    color: string;
+    sub: string;
+};
+
+const MetricBox = ({ label, value, color, sub }: MetricBoxProps) => (
     <div style={{
         background: '#161b22',
         border: '1px solid #30363d',

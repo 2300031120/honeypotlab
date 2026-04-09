@@ -1,14 +1,19 @@
-// @ts-nocheck
 import axios from "axios";
 import { API_BASE } from "../apiConfig";
 
-export const DEFAULT_AUTH_PROVIDERS = {
-  googleEnabled: false,
-  serverGoogleClientId: "",
-  signupEnabled: true,
+export type AuthProviders = {
+  googleEnabled: boolean;
+  serverGoogleClientId: string;
+  signupEnabled: boolean;
 };
 
-export async function loadAuthProviders(options = {}) {
+export const DEFAULT_AUTH_PROVIDERS: AuthProviders = {
+  googleEnabled: false,
+  serverGoogleClientId: "",
+  signupEnabled: false,
+};
+
+export async function loadAuthProviders(options: Record<string, unknown> = {}): Promise<AuthProviders> {
   const response = await axios.get(`${API_BASE}/auth/providers`, {
     timeout: 8000,
     ...options,

@@ -1,4 +1,4 @@
-// Global TypeScript types for CyberSentinel AI Platform
+// Global TypeScript types for CyberSentil platform
 
 export interface User {
   id: number;

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sync CyberSentinel blocked IP exports into Cloudflare IP Access Rules.
+Sync CyberSentil blocked IP exports into Cloudflare IP Access Rules.
 
 Examples:
   py -3 deploy/scripts/sync_cloudflare_edge.py --base-url https://security.example.com --operator-token <jwt> --zone-id <zone_id>
@@ -29,7 +29,7 @@ from export_edge_blocks import build_export_url, fetch_export, first_defined
 
 
 DEFAULT_API_BASE = "https://api.cloudflare.com/client/v4"
-DEFAULT_NOTES_PREFIX = "CyberSentinel managed edge block"
+DEFAULT_NOTES_PREFIX = "CyberSentil managed edge block"
 ALLOWED_CIDR_PREFIXES = {
     4: {16, 24},
     6: {32, 48, 64},
@@ -273,10 +273,10 @@ def delete_access_rule(scope_path: str, api_base: str, api_token: str, timeout: 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Sync CyberSentinel blocked IPs into Cloudflare IP Access Rules.")
-    parser.add_argument("--base-url", default=os.environ.get("CYBERSENTINEL_BASE_URL", ""), help="Public CyberSentinel base URL.")
-    parser.add_argument("--operator-token", default=os.environ.get("CYBERSENTINEL_OPERATOR_TOKEN", ""), help="CyberSentinel operator bearer token.")
-    parser.add_argument("--api-prefix", default=os.environ.get("CYBERSENTINEL_API_PREFIX", "/api"), help="CyberSentinel API prefix.")
+    parser = argparse.ArgumentParser(description="Sync CyberSentil blocked IPs into Cloudflare IP Access Rules.")
+    parser.add_argument("--base-url", default=os.environ.get("CYBERSENTINEL_BASE_URL", ""), help="Public CyberSentil base URL.")
+    parser.add_argument("--operator-token", default=os.environ.get("CYBERSENTINEL_OPERATOR_TOKEN", ""), help="CyberSentil operator bearer token.")
+    parser.add_argument("--api-prefix", default=os.environ.get("CYBERSENTINEL_API_PREFIX", "/api"), help="CyberSentil API prefix.")
     parser.add_argument("--export-file", default="", help="Optional path to a previously exported cloudflare-json file.")
     parser.add_argument("--cloudflare-api-token", default=os.environ.get("CLOUDFLARE_API_TOKEN", ""), help="Cloudflare API token with Access Rules write permission.")
     parser.add_argument("--zone-id", default=os.environ.get("CLOUDFLARE_ZONE_ID", ""), help="Cloudflare Zone ID.")

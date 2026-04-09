@@ -1,8 +1,7 @@
-// @ts-nocheck
 // Centralized API/WebSocket endpoint configuration
 // These values can be overridden by environment variables when building/deploying
 
-const trimTrailingSlash = (value) => String(value || "").replace(/\/+$/, "");
+const trimTrailingSlash = (value?: string | null) => String(value || "").replace(/\/+$/, "");
 
 const defaultApiBase = (() => {
   if (typeof window !== "undefined" && window.location?.origin) {

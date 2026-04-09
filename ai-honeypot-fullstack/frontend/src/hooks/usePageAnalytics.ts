@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { useEffect, useRef } from "react";
 import { trackEvent, trackPageVisit } from "../utils/analytics";
 
-export function usePageAnalytics(pageName) {
+export function usePageAnalytics(pageName: string) {
   const startRef = useRef(Date.now());
   const maxScrollRef = useRef(0);
   const heartbeatSentRef = useRef(false);

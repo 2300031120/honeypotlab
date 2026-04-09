@@ -102,8 +102,8 @@ export default function Deployment() {
               ))}
             </div>
             <div className="marketing-actions">
-              <Link to="/integrations" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_integrations", "/deployment")}>
-                View Integrations <ArrowRight size={16} />
+              <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/deployment")}>
+                Open Resources <ArrowRight size={16} />
               </Link>
               <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/deployment")}>
                 Request Demo
@@ -231,11 +231,11 @@ export default function Deployment() {
             <p>We can map the server path, public exposure option, and launch checks your team should clear before go-live.</p>
           </div>
           <div className="marketing-actions">
-            <Link to="/contact" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("contact_team", "/deployment")}>
-              Contact Team
+            <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/deployment")}>
+              Open Resources
             </Link>
-            <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/deployment")}>
-              Request Demo
+            <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/deployment")}>
+              Contact Team
             </Link>
           </div>
         </section>

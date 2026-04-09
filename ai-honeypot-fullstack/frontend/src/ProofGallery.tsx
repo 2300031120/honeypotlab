@@ -1,8 +1,20 @@
-// @ts-nocheck
 import React, { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Expand, X } from "lucide-react";
 
-function clampIndex(index, total) {
+type ProofItem = {
+  src: string;
+  alt: string;
+  title: string;
+  description: string;
+  label?: string;
+  points?: string[];
+};
+
+type ProofGalleryProps = {
+  items?: ProofItem[];
+};
+
+function clampIndex(index: number, total: number) {
   if (total <= 0) {
     return 0;
   }
@@ -10,7 +22,7 @@ function clampIndex(index, total) {
   return normalized < 0 ? normalized + total : normalized;
 }
 
-export default function ProofGallery({ items = [] }) {
+export default function ProofGallery({ items = [] }: ProofGalleryProps) {
   const total = items.length;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [zoomOpen, setZoomOpen] = useState(false);
@@ -21,7 +33,7 @@ export default function ProofGallery({ items = [] }) {
     return null;
   }
 
-  const move = (step) => setCurrentIndex((prev) => clampIndex(prev + step, total));
+  const move = (step: number) => setCurrentIndex((prev) => clampIndex(prev + step, total));
 
   return (
     <div className="proof-gallery">
@@ -35,9 +47,9 @@ export default function ProofGallery({ items = [] }) {
           <img
             src={activeItem.src}
             alt={activeItem.alt}
-            loading="lazy"
+            loading="eager"
             decoding="async"
-            fetchPriority="low"
+            fetchPriority="high"
           />
           <span className="proof-gallery-expand">
             <Expand size={14} />

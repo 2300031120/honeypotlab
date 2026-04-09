@@ -8,14 +8,16 @@ import { setAuthSession } from "./utils/auth";
 import { loadAuthProviders } from "./utils/authProviders";
 import { requestGoogleCredential } from "./utils/googleAuth";
 import { PUBLIC_SITE } from "./siteConfig";
+import PublicAuthShell from "./components/PublicAuthShell";
 import {
   Shield, Lock, User, Eye, EyeOff, Fingerprint, Smartphone, AlertTriangle,
   Wifi, Activity, Cpu, Globe, Zap, CheckCircle, XCircle, Clock,
   ShieldCheck, Terminal, AlertCircle, Chrome
 } from "lucide-react";
 
-function normalizeGoogleAuthError(err: any) {
-  const detail = String(err?.response?.data?.detail || err?.message || "").trim();
+function normalizeGoogleAuthError(err: unknown) {
+  const error = err as { response?: { data?: { detail?: string } }; message?: string };
+  const detail = String(error?.response?.data?.detail || error?.message || "").trim();
   const normalized = detail.toLowerCase();
   const origin = typeof window !== "undefined" ? window.location.origin : "current origin";
   if (!detail) {
@@ -98,7 +100,7 @@ export default function Login() {
     checked: false,
     googleEnabled: null,
     serverGoogleClientId: "",
-    signupEnabled: true,
+    signupEnabled: false,
     warning: "",
   });
   const [securityMetrics, setShieldMetrics] = useState<SecurityMetrics>({
@@ -127,7 +129,7 @@ export default function Login() {
   const googleButtonEnabled =
     Boolean(effectiveGoogleClientId) &&
     (googleAuthStatus.checked ? googleAuthStatus.googleEnabled !== false : true);
-  const signupEnabled = googleAuthStatus.signupEnabled !== false;
+  const signupEnabled = googleAuthStatus.checked ? googleAuthStatus.signupEnabled !== false : true;
   const showDetailedGoogleDiagnostics =
     import.meta.env.VITE_SHOW_AUTH_DEBUG === "true" && Boolean(googleAuthStatus.warning);
   const biometricLoginEnabled = import.meta.env.VITE_ENABLE_BIOMETRIC_LOGIN === 'true';
@@ -292,7 +294,8 @@ export default function Login() {
       setLoginAttempts(0);
       navigate("/dashboard");
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const loginError = err as { response?: { data?: { detail?: string } }; message?: string };
       const attempts = currentAttempts;
 
       // Progressive security measures
@@ -303,7 +306,7 @@ export default function Login() {
       } else if (attempts >= 3) {
         setError(`Login failed. ${5 - attempts} attempts remaining before lockout.`);
       } else {
-        setError(err.response?.data?.detail || "Authentication failed. Check credentials.");
+        setError(loginError.response?.data?.detail || "Authentication failed. Check credentials.");
       }
 
       // Update security metrics
@@ -353,8 +356,9 @@ export default function Login() {
       setAuthStep('login');
       setLoginAttempts(0);
       setTimeout(() => navigate("/dashboard"), 500);
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "MFA verification failed.");
+    } catch (err: unknown) {
+      const mfaError = err as { response?: { data?: { detail?: string } } };
+      setError(mfaError.response?.data?.detail || "MFA verification failed.");
     } finally {
       setLoading(false);
     }
@@ -381,12 +385,12 @@ export default function Login() {
       });
       setAuthSession(res.data.token, {
         username: res.data.username || res.data.email || "google_user",
-        role: res.data.role || "admin",
+        role: res.data.role || "owner",
         provider: "google",
       });
       setMsg(res.data.new_user ? "Google signup successful. Redirecting..." : "Google login successful. Redirecting...");
       setTimeout(() => navigate("/dashboard"), 500);
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(normalizeGoogleAuthError(err));
     } finally {
       setGoogleLoading(false);
@@ -422,7 +426,8 @@ export default function Login() {
         setMsg("BIOMETRIC AUTHENTICATION SUCCESSFUL");
         setTimeout(() => navigate("/dashboard"), 1000);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
+      console.error("Biometric auth error:", err);
       setError("Fingerprint authentication failed. Please use password login.");
     } finally {
       setLoading(false);
@@ -474,34 +479,100 @@ export default function Login() {
     }));
   };
 
-  const fillDemoCredentials = () => {
-    setUsername("admin");
-    setPassword("Admin@123");
-    setError("");
-    setMsg("Demo credentials loaded. Submit secure access to continue.");
-  };
+  const accessSignals = [
+    "Workspace access",
+    googleButtonEnabled ? "Optional Google sign-in" : "Password-first access",
+    signupEnabled ? "Create workspace if you are starting fresh" : "Guided onboarding when signup is closed",
+  ];
+
+  const proofRouteCards = [
+    {
+      title: "Review sample proof",
+      detail: "Start with the sample incident and see how the operator workflow is presented before a live demo.",
+      to: "/case-study",
+      action: "View incident",
+    },
+    {
+      title: "Map the rollout scope",
+      detail: "Check packaging and pilot direction before asking for guided access or a rollout conversation.",
+      to: "/pricing",
+      action: "View pricing",
+    },
+    {
+      title: "Validate the operator UI",
+      detail: "Match the sample incident to real dashboard, threat, and forensics screens.",
+      to: "/screenshots",
+      action: "See screenshots",
+    },
+  ];
+
+  const storyCards = [
+    {
+      label: "Existing access",
+      title: "Use login for active workspaces and deployed operator access.",
+      detail: "Password and optional Google sign-in are for teams that already have a live workspace or owner account.",
+      icon: <ShieldCheck size={16} />,
+    },
+    {
+      label: "New workspace",
+      title: "Create a workspace from here when self-service signup is open.",
+      detail: "If you are starting fresh, the signup flow creates the first owner account and moves you into the dashboard.",
+      icon: <Clock size={16} />,
+    },
+    {
+      label: "Proof-first",
+      title: "Keep proof review, guided demos, and operator access clearly separated.",
+      detail: "The public proof path still helps buyers evaluate fit before they create credentials or request rollout help.",
+      icon: <Activity size={16} />,
+    },
+  ];
+
+  const sidebarItems = [
+    "Adaptive decoy environments and readable analyst summaries",
+    "Live session, threat, and readiness views for deployed workspaces",
+    signupEnabled ? "Self-serve workspace creation plus a separate guided demo path" : "Guided pilot and rollout motion separate from public login",
+  ];
 
   return (
-    <div className="login-page">
-      {/* Simplified background for cleaner UX */}
-
-      <div className="login-shell">
-      <div className="login-wrapper">
-        <div className="login-quick-nav">
-          <Link to="/" className="login-quick-link">Home</Link>
-          {signupEnabled ? (
-            <Link to="/auth/signup" className="login-quick-link login-quick-link-primary">Sign Up</Link>
-          ) : (
-            <Link to="/demo" className="login-quick-link login-quick-link-primary">Request Demo</Link>
-          )}
-        </div>
-
-        {/* Main Login Card */}
+    <PublicAuthShell
+      pagePath="/auth/login"
+      showLoginAction={false}
+      authLabel="Workspace access"
+      story={{
+        kicker: "Secure access",
+        signals: accessSignals,
+        title: `Sign in to ${PRODUCT_NAME} or create a new workspace when signup is open.`,
+        description:
+          "Use login for existing workspaces and deployed operator access. If you are starting fresh, create a workspace from the signup flow, or use the demo path when you want a guided rollout review first.",
+        actions: [
+          { label: "View Sample Incident", to: "/case-study", variant: "primary" },
+          { label: "Request Demo", to: "/demo", variant: "secondary" },
+        ],
+        cards: storyCards,
+      }}
+      sidebar={{
+        primary: {
+          kicker: "Platform highlights",
+          title: "Existing workspaces log in here. New teams can branch to signup or guided demo.",
+          items: sidebarItems,
+          metrics: [
+            { label: "Active sessions", value: String(systemHealth.activeConnections) },
+            { label: "Threat level", value: securityMetrics.threatLevel.toUpperCase() },
+          ],
+        },
+        secondary: {
+          kicker: "Before you request access",
+          links: proofRouteCards,
+          backLinkLabel: "Back to Website",
+          backLinkTo: "/",
+        },
+      }}
+      authCard={
         <AnimatePresence mode="wait">
           {authStep === 'login' && (
             <motion.div
               key="login"
-              className="login-card fade-in"
+              className="public-auth-card fade-in"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -514,17 +585,17 @@ export default function Login() {
               >
                 <div style={{
                   width: '80px', height: '80px', borderRadius: '50%',
-                  background: 'linear-gradient(135deg, rgba(59,130,246,0.2), rgba(63,185,80,0.2))',
-                  border: '2px solid rgba(59,130,246,0.4)',
+                  background: 'linear-gradient(135deg, rgba(216,107,29,0.18), rgba(214,55,99,0.18))',
+                  border: '2px solid rgba(216,107,29,0.28)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 40px rgba(59,130,246,0.2)',
+                  boxShadow: '0 0 40px rgba(216,107,29,0.14)',
                   position: 'relative'
                 }}>
                   <motion.div
                     animate={loading ? { rotate: 360 } : {}}
                     transition={{ duration: 2, repeat: loading ? Infinity : 0, ease: "linear" }}
                   >
-                    <Shield size={36} color="#3b82f6" />
+                    <Shield size={36} color="#d86b1d" />
                   </motion.div>
 
                   {/* Shield Rings */}
@@ -533,7 +604,7 @@ export default function Login() {
                       position: 'absolute',
                       width: '120px',
                       height: '120px',
-                      border: '1px solid rgba(59,130,246,0.2)',
+                      border: '1px solid rgba(214,55,99,0.16)',
                       borderRadius: '50%',
                       top: '-20px',
                       left: '-20px'
@@ -547,7 +618,7 @@ export default function Login() {
                       position: 'absolute',
                       width: '140px',
                       height: '140px',
-                      border: '1px solid rgba(63,185,80,0.1)',
+                      border: '1px solid rgba(216,107,29,0.12)',
                       borderRadius: '50%',
                       top: '-30px',
                       left: '-30px'
@@ -565,13 +636,13 @@ export default function Login() {
                   fontWeight: '900',
                   marginBottom: '8px',
                   color: '#1f2a3d',
-                  background: 'linear-gradient(135deg, #fff 0%, #c65d1a 100%)',
+                  background: 'linear-gradient(135deg, #1f2a3d 0%, #c65d1a 64%, #d63763 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent'
                 }}
                 animate={msg.includes('GRANTED') ? successAnimation : {}}
               >
-                SENTINEL ACCESS CONTROL
+                {PRODUCT_NAME.toUpperCase()} WORKSPACE ACCESS
               </motion.h2>
 
               <p style={{
@@ -581,14 +652,14 @@ export default function Login() {
                 marginBottom: '30px',
                 fontWeight: '500'
               }}>
-                Advanced Multi-Factor Authentication - SOC Division
+                Password access and optional Google sign-in for deployed workspaces
               </p>
 
               <div
                 style={{
-                  background: 'rgba(88,166,255,0.08)',
-                  border: '1px solid rgba(88,166,255,0.25)',
-                  color: '#dbeafe',
+                  background: 'linear-gradient(180deg, rgba(255,245,236,0.94), rgba(255,236,222,0.94))',
+                  border: '1px solid rgba(216,107,29,0.18)',
+                  color: '#4f3a33',
                   padding: '12px 14px',
                   borderRadius: '10px',
                   marginBottom: '20px',
@@ -596,26 +667,26 @@ export default function Login() {
                   lineHeight: 1.5,
                 }}
               >
-                <div style={{ fontWeight: 800, marginBottom: '4px', color: '#93c5fd' }}>Demo credentials</div>
-                <div><strong>Username:</strong> `admin`</div>
-                <div><strong>Password:</strong> `Admin@123`</div>
-                <button
-                  type="button"
-                  onClick={fillDemoCredentials}
+                <div style={{ fontWeight: 800, marginBottom: '4px', color: '#b45309' }}>Access note</div>
+                <div>This login is for real workspace operators, not shared public demo credentials.</div>
+                <div style={{ marginTop: '6px' }}>Need guided access, rollout review, or pilot onboarding? Use the demo request flow instead.</div>
+                <Link
+                  to="/demo"
                   style={{
+                    display: 'inline-flex',
                     marginTop: '10px',
-                    border: '1px solid rgba(88,166,255,0.35)',
+                    border: '1px solid rgba(216,107,29,0.28)',
                     borderRadius: '8px',
-                    background: 'rgba(15,23,42,0.35)',
-                    color: '#bfdbfe',
+                    background: 'rgba(255,255,255,0.84)',
+                    color: '#8f2144',
                     fontSize: '12px',
                     fontWeight: 700,
                     padding: '8px 10px',
-                    cursor: 'pointer',
+                    textDecoration: 'none',
                   }}
                 >
-                  Use Demo Access
-                </button>
+                  Request Guided Access
+                </Link>
               </div>
 
               {/* Shield Alerts */}
@@ -766,7 +837,7 @@ export default function Login() {
                       left: '14px',
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      color: '#484f58'
+                      color: '#8a6a58'
                     }} />
                     <motion.input
                       type="text"
@@ -778,7 +849,7 @@ export default function Login() {
                       style={{
                         width: '100%',
                         padding: '14px 14px 14px 42px',
-                        background: '#010409',
+                        background: '#fffaf5',
                         border: '1px solid #e5ddd1',
                         color: '#1f2a3d',
                         borderRadius: '8px',
@@ -789,7 +860,7 @@ export default function Login() {
                       }}
                       whileFocus={{ scale: 1.02 }}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
-                        e.target.style.borderColor = "#3b82f6";
+                        e.target.style.borderColor = "#c65d1a";
                       }}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                         e.target.style.borderColor = "#e5ddd1";
@@ -823,7 +894,7 @@ export default function Login() {
                       left: '14px',
                       top: '50%',
                       transform: 'translateY(-50%)',
-                      color: '#484f58'
+                      color: '#8a6a58'
                     }} />
                     <motion.input
                       type={showPassword ? "text" : "password"}
@@ -835,7 +906,7 @@ export default function Login() {
                       style={{
                         width: '100%',
                         padding: '14px 42px 14px 42px',
-                        background: '#010409',
+                        background: '#fffaf5',
                         border: '1px solid #e5ddd1',
                         color: '#1f2a3d',
                         borderRadius: '8px',
@@ -846,7 +917,7 @@ export default function Login() {
                       }}
                       whileFocus={{ scale: 1.02 }}
                       onFocus={(e: React.FocusEvent<HTMLInputElement>) => {
-                        e.target.style.borderColor = "#3b82f6";
+                        e.target.style.borderColor = "#c65d1a";
                       }}
                       onBlur={(e: React.FocusEvent<HTMLInputElement>) => {
                         e.target.style.borderColor = "#e5ddd1";
@@ -869,8 +940,8 @@ export default function Login() {
                       whileTap={{ scale: 0.9 }}
                     >
                       {showPassword ?
-                        <EyeOff size={16} color="#484f58" /> :
-                        <Eye size={16} color="#484f58" />
+                        <EyeOff size={16} color="#8a6a58" /> :
+                        <Eye size={16} color="#8a6a58" />
                       }
                     </motion.button>
                   </div>
@@ -895,8 +966,8 @@ export default function Login() {
                     disabled={loading || googleLoading || isLocked || !googleButtonEnabled}
                     style={{
                       padding: '12px',
-                      background: 'rgba(88,166,255,0.08)',
-                      border: '1px solid rgba(88,166,255,0.3)',
+                      background: 'rgba(255,245,236,0.9)',
+                      border: '1px solid rgba(216,107,29,0.22)',
                       borderRadius: '8px',
                       color: '#c65d1a',
                       cursor: loading || googleLoading || isLocked || !googleButtonEnabled ? 'not-allowed' : 'pointer',
@@ -911,64 +982,9 @@ export default function Login() {
                     <Chrome size={16} />
                     {googleLoading ? 'Google...' : googleButtonEnabled ? 'Google' : 'Google Off'}
                   </motion.button>
-
-                  {biometricSupported && biometricLoginEnabled && (
-                    <motion.button
-                      type="button"
-                      onClick={handleFingerprintAuth}
-                      disabled={loading || googleLoading || isLocked}
-                      style={{
-                        padding: '12px',
-                        background: biometricAvailable ? 'rgba(63,185,80,0.1)' : 'rgba(48,54,61,0.5)',
-                        border: `1px solid ${biometricAvailable ? '#3fb950' : '#e5ddd1'}`,
-                        borderRadius: '8px',
-                        color: biometricAvailable ? '#3fb950' : '#5f6b7f',
-                        cursor: biometricAvailable ? 'pointer' : 'not-allowed',
-                        fontSize: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px'
-                      }}
-                      whileHover={biometricAvailable ? { scale: 1.05 } : {}}
-                      whileTap={biometricAvailable ? { scale: 0.95 } : {}}
-                    >
-                      <Fingerprint size={16} />
-                      Fingerprint
-                    </motion.button>
-                  )}
-
-                  <motion.button
-                    type="button"
-                    onClick={() => {
-                      if (!username.trim() || !password) {
-                        setError("Enter username/email and password first to start MFA challenge.");
-                        return;
-                      }
-                      setPendingLogin({ username: username.trim(), password });
-                      setMfaCode('');
-                      setError('');
-                      setMsg('MFA challenge initialized. Enter your verification code.');
-                      setAuthStep('mfa');
-                    }}
-                    disabled={loading || googleLoading || isLocked}
-                    style={{
-                      padding: '12px',
-                      background: 'rgba(88,166,255,0.08)',
-                      border: '1px solid rgba(88,166,255,0.3)',
-                      borderRadius: '8px',
-                      color: '#c65d1a',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <Smartphone size={16} />
-                    MFA Challenge
-                  </motion.button>
+                  <div style={{ flexBasis: '100%', textAlign: 'center', color: '#7a8698', fontSize: '11px' }}>
+                    Password access and optional Google sign-in are supported here. Advanced MFA and biometric rollout are not exposed from this public login screen.
+                  </div>
                 </motion.div>
 
                 {/* Login Button */}
@@ -982,7 +998,7 @@ export default function Login() {
                     borderRadius: '10px',
                     background: isLocked ? '#e5ddd1' :
                               loading ? '#21262d' :
-                              'linear-gradient(135deg, #238636, #2ea043)',
+                              'linear-gradient(135deg, #d86b1d, #d63763)',
                     color: 'white',
                     fontWeight: '800',
                     fontSize: '15px',
@@ -991,7 +1007,7 @@ export default function Login() {
                     letterSpacing: '1px',
                     boxShadow: isLocked ? 'none' :
                              loading ? 'none' :
-                             '0 6px 20px rgba(35,134,54,0.4)',
+                             '0 12px 28px rgba(214,55,99,0.28)',
                     position: 'relative',
                     overflow: 'hidden'
                   }}
@@ -1008,7 +1024,7 @@ export default function Login() {
                     width: '100%',
                     height: '100%',
                     background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
-                    animation: loading ? 'none' : 'shine 3s infinite'
+                    animation: loading ? 'none' : 'publicAuthShine 3s infinite'
                   }} />
 
                   {isLocked ? (
@@ -1052,7 +1068,7 @@ export default function Login() {
                     textDecoration: 'none',
                     fontWeight: '600'
                   }}>
-                    Request Access Credentials
+                    Create Workspace
                   </Link>
                 ) : (
                   <Link to="/demo" style={{
@@ -1060,13 +1076,13 @@ export default function Login() {
                     textDecoration: 'none',
                     fontWeight: '600'
                   }}>
-                    Request Guided Access
+                    Request Guided Demo
                   </Link>
                 )}
               </motion.div>
 
               {/* Scanline effect */}
-              <div className="scanline"></div>
+              <div className="public-auth-scanline"></div>
             </motion.div>
           )}
 
@@ -1074,7 +1090,7 @@ export default function Login() {
           {authStep === 'mfa' && (
             <motion.div
               key="mfa"
-              className="login-card fade-in"
+              className="public-auth-card fade-in"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -1097,7 +1113,7 @@ export default function Login() {
                     style={{
                       width: '100%',
                       padding: '16px',
-                      background: '#010409',
+                      background: '#fffaf5',
                       border: '1px solid #e5ddd1',
                       color: '#1f2a3d',
                       borderRadius: '8px',
@@ -1117,7 +1133,7 @@ export default function Login() {
                     padding: '14px',
                     border: 'none',
                     borderRadius: '8px',
-                    background: loading ? '#21262d' : 'linear-gradient(135deg, #238636, #2ea043)',
+                    background: loading ? '#21262d' : 'linear-gradient(135deg, #d86b1d, #d63763)',
                     color: 'white',
                     fontWeight: '700',
                     fontSize: '14px',
@@ -1150,13 +1166,12 @@ export default function Login() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Advanced Footer with Shield Metrics */}
+      }
+      authFooterNote={
         <motion.div
           className="footer"
           style={{
             textAlign: 'center',
-            marginTop: '30px',
             color: '#484f58',
             fontSize: '11px'
           }}
@@ -1165,7 +1180,7 @@ export default function Login() {
           transition={{ delay: 1 }}
         >
           <div style={{ display: 'flex', justifyContent: 'center', gap: '30px', marginBottom: '16px', flexWrap: 'wrap' }}>
-            <span>Platform Version 2.4.1 | (c) 2026 SOC Deception Systems</span>
+            <span>Platform Version 2.4.1 | (c) 2026 CyberSentil</span>
             <span style={{ color: '#3fb950' }}>
               <ShieldCheck size={12} style={{ marginRight: '4px' }} />
               Shield Level: {securityMetrics.threatLevel.toUpperCase()}
@@ -1176,273 +1191,14 @@ export default function Login() {
             </span>
           </div>
 
-          {securityMetrics.lastFailedAttempt && (
+          {securityMetrics.lastFailedAttempt ? (
             <div style={{ fontSize: '10px', color: '#f85149', marginTop: '8px' }}>
               Last security event: {new Date(securityMetrics.lastFailedAttempt).toLocaleString()}
             </div>
-          )}
+          ) : null}
         </motion.div>
-      </div>
-      <aside className="login-side-panel">
-        <h3>Platform Highlights</h3>
-        <ul>
-          <li>Adaptive decoy environments</li>
-          <li>AI-assisted attacker summaries</li>
-          <li>Live session and threat analytics</li>
-          <li>Startup-ready lead workflow</li>
-        </ul>
-        <div className="login-side-metrics">
-          <div>
-            <span>Active sessions</span>
-            <strong>{systemHealth.activeConnections}</strong>
-          </div>
-          <div>
-            <span>Threat level</span>
-            <strong>{securityMetrics.threatLevel.toUpperCase()}</strong>
-          </div>
-        </div>
-        <Link to="/" className="login-side-link">
-          Back to Website
-        </Link>
-      </aside>
-      </div>
-
-      <style>
-        {`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
-        }
-
-        @keyframes shine {
-          0% { left: -100%; }
-          100% { left: 100%; }
-        }
-
-        .login-page {
-          min-height: 100vh;
-          background: linear-gradient(145deg, #faf7f2 0%, #f4efe7 52%, #f8f4ed 100%);
-          position: relative;
-          overflow-x: hidden;
-          overflow-y: auto;
-          display: flex;
-          align-items: flex-start;
-          justify-content: center;
-          padding: 12px 14px 24px;
-        }
-
-        .cyber-grid {
-          display: none;
-        }
-
-        @keyframes gridMove {
-          0% { transform: translate(0, 0); }
-          100% { transform: translate(50px, 50px); }
-        }
-
-        .login-shell {
-          width: min(960px, 100%);
-          display: grid;
-          grid-template-columns: minmax(340px, 520px) minmax(250px, 340px);
-          gap: 18px;
-          align-items: start;
-          margin: 0 auto;
-        }
-
-        .login-wrapper {
-          width: 100%;
-          margin: 0;
-          padding: 6px 2px;
-          position: relative;
-          z-index: 1;
-        }
-
-        .login-quick-nav {
-          display: flex;
-          justify-content: flex-end;
-          gap: 8px;
-          margin-bottom: 10px;
-        }
-
-        .login-quick-link {
-          text-decoration: none;
-          border: 1px solid #e5ddd1;
-          border-radius: 10px;
-          background: #ffffff;
-          color: #4b5563;
-          padding: 7px 12px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .login-quick-link:hover {
-          border-color: rgba(198,93,26,0.45);
-          color: #b45309;
-        }
-
-        .login-quick-link-primary {
-          background: linear-gradient(135deg, #c65d1a, #df7a3b);
-          color: #fff !important;
-          border-color: transparent;
-        }
-
-        .top-bar {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          background: rgba(255, 255, 255, 0.94);
-          border: 1px solid #e5ddd1;
-          border-radius: 12px;
-          padding: 12px 16px;
-          margin-bottom: 16px;
-          backdrop-filter: blur(10px);
-          color: #5f6b7f;
-        }
-
-        .status-dot {
-          width: 8px;
-          height: 8px;
-          background: #c65d1a;
-          border-radius: 50%;
-          display: inline-block;
-          margin-right: 8px;
-          animation: pulse 2s infinite;
-        }
-
-        .login-card {
-          background: rgba(255, 255, 255, 0.95);
-          border: 1px solid #e5ddd1;
-          border-radius: 20px;
-          padding: 30px;
-          backdrop-filter: blur(20px);
-          box-shadow: 0 20px 36px rgba(47, 34, 21, 0.12);
-        }
-
-        .scanline {
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 2px;
-          background: linear-gradient(90deg, transparent, #c65d1a, transparent);
-          animation: scan 3s linear infinite;
-        }
-
-        .login-side-panel {
-          border: 1px solid #e5ddd1;
-          background: rgba(255, 255, 255, 0.95);
-          border-radius: 20px;
-          padding: 20px;
-          box-shadow: 0 16px 30px rgba(47, 34, 21, 0.1);
-          color: #2f3b4f;
-          display: grid;
-          gap: 12px;
-        }
-
-        .login-side-panel h3 {
-          margin: 0;
-          font-size: 20px;
-          color: #1f2a3d;
-        }
-
-        .login-side-panel ul {
-          margin: 0;
-          padding-left: 18px;
-          display: grid;
-          gap: 8px;
-          color: #5f6b7f;
-          font-size: 14px;
-        }
-
-        .login-side-metrics {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .login-side-metrics > div {
-          border: 1px solid #e9e3db;
-          border-radius: 12px;
-          padding: 10px;
-          background: #fffaf5;
-          display: grid;
-          gap: 4px;
-        }
-
-        .login-side-metrics span {
-          color: #6b7280;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .login-side-metrics strong {
-          color: #c65d1a;
-          font-size: 14px;
-        }
-
-        .login-side-link {
-          text-decoration: none;
-          border: 1px solid #e5ddd1;
-          border-radius: 10px;
-          color: #39475b;
-          background: #ffffff;
-          font-size: 13px;
-          font-weight: 700;
-          padding: 10px 12px;
-          text-align: center;
-        }
-
-        .login-side-link:hover {
-          border-color: rgba(198,93,26,0.4);
-          color: #b45309;
-        }
-
-        @keyframes scan {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-
-        .fade-in {
-          animation: fadeIn 0.8s ease-out;
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @media (max-width: 1020px) {
-          .login-shell {
-            grid-template-columns: 1fr;
-            width: min(620px, 100%);
-          }
-
-          .login-side-panel {
-            display: none;
-          }
-
-          .top-bar {
-            display: none;
-          }
-
-          .login-card {
-            padding: 22px;
-          }
-        }
-
-        @media (max-height: 860px) {
-          .login-side-panel {
-            display: none;
-          }
-
-          .login-shell {
-            width: min(620px, 100%);
-            grid-template-columns: 1fr;
-          }
-        }
-        `}
-      </style>
-    </div>
+      }
+    />
   );
 }
 

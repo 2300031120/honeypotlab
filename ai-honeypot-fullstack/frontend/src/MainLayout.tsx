@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 import { PUBLIC_SITE } from "./siteConfig";
-import { clearAuthSession, getAuthToken, getUserProfile, setAuthSession } from "./utils/auth";
+import { buildAuthHeaders, clearAuthSession, getUserProfile, setAuthSession } from "./utils/auth";
 
 import { motion } from "./utils/motionLite";
 
@@ -18,7 +18,7 @@ const MainLayout = () => {
     const navigate = useNavigate();
     const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
     const [userProfile, setUserProfile] = useState(() => getUserProfile());
-    const productLabel = String(PUBLIC_SITE.shortName || PUBLIC_SITE.siteName || "CyberSentinel").trim().toUpperCase();
+    const productLabel = String(PUBLIC_SITE.shortName || PUBLIC_SITE.siteName || "CyberSentil").trim().toUpperCase();
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
@@ -35,10 +35,7 @@ const MainLayout = () => {
                     email: res.data?.email || userProfile?.email || null,
                 };
                 setUserProfile(nextProfile);
-                const token = getAuthToken();
-                if (token) {
-                    setAuthSession(token, nextProfile);
-                }
+                setAuthSession(nextProfile);
             } catch {
                 // Keep local profile if /auth/me fails.
             }
@@ -46,9 +43,15 @@ const MainLayout = () => {
         syncUserProfile();
     }, []);
 
-    const logout = () => {
-        clearAuthSession();
-    navigate("/auth/login");
+    const logout = async () => {
+        try {
+            await axios.post(`${API_BASE}/auth/logout`, {}, { headers: buildAuthHeaders() });
+        } catch {
+            // Best-effort server revoke; local cleanup still completes.
+        } finally {
+            clearAuthSession();
+            navigate("/auth/login");
+        }
     };
 
     return (

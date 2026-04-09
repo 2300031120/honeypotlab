@@ -43,6 +43,7 @@ class LeadSubmission(BaseModel):
     organization: str
     use_case: str
     message: str
+    referral_code: str = ""
     website: str = ""
     challenge_id: str | None = None
     challenge_answer: str | None = None

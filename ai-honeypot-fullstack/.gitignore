@@ -48,6 +48,7 @@ copilot-messages.log
 .DS_Store
 .project/attachments/files/**
 .env
+.env.local
 frontend/.env.*
 !frontend/.env.example
 .integration.env.local

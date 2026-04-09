@@ -9,9 +9,9 @@ import {
 } from './src/utils/siteDiscovery.js'
 
 const enablePwa = process.env.ENABLE_PWA === 'true'
-const devApiTarget = process.env.VITE_DEV_API_TARGET || 'http://localhost:8000'
-const siteName = process.env.VITE_PUBLIC_SITE_NAME || 'CyberSentinel AI'
-const shortName = process.env.VITE_PUBLIC_SHORT_NAME || 'CyberSentinel'
+const devApiTarget = process.env.VITE_DEV_API_TARGET || 'http://localhost:8001'
+const siteName = process.env.VITE_PUBLIC_SITE_NAME || 'CyberSentil'
+const shortName = process.env.VITE_PUBLIC_SHORT_NAME || 'CyberSentil'
 const tagline = process.env.VITE_PUBLIC_TAGLINE || 'Deception-led threat detection'
 const siteDescription =
   process.env.VITE_PUBLIC_SITE_DESCRIPTION ||
@@ -170,6 +170,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/ws': {
+        target: devApiTarget,
+        changeOrigin: true,
+        secure: false,
+        ws: true
       }
     }
   },

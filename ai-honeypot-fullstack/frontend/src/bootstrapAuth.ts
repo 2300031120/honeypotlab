@@ -1,9 +1,8 @@
-// @ts-nocheck
 import axios from "axios";
-import { AUTH_CHANGED_EVENT, clearAuthSession, getAuthToken } from "./utils/auth";
+import { AUTH_CHANGED_EVENT, clearAuthSession } from "./utils/auth";
 
 let initialized = false;
-const PUBLIC_PATHS = [
+const PUBLIC_PATHS: string[] = [
   "/",
   "/platform",
   "/architecture",
@@ -19,24 +18,32 @@ const PUBLIC_PATHS = [
   "/signup",
 ];
 
-function isPublicPath(pathname) {
+function isPublicPath(pathname: string) {
   const currentPath = String(pathname || "/");
   if (currentPath === "/") return true;
   return PUBLIC_PATHS.some((path) => path !== "/" && (currentPath === path || currentPath.startsWith(`${path}/`)));
 }
 
 function applyAuthHeader() {
-  const token = getAuthToken();
-  if (token) {
-    axios.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common.Authorization;
-  }
+  delete axios.defaults.headers.common.Authorization;
+  axios.defaults.withCredentials = true;
 }
+
+type AxiosErrorLike = {
+  response?: { status?: number };
+  config?: {
+    skipAuthRedirect?: boolean;
+    headers?: Record<string, string>;
+  };
+};
 
 export function initAuthTransport() {
   if (initialized) return;
   initialized = true;
+
+  if (typeof window === "undefined") {
+    return;
+  }
 
   applyAuthHeader();
 
@@ -45,7 +52,7 @@ export function initAuthTransport() {
 
   axios.interceptors.response.use(
     (response) => response,
-    (error) => {
+    (error: AxiosErrorLike) => {
       const status = error?.response?.status;
       if (status === 401) {
         const skipAuthRedirect =

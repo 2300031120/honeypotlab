@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 
-app = FastAPI(title="CyberSentinel Terminal Sandbox")
+app = FastAPI(title="CyberSentil Terminal Sandbox")
 
 BASE_DIR = Path(os.getenv("SANDBOX_BASE_DIR", "/sandbox-data")).resolve()
 EXEC_TIMEOUT_SEC = max(1, int(os.getenv("SANDBOX_EXEC_TIMEOUT_SEC", "8")))

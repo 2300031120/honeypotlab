@@ -4,6 +4,9 @@
 # IDE metadata
 .idea/
 
+# Local tool/browser profiles (e.g. CDP, automation logs)
+logs/
+
 # Local archives/backups
 *.tgz
 *.tar

@@ -1,5 +1,20 @@
-// @ts-nocheck
-const GEO_POINT_LOOKUP = {
+type GeoPoint = { x: number; y: number };
+type GeoLatLng = { lat: number; lng: number };
+
+type EventLike = {
+  timestamp_utc?: string | number | Date | null;
+  timestamp?: string | number | Date | null;
+  ts?: string | number | Date | null;
+  time?: string | number | Date | null;
+  created_at?: string | number | Date | null;
+  event_type?: string | null;
+  session_id?: string | null;
+  sessionId?: string | null;
+  ip?: string | null;
+  ua?: string | null;
+};
+
+const GEO_POINT_LOOKUP: Record<string, GeoPoint> = {
   US: { x: 150, y: 120 },
   USA: { x: 150, y: 120 },
   India: { x: 650, y: 180 },
@@ -17,7 +32,7 @@ const GEO_POINT_LOOKUP = {
   "United Kingdom": { x: 430, y: 95 },
 };
 
-const GEO_LATLNG_LOOKUP = {
+const GEO_LATLNG_LOOKUP: Record<string, GeoLatLng> = {
   US: { lat: 37.0902, lng: -95.7129 },
   USA: { lat: 37.0902, lng: -95.7129 },
   India: { lat: 20.5937, lng: 78.9629 },
@@ -38,7 +53,7 @@ const GEO_LATLNG_LOOKUP = {
 const SYNTHETIC_EVENT_TYPES = new Set(["protocol_simulation", "simulated_attack", "deception_config"]);
 const LOCAL_NOISE_IPS = new Set(["127.0.0.1", "::1", "localhost", "testclient"]);
 
-function hashString(value) {
+function hashString(value: string | number | null | undefined) {
   const text = String(value ?? "");
   let hash = 2166136261;
   for (let i = 0; i < text.length; i += 1) {
@@ -48,11 +63,11 @@ function hashString(value) {
   return hash >>> 0;
 }
 
-function normalizedFromHash(value) {
+function normalizedFromHash(value: string | number | null | undefined) {
   return hashString(value) / 0xffffffff;
 }
 
-export function getEventTimestampValue(event) {
+export function getEventTimestampValue(event?: EventLike | null) {
   return (
     event?.timestamp_utc ||
     event?.timestamp ||
@@ -63,7 +78,7 @@ export function getEventTimestampValue(event) {
   );
 }
 
-export function getEventDate(event) {
+export function getEventDate(event?: EventLike | null) {
   const raw = getEventTimestampValue(event);
   if (!raw) return null;
   const date = raw instanceof Date ? raw : new Date(raw);
@@ -71,25 +86,25 @@ export function getEventDate(event) {
   return date;
 }
 
-export function getEventTimeLabel(event, locale = undefined) {
+export function getEventTimeLabel(event?: EventLike | null, locale?: string) {
   const date = getEventDate(event);
   if (!date) return "N/A";
   return date.toLocaleTimeString(locale);
 }
 
-export function getEventIsoTime(event) {
+export function getEventIsoTime(event?: EventLike | null) {
   const date = getEventDate(event);
   if (!date) return "N/A";
   return date.toISOString();
 }
 
-export function stableHexFromText(value, length = 16) {
+export function stableHexFromText(value: string | number | null | undefined, length = 16) {
   const hash = hashString(value).toString(16).padStart(8, "0");
   const duplicate = `${hash}${hash}${hash}`;
   return duplicate.slice(0, Math.max(4, length));
 }
 
-export function stableGeoPoint(countryOrKey, canvasWidth = 900, canvasHeight = 420) {
+export function stableGeoPoint(countryOrKey: string, canvasWidth = 900, canvasHeight = 420) {
   const lookup = GEO_POINT_LOOKUP[countryOrKey];
   if (lookup) return lookup;
   const key = String(countryOrKey || "unknown");
@@ -101,7 +116,7 @@ export function stableGeoPoint(countryOrKey, canvasWidth = 900, canvasHeight = 4
   };
 }
 
-export function stableGeoLatLng(countryOrKey, fallbackKey = "") {
+export function stableGeoLatLng(countryOrKey: string, fallbackKey = "") {
   const lookup = GEO_LATLNG_LOOKUP[countryOrKey];
   if (lookup) return lookup;
   const seed = `${countryOrKey || "unknown"}|${fallbackKey || "na"}`;
@@ -110,14 +125,14 @@ export function stableGeoLatLng(countryOrKey, fallbackKey = "") {
   return { lat: Number(lat.toFixed(4)), lng: Number(lng.toFixed(4)) };
 }
 
-export function stableAlias(source, prefix = "Adversary") {
+export function stableAlias(source: string | number | null | undefined, prefix = "Adversary") {
   const raw = String(source || "UNKNOWN");
   const compact = raw.replace(/[^a-zA-Z0-9]/g, "");
   const suffix = compact.slice(-6).toUpperCase() || stableHexFromText(raw, 6).toUpperCase();
   return `${prefix}-${suffix}`;
 }
 
-export function isSyntheticEvent(event) {
+export function isSyntheticEvent(event?: EventLike | null) {
   const eventType = String(event?.event_type || "").toLowerCase();
   const sessionId = String(event?.session_id || event?.sessionId || "");
   const ip = String(event?.ip || "").toLowerCase();

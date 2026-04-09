@@ -14,7 +14,7 @@ import asyncssh
 from fastapi import FastAPI
 
 
-app = FastAPI(title="CyberSentinel SSH Decoy")
+app = FastAPI(title="CyberSentil SSH Decoy")
 
 BACKEND_INTERNAL_URL = os.getenv("BACKEND_INTERNAL_URL", "http://backend:5000").strip().rstrip("/")
 TERMINAL_SANDBOX_URL = os.getenv("TERMINAL_SANDBOX_URL", "http://terminal-sandbox:5100").strip().rstrip("/")

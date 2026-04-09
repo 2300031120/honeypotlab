@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import axios from "axios";
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -6,12 +5,53 @@ import { Fingerprint, Zap, Cpu, User, Clock, Code, Activity } from 'lucide-react
 import { isSyntheticEvent, stableAlias, stableHexFromText } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 
+type RawProfile = {
+    session_id?: string;
+    ip?: string;
+    alias?: string;
+    skillScore?: number;
+    severity?: string;
+    status?: string;
+    dna?: string;
+    duration?: string;
+    complexity?: string;
+    type?: string;
+    intent?: string;
+    event_count?: number;
+    ai_metadata?: {
+        intent?: string;
+    };
+};
+
+type NormalizedProfile = {
+    session_id?: string;
+    ip: string;
+    alias: string;
+    skillScore: number;
+    severity?: string;
+    status: 'critical' | 'medium' | 'low';
+    dna: string;
+    duration: string;
+    complexity: string;
+    type: string;
+    intent: string;
+    event_count: number;
+};
+
+type IncidentPayload = {
+    ip?: string;
+    severity?: string;
+    ai_metadata?: {
+        intent?: string;
+    };
+};
+
 const AttackerProfile = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [profiles, setProfiles] = useState([]);
-    const [dnaSegments, setDnaSegments] = useState([]);
+    const [profiles, setProfiles] = useState<NormalizedProfile[]>([]);
+    const [dnaSegments, setDnaSegments] = useState<number[]>([]);
 
-    const buildDnaSegments = (profile) => {
+    const buildDnaSegments = (profile: Pick<NormalizedProfile, 'session_id' | 'ip' | 'skillScore' | 'intent' | 'event_count'>): number[] => {
         const seed = `${profile?.session_id || profile?.ip || "UNKNOWN"}|${profile?.skillScore || 0}|${profile?.intent || "unknown"}|${profile?.event_count || 0}`;
         return Array.from({ length: 40 }).map((_, idx) => {
             const bit = stableHexFromText(`${seed}-${idx}`, 2);
@@ -19,7 +59,7 @@ const AttackerProfile = () => {
         });
     };
 
-    const normalizeProfile = (profile, idx = 0) => {
+    const normalizeProfile = (profile: RawProfile, idx = 0): NormalizedProfile => {
         const skill = Number(profile?.skillScore ?? 0);
         const severity = profile?.severity || profile?.status || 'low';
         return {
@@ -33,16 +73,17 @@ const AttackerProfile = () => {
             complexity: profile?.complexity || (skill > 70 ? 'High' : skill > 40 ? 'Medium' : 'Low'),
             type: profile?.type || 'Unknown',
             intent: profile?.intent || 'Reconnaissance',
+            event_count: profile?.event_count || 0,
         };
     };
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/attacker/profiles`, REAL_ONLY_PARAMS);
+            const res = await axios.get<RawProfile[]>(`${API_BASE}/attacker/profiles`, REAL_ONLY_PARAMS);
             const data = Array.isArray(res.data) ? res.data : [];
             const normalized = data.map((profile, idx) => normalizeProfile(profile, idx));
             setProfiles(normalized);
-            setDnaSegments(normalized.length > 0 ? buildDnaSegments(normalized[0]) : Array.from({ length: 40 }).fill(0));
+            setDnaSegments(normalized.length > 0 ? buildDnaSegments(normalized[0]) : Array.from({ length: 40 }, () => 0));
         } catch (err) {
             console.error("Profile Fetch failed", err);
         }
@@ -57,12 +98,13 @@ const AttackerProfile = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
-                    if (!data || isSyntheticEvent(data)) return;
+                    const raw = safeParseJson(event.data);
+                    if (!raw || typeof raw !== 'object' || isSyntheticEvent(raw)) return;
+                    const data = raw as IncidentPayload;
 
                     setProfiles(prev => {
                         const existing = prev.find(p => p.ip === data.ip);
-                        let updatedProfiles;
+                        let updatedProfiles: NormalizedProfile[];
                         if (existing) {
                             updatedProfiles = prev.map((p, idx) => p.ip === data.ip ? normalizeProfile({
                                 ...p,
@@ -84,7 +126,7 @@ const AttackerProfile = () => {
                                 complexity: 'Low'
                             }, 0), ...prev.slice(0, 5)];
                         }
-                        setDnaSegments(updatedProfiles.length > 0 ? buildDnaSegments(updatedProfiles[0]) : Array.from({ length: 40 }).fill(0));
+                        setDnaSegments(updatedProfiles.length > 0 ? buildDnaSegments(updatedProfiles[0]) : Array.from({ length: 40 }, () => 0));
                         return updatedProfiles;
                     });
                 },

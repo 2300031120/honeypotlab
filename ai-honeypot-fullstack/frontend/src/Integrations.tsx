@@ -120,16 +120,16 @@ export default function Integrations() {
               ))}
             </div>
             <div className="marketing-actions">
-              <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/integrations")}>
-                Request Demo <ArrowRight size={16} />
+              <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/integrations")}>
+                Open Resources <ArrowRight size={16} />
               </Link>
-              <Link to="/deployment" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_deployment", "/integrations")}>
-                View Deployment
+              <Link to="/demo" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("request_demo", "/integrations")}>
+                Request Demo
               </Link>
             </div>
             <div className="marketing-hero-story">
               <div className="marketing-hero-story-head">
-                <span className="marketing-kicker">What this page proves</span>
+                <span className="marketing-kicker">What teams get</span>
                 <strong>The platform already has a concrete path from upstream signal to operator review.</strong>
               </div>
               <ul className="marketing-checklist marketing-checklist-compact">
@@ -172,7 +172,7 @@ export default function Integrations() {
             <div className="marketing-summary">
               <div className="marketing-summary-head">
                 <Workflow size={16} />
-                <span>Repo-backed proof</span>
+                <span>Ready integration assets</span>
               </div>
               <p>The repo already contains templates, bootstrap scripts, and verification steps for the first live integration pass.</p>
             </div>
@@ -227,7 +227,7 @@ export default function Integrations() {
           <div className="marketing-grid-2 marketing-split-proof">
             <article className="marketing-card marketing-showcase marketing-proof-copy-card">
               <p className="marketing-kicker">Practical rollout</p>
-              <h3>Best when integration and operator proof happen in the same sprint.</h3>
+              <h3>Best when integration and analyst validation happen in the same sprint.</h3>
               <p>
                 The strongest rollout is not just “we sent an event.” It is “we connected the source, confirmed the event,
                 and saw it flow into the analyst workflow with enough context to act.”
@@ -249,8 +249,8 @@ export default function Integrations() {
             <p>We can map customer apps, edge relays, and verification steps into a rollout that proves value quickly.</p>
           </div>
           <div className="marketing-actions">
-            <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/integrations")}>
-              Request Demo
+            <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/integrations")}>
+              Open Resources
             </Link>
             <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/integrations")}>
               Contact Team

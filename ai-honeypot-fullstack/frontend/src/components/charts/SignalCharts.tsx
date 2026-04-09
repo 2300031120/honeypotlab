@@ -1,11 +1,57 @@
-// @ts-nocheck
 import React, { useMemo } from "react";
 
-function clamp(value, min, max) {
+type RawChartItem = {
+  name?: unknown;
+  label?: unknown;
+  value?: unknown;
+  color?: unknown;
+  [key: string]: unknown;
+};
+
+type ChartItem = {
+  name: string;
+  value: number;
+  color: string;
+};
+
+type DonutChartProps = {
+  data: ChartItem[];
+  size?: number;
+  strokeWidth?: number;
+  centerLabel?: React.ReactNode;
+  centerValue?: React.ReactNode;
+  legend?: boolean;
+  legendFormatter?: (item: ChartItem) => React.ReactNode;
+};
+
+type AreaTrendDatum = Record<string, unknown>;
+
+type AreaTrendPoint = {
+  id: string;
+  x: number;
+  y: number;
+  value: number;
+  label: string | number;
+  meta: string;
+};
+
+type AreaTrendChartProps = {
+  data?: AreaTrendDatum[];
+  valueKey?: string;
+  labelKey?: string;
+  minValue?: number;
+  maxValue?: number;
+  color?: string;
+  height?: number;
+  showFooter?: boolean;
+  emptyLabel?: string;
+};
+
+function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function polarToCartesian(cx, cy, radius, angleDeg) {
+function polarToCartesian(cx: number, cy: number, radius: number, angleDeg: number) {
   const angleRad = ((angleDeg - 90) * Math.PI) / 180;
   return {
     x: cx + radius * Math.cos(angleRad),
@@ -13,20 +59,20 @@ function polarToCartesian(cx, cy, radius, angleDeg) {
   };
 }
 
-function describeArc(cx, cy, radius, startAngle, endAngle) {
+function describeArc(cx: number, cy: number, radius: number, startAngle: number, endAngle: number) {
   const start = polarToCartesian(cx, cy, radius, endAngle);
   const end = polarToCartesian(cx, cy, radius, startAngle);
   const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
   return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
 }
 
-function toChartData(data, fallbackLabel = "No data", fallbackColor = "#334155") {
+function toChartData(data: unknown, fallbackLabel = "No data", fallbackColor = "#334155"): ChartItem[] {
   const normalized = Array.isArray(data)
     ? data
-        .map((item) => ({
+        .map((item: RawChartItem) => ({
           name: String(item?.name || item?.label || fallbackLabel),
           value: Number(item?.value || 0),
-          color: item?.color || fallbackColor,
+          color: String(item?.color || fallbackColor),
         }))
         .filter((item) => item.value > 0)
     : [];
@@ -37,7 +83,7 @@ function toChartData(data, fallbackLabel = "No data", fallbackColor = "#334155")
   return normalized;
 }
 
-function buildAreaPaths(points, baselineY) {
+function buildAreaPaths(points: AreaTrendPoint[], baselineY: number) {
   if (!points.length) {
     return { linePath: "", areaPath: "" };
   }
@@ -58,14 +104,14 @@ function DonutChart({
   centerValue,
   legend = true,
   legendFormatter,
-}) {
+}: DonutChartProps) {
   const radius = size / 2 - strokeWidth * 1.1;
   const center = size / 2;
   const normalized = toChartData(data);
   const total = normalized.reduce((sum, item) => sum + item.value, 0);
   let currentAngle = 0;
 
-  const segments = normalized.map((item) => {
+const segments = normalized.map((item) => {
     const angle = (item.value / total) * 360;
     const startAngle = currentAngle;
     const endAngle = currentAngle + angle;
@@ -123,7 +169,7 @@ function DonutChart({
   );
 }
 
-export function MitreDonutChart({ mitreData = [] }) {
+export function MitreDonutChart({ mitreData = [] }: { mitreData?: RawChartItem[] }) {
   const colors = ["#1f6feb", "#58a6ff", "#2ea043", "#f85149", "#d29922", "#8b5cf6"];
   const data = toChartData(mitreData, "None", "#334155").map((item, index) => ({
     ...item,
@@ -141,8 +187,8 @@ export function MitreDonutChart({ mitreData = [] }) {
   );
 }
 
-export function SeverityDonutChart({ severityData = [] }) {
-  const colors = {
+export function SeverityDonutChart({ severityData = [] }: { severityData?: RawChartItem[] }) {
+  const colors: Record<string, string> = {
     Critical: "#f85149",
     Medium: "#d29922",
     Low: "#3fb950",
@@ -175,10 +221,10 @@ export function AreaTrendChart({
   height = 180,
   showFooter = true,
   emptyLabel = "No trend data available yet.",
-}) {
+}: AreaTrendChartProps) {
   const width = 560;
   const padding = { top: 18, right: 16, bottom: 24, left: 16 };
-  const values = data.map((item) => Number(item?.[valueKey] || 0));
+  const values = data.map((item) => Number((item as AreaTrendDatum)?.[valueKey] || 0));
   const computedMax = Number.isFinite(Number(maxValue))
     ? Number(maxValue)
     : Math.max(minValue + 1, ...values, 1);
@@ -186,21 +232,23 @@ export function AreaTrendChart({
   const plotWidth = width - padding.left - padding.right;
   const plotHeight = height - padding.top - padding.bottom;
 
-  const points = useMemo(() => {
+  const points = useMemo<AreaTrendPoint[]>(() => {
     if (!data.length) {
       return [];
     }
     const step = data.length === 1 ? plotWidth / 2 : plotWidth / (data.length - 1);
     return data.map((item, index) => {
-      const rawValue = Number(item?.[valueKey] || 0);
+      const rawValue = Number((item as AreaTrendDatum)?.[valueKey] || 0);
       const normalized = clamp((rawValue - minValue) / safeRange, 0, 1);
       return {
-        id: `${index}-${item?.[labelKey] || "point"}`,
+        id: `${index}-${(item as AreaTrendDatum)?.[labelKey] || "point"}`,
         x: padding.left + step * index,
         y: padding.top + plotHeight - normalized * plotHeight,
         value: rawValue,
-        label: item?.[labelKey] ?? index + 1,
-        meta: item?.cmd || item?.name || item?.event_type || "",
+        label: ((item as AreaTrendDatum)?.[labelKey] ?? index + 1) as string | number,
+        meta: String(
+          (item as AreaTrendDatum)?.cmd || (item as AreaTrendDatum)?.name || (item as AreaTrendDatum)?.event_type || ""
+        ),
       };
     });
   }, [data, labelKey, minValue, plotHeight, plotWidth, safeRange, valueKey]);
@@ -270,7 +318,7 @@ export function AreaTrendChart({
   );
 }
 
-export function ForecastSparkChart({ forecast = [] }) {
+export function ForecastSparkChart({ forecast = [] }: { forecast?: Array<Record<string, unknown>> }) {
   const normalized = Array.isArray(forecast)
     ? forecast.map((item, index) => ({
         hour: item?.hour ?? index + 1,

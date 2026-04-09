@@ -23,6 +23,37 @@ This project is an **AI‑enhanced, high‑interaction, dynamic deception system
 
 ---
 
+## Local demo/dev start
+If your existing `.env` points at a production hostname, do **not** edit it just to run locally.
+
+Use the local startup script instead:
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/local-up.ps1
+```
+
+Optional: copy the local template first if you want to customize the localhost defaults without touching production values:
+```powershell
+Copy-Item .env.local.example .env.local
+```
+
+Useful variants:
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy/scripts/local-up.ps1 -NoBuild
+powershell -ExecutionPolicy Bypass -File deploy/scripts/local-up.ps1 -Down
+```
+
+This script forces development-safe values such as:
+- `APP_ENV=development`
+- `PUBLIC_BASE_URL=http://localhost`
+- localhost `CORS_ORIGINS` and `TRUSTED_HOSTS`
+- secure-cookie and HTTPS redirect disabled for local-only use
+
+Open:
+- Frontend: `http://localhost/`
+- Backend API health: `http://localhost/api/health`
+
+---
+
 ## Quick start (Docker)
 1. Copy env:
 ```bash
@@ -31,6 +62,7 @@ cp .env.example .env
 Set `CORS_ORIGINS` in `.env` if your frontend is served from a non-localhost origin.
 Set the public website identity before launch: `VITE_PUBLIC_SITE_NAME`, `VITE_PUBLIC_SITE_URL`, `VITE_PUBLIC_APP_URL`, `VITE_PUBLIC_CONTACT_EMAIL`, `VITE_PUBLIC_SECURITY_EMAIL`, and `VITE_PUBLIC_PRIVACY_EMAIL`.
 If marketing pages and the authenticated product live on different hostnames, point `VITE_PUBLIC_LOGIN_URL` at the real sign-in URL.
+For a clean startup launch, use `PUBLIC_BASE_URL=https://app.yourdomain.com`, `VITE_PUBLIC_SITE_URL=https://yourdomain.com`, and `VITE_PUBLIC_APP_URL=https://app.yourdomain.com`.
 Keep the marketing website and any high-interaction honeypot services logically separated; do not use the same public host for your brochure site and exposed decoy protocols unless you understand and accept that risk.
 When `APP_ENV=production`, set these mandatory trap credentials too:
 `PROTOCOL_SSH_TRAP_CREDENTIALS` and `PROTOCOL_MYSQL_TRAP_CREDENTIALS` (comma-separated `user:pass` pairs).
@@ -51,6 +83,10 @@ Run automated launch checks against your `.env`:
 ```bash
 py -3 deploy/scripts/launch_preflight.py
 ```
+Render a split-host production scaffold for a real domain:
+```bash
+py -3 deploy/scripts/render_domain_env.py --domain cybersentil.online --output .env.cybersentil
+```
 Optional live URL probe:
 ```bash
 py -3 deploy/scripts/launch_preflight.py --check-url
@@ -61,6 +97,7 @@ py -3 deploy/scripts/launch_preflight.py --strict --check-url
 ```
 This validates production-critical settings such as `APP_ENV`, `SECRET_KEY`, `CORS_ORIGINS`, `TRUSTED_HOSTS`, HTTPS redirect, secure cookies, trap credentials, and PostgreSQL launch configuration.
 See [docs/PRODUCTION_DEPLOY_CHECKLIST.md](docs/PRODUCTION_DEPLOY_CHECKLIST.md) for the practical launch gate and operator readiness checklist.
+See [docs/DEMO_WALKTHROUGH_RUNBOOK.md](docs/DEMO_WALKTHROUGH_RUNBOOK.md) for the fastest clean product demo path when you are showing a fresh workspace or sample incident flow.
 
 Frontend hotfix redeploy (force refresh stale bundles in production):
 ```powershell
@@ -219,9 +256,9 @@ You can pitch this as:
 - **Website Threat Monitoring as a Service**
 
 Suggested tiers:
-- Free: 1 website, 7 days retention
-- Pro: 5 websites, 30 days retention + alerts
-- Team: unlimited websites + SIEM export
+- Starter: 1 exposed app pilot, guided rollout
+- Growth: multi-site team workflow and response hooks
+- MSSP: multi-tenant delivery and customer reporting
 
 ## Adaptive web decoy design
 See [docs/ADAPTIVE_WEB_DECOY_ARCHITECTURE.md](docs/ADAPTIVE_WEB_DECOY_ARCHITECTURE.md) for the FastAPI control-plane + phpMyAdmin-like decoy architecture and safety boundaries.

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Launch preflight checks for CyberSentinel startup deployment.
+Launch preflight checks for CyberSentil startup deployment.
 
 Usage:
   py -3 deploy/scripts/launch_preflight.py
@@ -92,6 +92,17 @@ def same_host(left: str, right: str) -> bool:
     return str(left or "").strip().lower() == str(right or "").strip().lower()
 
 
+def origin_list_contains_host(origins: List[str], hostname: str) -> bool:
+    target = str(hostname or "").strip().lower()
+    if not target:
+        return False
+    for origin in origins:
+        parsed = urlparse(str(origin or "").strip())
+        if same_host(parsed.hostname or "", target):
+            return True
+    return False
+
+
 def run_preflight(env: Dict[str, str], check_url: bool, *, repo_root: Path | None = None) -> Tuple[List[str], List[str], List[str]]:
     passes: List[str] = []
     warns: List[str] = []
@@ -150,23 +161,31 @@ def run_preflight(env: Dict[str, str], check_url: bool, *, repo_root: Path | Non
 
     vite_site_url = first_defined(env, "VITE_PUBLIC_SITE_URL")
     parsed_site_url = urlparse(vite_site_url)
+    site_host = parsed_site_url.hostname or ""
     if parsed_site_url.scheme != "https" or not parsed_site_url.netloc:
         fails.append("VITE_PUBLIC_SITE_URL must be an HTTPS URL.")
     elif is_placeholder_secret(vite_site_url):
         fails.append("VITE_PUBLIC_SITE_URL still looks like a placeholder/example value.")
-    elif public_host and not same_host(parsed_site_url.hostname or "", public_host):
-        warns.append("VITE_PUBLIC_SITE_URL host differs from PUBLIC_BASE_URL. Confirm this is intentional.")
+    elif public_host and not same_host(site_host, public_host):
+        if host_matches_trusted(site_host, trusted_hosts) and origin_list_contains_host(cors_origins, site_host):
+            passes.append("VITE_PUBLIC_SITE_URL is launch-ready for split-host deployment.")
+        else:
+            warns.append("VITE_PUBLIC_SITE_URL host differs from PUBLIC_BASE_URL. Confirm this is intentional.")
     else:
         passes.append("VITE_PUBLIC_SITE_URL is launch-ready.")
 
     vite_app_url = first_defined(env, "VITE_PUBLIC_APP_URL")
     parsed_app_url = urlparse(vite_app_url)
+    app_host = parsed_app_url.hostname or ""
     if parsed_app_url.scheme != "https" or not parsed_app_url.netloc:
         fails.append("VITE_PUBLIC_APP_URL must be an HTTPS URL.")
     elif is_placeholder_secret(vite_app_url):
         fails.append("VITE_PUBLIC_APP_URL still looks like a placeholder/example value.")
-    elif public_host and not same_host(parsed_app_url.hostname or "", public_host):
-        warns.append("VITE_PUBLIC_APP_URL host differs from PUBLIC_BASE_URL. Confirm app routing/CORS for split-host deployment.")
+    elif public_host and not same_host(app_host, public_host):
+        if host_matches_trusted(app_host, trusted_hosts) and origin_list_contains_host(cors_origins, app_host):
+            passes.append("VITE_PUBLIC_APP_URL is launch-ready for split-host deployment.")
+        else:
+            warns.append("VITE_PUBLIC_APP_URL host differs from PUBLIC_BASE_URL. Confirm app routing/CORS for split-host deployment.")
     else:
         passes.append("VITE_PUBLIC_APP_URL is launch-ready.")
 

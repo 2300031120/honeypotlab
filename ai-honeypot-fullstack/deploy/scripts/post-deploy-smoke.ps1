@@ -4,6 +4,8 @@ param(
 
     [string]$Username = "ops_smoke",
     [string]$Password = "StrongPass123!",
+    [string]$Token = "",
+    [string]$HostHeader = "",
     [string]$Email = "",
     [string]$SiteName = "smoke-site",
     [string]$SiteDomain = "smoke.example.com",
@@ -47,11 +49,93 @@ function Get-HeaderValue {
     return [string]$value
 }
 
+function Merge-Headers {
+    param(
+        [hashtable]$Base,
+        [hashtable]$Extra
+    )
+
+    $merged = @{}
+    if ($Base) {
+        foreach ($key in $Base.Keys) {
+            $merged[$key] = $Base[$key]
+        }
+    }
+    if ($Extra) {
+        foreach ($key in $Extra.Keys) {
+            $merged[$key] = $Extra[$key]
+        }
+    }
+    return $merged
+}
+
+function Is-PlaceholderValue {
+    param([string]$Value)
+    if (-not $Value) {
+        return $false
+    }
+    $trimmed = $Value.Trim()
+    return $trimmed -match '^<[^>]+>$'
+}
+
+function Get-ResponseStatusCode {
+    param($ErrorRecord)
+    if ($null -eq $ErrorRecord) { return $null }
+    if ($null -eq $ErrorRecord.Exception) { return $null }
+
+    if ($null -ne $ErrorRecord.Exception.Response) {
+        try {
+            return [int]$ErrorRecord.Exception.Response.StatusCode
+        } catch {
+            try {
+                return [int]$ErrorRecord.Exception.Response.StatusCode.value__
+            } catch {
+                # Continue and try alternate shape.
+            }
+        }
+    }
+
+    try {
+        return [int]$ErrorRecord.Exception.StatusCode
+    } catch {
+        return $null
+    }
+}
+
+function Get-ResponseBodyText {
+    param($ErrorRecord)
+    if ($null -eq $ErrorRecord) {
+        return ""
+    }
+
+    if ($null -ne $ErrorRecord.ErrorDetails -and $null -ne $ErrorRecord.ErrorDetails.Message -and [string]$ErrorRecord.ErrorDetails.Message) {
+        return [string]$ErrorRecord.ErrorDetails.Message
+    }
+
+    if ($null -eq $ErrorRecord.Exception -or $null -eq $ErrorRecord.Exception.Response) {
+        return ""
+    }
+
+    try {
+        $stream = $ErrorRecord.Exception.Response.GetResponseStream()
+        if ($null -eq $stream) {
+            return ""
+        }
+        $reader = New-Object System.IO.StreamReader($stream)
+        $body = $reader.ReadToEnd()
+        $reader.Dispose()
+        return [string]$body
+    } catch {
+        return ""
+    }
+}
+
 function Try-Login {
     param(
         [Parameter(Mandatory = $true)][string]$ApiBase,
         [Parameter(Mandatory = $true)][string]$LoginUser,
-        [Parameter(Mandatory = $true)][string]$LoginPassword
+        [Parameter(Mandatory = $true)][string]$LoginPassword,
+        [hashtable]$BaseHeaders = @{}
     )
     $payload = @{
         username = $LoginUser
@@ -59,7 +143,7 @@ function Try-Login {
     } | ConvertTo-Json -Compress
 
     try {
-        return Invoke-RestMethod -Method Post -Uri "$ApiBase/auth/login" -ContentType "application/json" -Body $payload -TimeoutSec 20
+        return Invoke-RestMethod -Method Post -Uri "$ApiBase/auth/login" -Headers $BaseHeaders -ContentType "application/json" -Body $payload -TimeoutSec 20
     } catch {
         $statusCode = $null
         if ($_.Exception.Response) {
@@ -86,15 +170,35 @@ if ($Insecure.IsPresent) {
 
 $apiBase = Normalize-ApiBase -RawBase $BaseUrl
 $runId = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+$defaultHeaders = @{}
+if ($HostHeader) {
+    $defaultHeaders["Host"] = $HostHeader.Trim()
+}
 
 if (-not $Email) {
     $Email = "$Username+$runId@example.com"
 }
 
+if (-not $Token) {
+    if ((Is-PlaceholderValue -Value $Username) -or (Is-PlaceholderValue -Value $Password) -or (Is-PlaceholderValue -Value $Email)) {
+        throw "Replace placeholder values (example: <user>, <pass>, <email>) with real credentials, or pass -Token with a valid operator JWT."
+    }
+}
+
 Write-Host "API base: $apiBase"
 
 Write-Host "[1/7] Health check"
-$healthResponse = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$apiBase/health" -TimeoutSec 20
+$healthResponse = $null
+try {
+    $healthResponse = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$apiBase/health" -Headers $defaultHeaders -TimeoutSec 20
+} catch {
+    $statusCode = Get-ResponseStatusCode -ErrorRecord $_
+    $responseBody = Get-ResponseBodyText -ErrorRecord $_
+    if ($statusCode -eq 530 -or $responseBody -match "error code:\s*1033") {
+        throw "Health check failed with Cloudflare 1033 (origin/tunnel unavailable). Restore origin connectivity for '$BaseUrl' and rerun smoke."
+    }
+    throw
+}
 $healthPayload = $healthResponse.Content | ConvertFrom-Json
 if ([string]$healthPayload.status -ne "healthy") {
     throw "Health endpoint did not return status=healthy."
@@ -105,30 +209,63 @@ if (-not $healthRequestId) {
 }
 
 Write-Host "[2/7] Auth (login or signup fallback)"
-$login = Try-Login -ApiBase $apiBase -LoginUser $Username -LoginPassword $Password
-if ($null -eq $login) {
-    $signupPayload = @{
-        username = $Username
-        email = $Email
-        password = $Password
-    } | ConvertTo-Json -Compress
-    $signup = Invoke-RestMethod -Method Post -Uri "$apiBase/auth/signup" -ContentType "application/json" -Body $signupPayload -TimeoutSec 20
-    if ($null -eq $signup) {
-        throw "Signup failed with empty response."
+$tokenValue = [string]$Token
+if (-not $tokenValue) {
+    $login = Try-Login -ApiBase $apiBase -LoginUser $Username -LoginPassword $Password -BaseHeaders $defaultHeaders
+    if ($null -eq $login) {
+        $signupPayload = @{
+            username = $Username
+            email = $Email
+            password = $Password
+        } | ConvertTo-Json -Compress
+        try {
+            $signup = Invoke-RestMethod -Method Post -Uri "$apiBase/auth/signup" -Headers $defaultHeaders -ContentType "application/json" -Body $signupPayload -TimeoutSec 20
+            if ($null -eq $signup) {
+                throw "Signup failed with empty response."
+            }
+            $login = Try-Login -ApiBase $apiBase -LoginUser $Username -LoginPassword $Password -BaseHeaders $defaultHeaders
+        } catch {
+            $statusCode = Get-ResponseStatusCode -ErrorRecord $_
+            $responseBody = Get-ResponseBodyText -ErrorRecord $_
+            if ($responseBody -match "Signup is disabled" -or $statusCode -eq 403) {
+                throw "Login failed for user '$Username' and signup is disabled on this deployment. Use valid existing operator credentials or pass -Token."
+            }
+            throw
+        }
     }
-    $login = Try-Login -ApiBase $apiBase -LoginUser $Username -LoginPassword $Password
+    $tokenValue = [string]$login.token
+    if (-not $tokenValue) {
+        throw "Could not obtain auth token from login."
+    }
+} else {
+    Write-Host "Using provided operator token (skipping login/signup)."
 }
-
-$token = [string]$login.token
-if (-not $token) {
-    throw "Could not obtain auth token from login."
-}
-$authHeader = @{ Authorization = "Bearer $token" }
+$authHeader = Merge-Headers -Base $defaultHeaders -Extra @{ Authorization = "Bearer $tokenValue" }
 
 Write-Host "[3/7] Auth profile check"
 $me = Invoke-RestMethod -Method Get -Uri "$apiBase/auth/me" -Headers $authHeader -TimeoutSec 20
-if ([string]$me.username -ne $Username) {
-    throw "Authenticated user mismatch. Expected '$Username', got '$($me.username)'."
+$expectedIdentity = [string]$Username
+$actualUsername = [string]$me.username
+$actualEmail = ""
+if ($me.PSObject.Properties.Name -contains "email") {
+    $actualEmail = [string]$me.email
+}
+
+$identityMatches = $false
+if ($actualUsername -eq $expectedIdentity -or ($actualEmail -and $actualEmail -eq $expectedIdentity)) {
+    $identityMatches = $true
+}
+
+# Common case: caller passes email, auth profile returns username.
+if (-not $identityMatches -and $expectedIdentity.Contains("@")) {
+    $localPart = $expectedIdentity.Split("@", 2)[0]
+    if ($localPart -and $actualUsername -eq $localPart) {
+        $identityMatches = $true
+    }
+}
+
+if (-not $identityMatches) {
+    throw "Authenticated user mismatch. Expected '$expectedIdentity', got username '$actualUsername' and email '$actualEmail'."
 }
 
 Write-Host "[4/7] Site key check (create or rotate)"
@@ -183,10 +320,11 @@ $ingestBody = @{
     }
 } | ConvertTo-Json -Depth 6 -Compress
 
-$ingestResp = Invoke-RestMethod -Method Post -Uri "$apiBase/ingest" -Headers @{
+$ingestHeaders = Merge-Headers -Base $defaultHeaders -Extra @{
     "X-API-Key" = $apiKey
     "Content-Type" = "application/json"
-} -Body $ingestBody -TimeoutSec 20
+}
+$ingestResp = Invoke-RestMethod -Method Post -Uri "$apiBase/ingest" -Headers $ingestHeaders -Body $ingestBody -TimeoutSec 20
 
 if ([string]$ingestResp.status -ne "accepted") {
     throw "Ingest did not return accepted status."
@@ -200,7 +338,7 @@ if ($null -eq $summary -or [int]$summary.total -lt 1) {
 }
 
 Write-Host "[7/7] Public telemetry snapshot check"
-$snapshot = Invoke-RestMethod -Method Get -Uri "$apiBase/public/telemetry/snapshot" -TimeoutSec 20
+$snapshot = Invoke-RestMethod -Method Get -Uri "$apiBase/public/telemetry/snapshot" -Headers $defaultHeaders -TimeoutSec 20
 if ($null -eq $snapshot.summary) {
     throw "Public telemetry snapshot missing summary."
 }

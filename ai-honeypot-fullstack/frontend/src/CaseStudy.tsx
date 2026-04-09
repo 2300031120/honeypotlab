@@ -4,6 +4,7 @@ import {
   ArrowRight,
   Building2,
   CheckCircle2,
+  FileText,
   Radar,
   ShieldCheck,
   Workflow,
@@ -14,15 +15,16 @@ import { PUBLIC_SITE } from "./siteConfig";
 import { trackCtaClick } from "./utils/analytics";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
+import ProofGallery from "./ProofGallery";
 
-const CASE_BADGES = ["Representative scenario", "Deception-led detection", "Operator workflow proof"];
+const CASE_BADGES = ["Sample incident report", "Exposed-route detection", "Operator workflow proof", "Integrity-backed handoff"];
 
-const CASE_SIGNALS = ["Public service edge", "Credential probing", "AI incident brief"];
+const CASE_SIGNALS = ["Exposed app edge", "Credential probing", "Analyst brief"];
 
 const CASE_SUMMARY = [
-  "A public-facing service placed believable decoy login and admin routes around the exposed edge.",
-  "Suspicious credential and route probing landed in the deception layer before the live service path was hit.",
-  "Operators used telemetry, AI summary, and readiness workflow to brief the team and tighten the rollout path.",
+  "A public-facing app placed believable decoy login, admin, and API routes around its exposed edge.",
+  "Credential probing and route mapping landed in the deception layer before the real production path was hit.",
+  "Operators used telemetry, analyst brief, and rollout checks to tighten exposure before the next release step.",
 ];
 
 const TIMELINE = [
@@ -38,7 +40,7 @@ const TIMELINE = [
   },
   {
     time: "08:47",
-    title: "AI brief generated",
+    title: "Analyst brief generated",
     detail: "The platform compressed the first-touch sequence into a readable incident summary for the operator team.",
   },
   {
@@ -67,19 +69,103 @@ const OUTCOMES = [
 ];
 
 const CASE_NOTES = [
-  "Representative story, not a named customer claim",
-  "Based on the platform's actual product workflow",
-  "Useful for explaining operator value before a live demo",
+  "Honest sample incident, not a named customer claim",
+  "Based on the platform's actual workflow and proof surfaces",
+  "Useful for buyers who need something concrete before a live demo",
+];
+
+const REPORT_METRICS = [
+  { label: "Suspicious source", value: "198.51.100.24" },
+  { label: "Route touches", value: "3 decoy surfaces" },
+  { label: "Session window", value: "13 minutes" },
+  { label: "Analyst verdict", value: "Credential-access recon" },
+];
+
+const REPORT_SECTIONS = [
+  {
+    title: "Executive summary",
+    detail: "What happened, why it matters, and why the interaction was treated as early hostile recon instead of harmless noise.",
+  },
+  {
+    title: "Observed route sequence",
+    detail: "The order of login, admin, and API-style touches so the buyer sees how the attacker moved through the deception layer.",
+  },
+  {
+    title: "Analyst interpretation",
+    detail: "Short reasoning about likely intent, severity, and why the sequence maps to credential probing rather than a random scan.",
+  },
+  {
+    title: "Recommended actions",
+    detail: "Concrete follow-up steps for exposed route review, WAF alignment, and deployment decisions after the incident.",
+  },
+];
+
+const STORY_PILLARS = [
+  {
+    title: "One incident, one clean operator story",
+    detail: "The buyer sees a believable attacker path, the analyst brief, and the operator decision in one sequence instead of fragmented screenshots.",
+    icon: <Workflow size={18} />,
+  },
+  {
+    title: "Artifacts, not just claims",
+    detail: "Screenshots and the downloadable report support the same narrative, which makes the proof feel product-backed instead of presentation-backed.",
+    icon: <FileText size={18} />,
+  },
+  {
+    title: "Decision-ready, not demo theater",
+    detail: "The incident is framed around earlier certainty and safer rollout choices, which is much stronger than showing generic threat activity alone.",
+    icon: <ShieldCheck size={18} />,
+  },
+];
+
+const STORY_DECISION_BOARD = [
+  { label: "Category proof", value: "High-interaction deception" },
+  { label: "Attacker move", value: "Credential-access recon" },
+  { label: "Operator output", value: "Brief + artifacts + replay" },
+  { label: "Business result", value: "Safer rollout decision" },
+];
+
+const HANDOFF_TRUST = [
+  "Session replay and artifact views stay tied to the same attacker path shown in the report.",
+  "Live platform workflow can produce integrity-backed final reports for operator handoff and review.",
+  "The incident story is designed to support rollout decisions, not just create demo theater.",
+];
+
+const PROOF_GALLERY_ITEMS = [
+  {
+    src: "/screenshots/dashboard.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} dashboard screenshot`,
+    title: "Dashboard command view",
+    description: "Shows the main operator surface used to review incident counts, threat score, and active sessions after the suspicious touch.",
+    label: "Operator screenshot",
+    points: ["Current command surface", "Threat score and session overview", "Matches the sample incident narrative"],
+  },
+  {
+    src: "/screenshots/threat-intel.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} threat intelligence screenshot`,
+    title: "Threat-intel review",
+    description: "Supports the sample analyst brief with context the reviewer can use to explain likely intent and route progression.",
+    label: "Analyst screenshot",
+    points: ["Readable context for triage", "Supports the analyst brief", "Useful in buyer walkthroughs"],
+  },
+  {
+    src: "/screenshots/forensics.png",
+    alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} forensics screenshot`,
+    title: "Forensics evidence view",
+    description: "Shows how the incident can be reconstructed from captured artifacts, timing, and behavior instead of scattered logs.",
+    label: "Evidence screenshot",
+    points: ["Artifact reconstruction", "Behavior and timing context", "Proof that the workflow is not just a dashboard claim"],
+  },
 ];
 
 export default function CaseStudy() {
   usePageAnalytics("case_study");
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
   useSeo({
-    title: `Case Study | ${PUBLIC_SITE.siteName}`,
-    description: `Review a representative ${productName} incident story from suspicious touch to operator response.`,
-    ogTitle: `${PUBLIC_SITE.siteName} Case Study`,
-    ogDescription: "See how deception, telemetry, and AI-backed incident context fit together in a real-world style scenario.",
+    title: `Sample Incident | ${PUBLIC_SITE.siteName}`,
+    description: `Review a sample ${productName} incident story from suspicious touch to operator response.`,
+    ogTitle: `${PUBLIC_SITE.siteName} Sample Incident`,
+    ogDescription: "See how deception, telemetry, and analyst-ready incident context fit together in a realistic proof scenario.",
   });
 
   return (
@@ -88,16 +174,16 @@ export default function CaseStudy() {
       <main className="marketing-main">
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
-            <div className="marketing-badge">Representative case study</div>
+            <div className="marketing-badge">Sample incident report</div>
             <div className="marketing-hero-signal">
               {CASE_SIGNALS.map((item) => (
                 <span key={item}>{item}</span>
               ))}
             </div>
-            <h1 className="marketing-title">How a public-facing service used deception to catch suspicious first touch before live impact.</h1>
+            <h1 className="marketing-title">How an exposed app pilot caught attacker recon before it touched production routes.</h1>
             <p className="marketing-subtitle">
-              This is a representative incident story built from the same product flow shown across the platform: believable decoys,
-              live telemetry, AI-backed incident context, and operator review before rollout risk becomes service disruption.
+              This sample incident shows the same product flow used across the platform: believable decoys, telemetry,
+              analyst-ready incident context, and operator review before rollout risk becomes production impact.
             </p>
             <div className="marketing-inline-points">
               {CASE_BADGES.map((item) => (
@@ -108,9 +194,9 @@ export default function CaseStudy() {
               <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/case-study")}>
                 Request Demo <ArrowRight size={16} />
               </Link>
-              <Link to="/platform" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_platform", "/case-study")}>
-                View Platform
-              </Link>
+              <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
+                Download Sample Report
+              </a>
             </div>
             <div className="marketing-hero-story">
               <div className="marketing-hero-story-head">
@@ -132,7 +218,7 @@ export default function CaseStudy() {
             <div className="marketing-panel-head">
               <div>
                 <div className="marketing-kicker">Environment</div>
-                <h3>Representative public service edge</h3>
+                <h3>Exposed application edge</h3>
               </div>
             </div>
             <div className="marketing-system-flow">
@@ -154,8 +240,8 @@ export default function CaseStudy() {
             </div>
             <div className="marketing-panel-mini-grid">
               <div className="marketing-panel-mini-card">
-                <span>Sector fit</span>
-                <strong>Citizen-facing or public service edge</strong>
+                <span>Best fit</span>
+                <strong>Public app or admin route pilot</strong>
               </div>
               <div className="marketing-panel-mini-card">
                 <span>Main trigger</span>
@@ -165,9 +251,9 @@ export default function CaseStudy() {
             <div className="marketing-summary">
               <div className="marketing-summary-head">
                 <Building2 size={16} />
-                <span>Why this story matters</span>
+                <span>Decision value</span>
               </div>
-              <p>Security buyers want to know not only what the product is, but what it looks like when the product has to help a team make a real decision.</p>
+              <p>Security teams can see how the workflow supports a real rollout decision, not just a dashboard view.</p>
             </div>
           </aside>
         </section>
@@ -184,12 +270,44 @@ export default function CaseStudy() {
             </div>
             <div className="marketing-live-pill-item">
               <span>Review</span>
-              <code>Telemetry plus AI summary</code>
+              <code>Telemetry plus analyst brief</code>
             </div>
             <div className="marketing-live-pill-item">
               <span>Outcome</span>
               <code>Safer rollout and clearer analyst handoff</code>
             </div>
+          </div>
+        </section>
+
+        <section className="marketing-card marketing-category-band">
+          <div className="marketing-category-layout">
+            <article className="marketing-category-copy">
+              <p className="marketing-kicker">Why this incident story stands out</p>
+              <h2>Follow the incident path from first touch to the operator decision.</h2>
+              <p>
+                An exposed route is touched, the deception layer captures the path, AI compresses the evidence, and the team uses that context
+                before broader exposure continues.
+              </p>
+            </article>
+            <div className="marketing-decision-board">
+              {STORY_DECISION_BOARD.map((item) => (
+                <div key={item.label} className="marketing-decision-cell">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="marketing-category-grid">
+            {STORY_PILLARS.map((item) => (
+              <article key={item.title} className="marketing-category-card">
+                <div className="marketing-impact-head">
+                  <div className="marketing-icon-box">{item.icon}</div>
+                  <span className="marketing-impact-signal">{item.title}</span>
+                </div>
+                <p>{item.detail}</p>
+              </article>
+            ))}
           </div>
         </section>
 
@@ -232,6 +350,83 @@ export default function CaseStudy() {
 
         <section className="marketing-section">
           <div className="marketing-section-head">
+            <p>Report artifact</p>
+            <h2>A sample analyst report buyers can keep after the conversation.</h2>
+          </div>
+          <div className="marketing-grid-2 marketing-split-proof">
+            <article className="marketing-card marketing-proof-copy-card">
+              <p className="marketing-kicker">Downloadable report</p>
+              <h3>Structured like the handoff security teams expect after suspicious route activity.</h3>
+              <p>
+                Instead of leaving the buyer with only a verbal demo, this sample report shows the kind of deliverable they can evaluate:
+                short summary, route sequence, analyst reasoning, and recommended actions.
+              </p>
+              <div className="marketing-panel-mini-grid">
+                {REPORT_METRICS.map((item) => (
+                  <div key={item.label} className="marketing-panel-mini-card">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+              <div className="marketing-actions">
+                <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
+                  Download Report <FileText size={16} />
+                </a>
+                <Link to="/screenshots" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_screenshots", "/case-study")}>
+                  Open Screenshots
+                </Link>
+              </div>
+            </article>
+            <article className="marketing-card marketing-list-card">
+              <ul className="marketing-list">
+                {REPORT_SECTIONS.map((item, index) => (
+                  <li key={item.title} className="simple marketing-plan-compare-row">
+                    <span>{String(index + 1).padStart(2, "0")}</span>
+                    <div>
+                      <strong>{item.title}</strong>
+                      <p>{item.detail}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section className="marketing-section">
+          <div className="marketing-section-head">
+            <p>Visual evidence</p>
+            <h2>Screens that support the same sample incident story.</h2>
+          </div>
+          <ProofGallery items={PROOF_GALLERY_ITEMS} />
+        </section>
+
+        <section className="marketing-section">
+          <div className="marketing-grid-2 marketing-split-proof">
+            <article className="marketing-card marketing-proof-copy-card">
+              <p className="marketing-kicker">Handoff trust</p>
+              <h3>The incident narrative is strongest when report, replay, and final handoff all match.</h3>
+              <p>
+                The product preserves evidence cleanly instead of only displaying activity. That is why the incident story, screenshots, and
+                handoff language all point to the same operator workflow.
+              </p>
+            </article>
+            <article className="marketing-card marketing-list-card">
+              <ul className="marketing-checklist marketing-checklist-compact">
+                {HANDOFF_TRUST.map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 size={16} />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <section className="marketing-section">
+          <div className="marketing-section-head">
             <p>Outcomes</p>
             <h2>The story is simple: earlier warning, cleaner evidence, better operator decisions.</h2>
           </div>
@@ -248,16 +443,16 @@ export default function CaseStudy() {
 
         <section className="marketing-card marketing-cta">
           <div className="marketing-cta-copy">
-            <h2>Need a walkthrough like this for your own environment?</h2>
-            <p>We can map a similar incident story around your public edge, integrations, and operator workflow.</p>
+            <h2>Need an incident workflow like this for your own environment?</h2>
+            <p>We can map a similar incident story around your exposed routes, rollout priorities, and operator workflow.</p>
           </div>
           <div className="marketing-actions">
             <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/case-study")}>
               Request Demo
             </Link>
-            <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/case-study")}>
-              Contact Team
-            </Link>
+            <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
+              Download Sample Report
+            </a>
           </div>
         </section>
       </main>

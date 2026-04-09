@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
   ShieldCheck,
   Users,
@@ -15,14 +16,11 @@ import { buildCampaignAwarePath } from "./utils/campaignLinks";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
 
-const PLAN_SIGNALS = ["Starter to MSSP", "Scope-first rollout", "Built for public attack coverage"];
-
-const PLAN_BADGES = ["Starter", "Growth", "MSSP", "Request quote"];
-
 const BUYING_NOTES = [
-  "Start with one public app or domain, prove signal fast, then grow into multi-site or multi-tenant coverage.",
-  "Packaging should show deployment shape, telemetry depth, and response workflow instead of hiding behind vague enterprise language.",
-  "Final quote depends on domain count, retention, integrations, and whether you need MSSP white-label or customer-facing workflows.",
+  "Start with one exposed app or domain, prove the signal quickly, then add more routes or customer environments.",
+  "Packaging should show pilot shape, deployment scope, and operator workflow instead of hiding behind vague enterprise language.",
+  "Show a typical scope before the first call, even when final pricing is quote-based.",
+  "Final pricing depends on route count, retention, integrations, and whether you need MSSP or white-label delivery.",
 ];
 
 const PLANS = [
@@ -30,15 +28,17 @@ const PLANS = [
     title: "Starter",
     audience: "One app, one team, first deployment",
     icon: <ShieldCheck size={18} />,
-    badge: "Fastest start",
+    badge: "Best first pilot",
+    priceHint: "14-day guided pilot",
+    scopeHint: "Typical scope: 1 exposed app, up to 10 decoy routes, core replay and analyst brief",
     description:
       "Best for teams that want to prove value on one public-facing app, service portal, or exposed domain before expanding coverage.",
     points: [
-      "Believable web and API lures around one exposed surface",
-      "Readable telemetry, replay, and AI incident summaries",
+      "Believable web and API decoys around one exposed surface",
+      "Readable telemetry, replay, and analyst-ready incident summaries",
       "Guided rollout for first live proof and operator review",
     ],
-    cta: "Request Demo",
+    cta: "Start pilot review",
     to: "/demo",
   },
   {
@@ -46,6 +46,8 @@ const PLANS = [
     audience: "Lean SOC teams and multi-site defenders",
     icon: <Users size={18} />,
     badge: "Recommended",
+    priceHint: "Custom monthly rollout",
+    scopeHint: "Typical scope: 3 to 10 exposed apps, response workflow, readiness review",
     description:
       "Fit for smaller security teams that need live attacker visibility, response-ready evidence, and a practical rollout path across multiple services or brands.",
     points: [
@@ -61,6 +63,8 @@ const PLANS = [
     audience: "Service providers and multi-tenant operations",
     icon: <Workflow size={18} />,
     badge: "Scale channel motion",
+    priceHint: "Multi-tenant quote",
+    scopeHint: "Typical scope: 10+ customer environments, shared analyst workflow, customer reporting",
     description:
       "For MSSPs and service providers that need one operating model across many customer domains, analysts, and reporting workflows.",
     points: [
@@ -73,38 +77,67 @@ const PLANS = [
   },
 ];
 
-const COMPARISON_ROWS = [
+const BUYING_FLOW = [
   {
-    label: "Primary fit",
-    values: ["Single public app or domain", "Multi-site live monitoring", "Multi-tenant service delivery"],
+    title: "Choose the first exposed surface",
+    detail: "Start with the public app, admin route, or API edge where you need proof first.",
   },
   {
-    label: "Deployment shape",
-    values: ["First live pilot", "Production team rollout", "Repeated customer onboarding"],
+    title: "Map deployment and workflow",
+    detail: "Decide the ingest sources, response hooks, and analyst workflow needed for go-live.",
   },
   {
-    label: "Integration depth",
-    values: ["Core telemetry and replay", "Response workflow plus readiness", "Provider, customer, and analyst workflows"],
-  },
-  {
-    label: "Best next step",
-    values: ["Request a guided demo", "Talk through rollout scope", "Plan channel or white-label rollout"],
+    title: "Lock pilot or rollout scope",
+    detail: "Use the demo or rollout conversation to pin the packaging, timeline, and delivery path.",
   },
 ];
 
-const BUYING_FLOW = [
+const PILOT_DELIVERABLES = [
+  "One exposed app or domain mapped for believable login, admin, and API decoys",
+  "Operator walkthrough covering telemetry, replay, and analyst-ready incident context",
+  "Deployment check aligned to isolation, safety, and first response workflow",
+  "Clear decision point for expansion, team rollout, or MSSP path after the first signal",
+];
+
+const QUOTE_TRANSPARENCY = [
+  { label: "Never starts with", value: "Seat-count guessing" },
+  { label: "Usually starts with", value: "One exposed app pilot" },
+  { label: "Grows by", value: "Routes, replay depth, and response workflow" },
+  { label: "Best buyer behavior", value: "Prove signal first, expand second" },
+];
+
+const COMPANY_STAGE_FITS = [
   {
-    title: "Choose the first deployment shape",
-    detail: "Start with whether you need one public app, multiple internal properties, or multi-tenant customer coverage.",
+    title: "Startup and first product team",
+    detail: "If one public app or portal is the immediate risk, keep the buying motion narrow: prove signal first, then expand after the pilot.",
+    signal: "Starter fit",
+    icon: <Building2 size={18} />,
   },
   {
-    title: "Map integrations and deployment",
-    detail: "Decide the ingest sources, operator workflow, response hooks, and readiness checks needed for go-live.",
+    title: "SME and lean security team",
+    detail: "If the team already handles multiple exposed services, the commercial story should shift toward workflow fit, response hooks, and retained evidence.",
+    signal: "Growth fit",
+    icon: <Users size={18} />,
   },
   {
-    title: "Move into proof and rollout",
-    detail: "Use a demo or rollout conversation to pin the exact packaging, timeline, and delivery path.",
+    title: "Enterprise business unit",
+    detail: "Large organizations still buy better when the first phase stays scoped to a clear set of routes, owners, and rollout controls instead of platform sprawl.",
+    signal: "Scoped rollout",
+    icon: <ShieldCheck size={18} />,
   },
+  {
+    title: "MSSP or channel partner",
+    detail: "When repeated onboarding, customer reporting, and shared analyst flow matter, the commercial path should move to multi-tenant delivery and partner packaging.",
+    signal: "MSSP fit",
+    icon: <Workflow size={18} />,
+  },
+];
+
+const EVERY_PLAN_INCLUDES = [
+  "Believable decoy coverage around the agreed exposed routes",
+  "Readable telemetry, replay, and analyst-facing incident context",
+  "Scope review so the first rollout matches the operator workflow",
+  "A clear next step for pilot expansion, team rollout, or MSSP delivery",
 ];
 
 export default function Pricing() {
@@ -118,26 +151,27 @@ export default function Pricing() {
     ogTitle: `${PUBLIC_SITE.siteName} Plans`,
     ogDescription: "Clear product packaging for starter, growth, and MSSP rollout paths.",
   });
+  const pricingHeroPills = ["14-day pilot", "Team rollout", "MSSP quote"];
+  const pricingHeroMetrics = [
+    { label: "Starter", value: "1 app, up to 10 routes" },
+    { label: "Growth", value: "3 to 10 apps with workflow" },
+    { label: "MSSP", value: "10+ customer environments" },
+  ];
 
   return (
-    <div className="marketing-shell">
+    <div className="marketing-shell pricing-marketing-shell">
       <PublicHeader variant="cred" pagePath="/pricing" />
       <main className="marketing-main">
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
             <div className="marketing-badge">Plans and packaging</div>
-            <div className="marketing-hero-signal">
-              {PLAN_SIGNALS.map((item) => (
-                <span key={item}>{item}</span>
-              ))}
-            </div>
-            <h1 className="marketing-title">Choose the rollout path that matches your attack surface, team size, and growth motion.</h1>
+            <h1 className="marketing-title">Start with a guided pilot, then scale when the signal is proven.</h1>
             <p className="marketing-subtitle">
-              {productName} starts with one public-facing app or domain, grows into multi-site telemetry, and expands into MSSP-ready multi-tenant operations.
-              This page shows that path clearly instead of hiding behind generic enterprise pricing language.
+              {productName} fits best when buyers start with one exposed app, prove signal fast, and expand only after the workflow is trusted.
+              Plans are packaged around route coverage, retention, integrations, and support depth.
             </p>
-            <div className="marketing-inline-points">
-              {PLAN_BADGES.map((item) => (
+            <div className="marketing-inline-points marketing-inline-points-compact">
+              {pricingHeroPills.map((item) => (
                 <span key={item}>{item}</span>
               ))}
             </div>
@@ -149,54 +183,44 @@ export default function Pricing() {
                 Talk to Team
               </Link>
             </div>
-            <div className="marketing-hero-story">
-              <div className="marketing-hero-story-head">
-                <span className="marketing-kicker">How buying should work</span>
-                <strong>Packaging should reduce confusion, not hide the real rollout decisions.</strong>
-              </div>
-              <ul className="marketing-checklist marketing-checklist-compact">
-                {BUYING_NOTES.map((item) => (
-                  <li key={item}>
-                    <CheckCircle2 size={16} />
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <p className="marketing-page-footnote">
+              Keep the first commercial decision narrow: one exposed surface, one operator workflow, and one clear decision point for expansion after the
+              signal is proven.
+            </p>
           </article>
 
-          <aside className="marketing-card marketing-hero-panel marketing-architecture-panel">
+          <aside className="marketing-card marketing-hero-panel marketing-architecture-panel pricing-hero-panel">
             <div className="marketing-panel-head">
               <div>
                 <div className="marketing-kicker">Buying path</div>
-                <h3>Three steps from first pilot to rollout scope</h3>
+                <h3>Commercial scope should read like a rollout plan, not a pricing maze.</h3>
               </div>
             </div>
-            <div className="marketing-system-flow">
+            <div className="pricing-hero-surface">
               {BUYING_FLOW.map((item, index) => (
-                <div key={item.title} className="marketing-system-flow-step">
-                  <span className="marketing-system-flow-index">{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{item.title}</strong>
-                  <small>{item.detail}</small>
+                <article key={item.title} className="pricing-hero-step">
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{item.title}</strong>
+                    <small>{item.detail}</small>
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="pricing-hero-metrics">
+              {pricingHeroMetrics.map((item) => (
+                <div key={item.label} className="pricing-hero-metric">
+                  <span>{item.label}</span>
+                  <strong>{item.value}</strong>
                 </div>
               ))}
             </div>
-            <div className="marketing-panel-mini-grid">
-              <div className="marketing-panel-mini-card">
-                <span>Best start</span>
-                <strong>Demo plus rollout fit review</strong>
-              </div>
-              <div className="marketing-panel-mini-card">
-                <span>Final pricing</span>
-                <strong>Quote by scope and deployment shape</strong>
-              </div>
-            </div>
-            <div className="marketing-summary">
+            <div className="marketing-summary pricing-hero-summary">
               <div className="marketing-summary-head">
                 <Workflow size={16} />
-                <span>Why this page exists</span>
+                <span>Commercial snapshot</span>
               </div>
-              <p>Buyers should know whether they belong in Starter, Growth, or MSSP before they commit more time.</p>
+              <p>{BUYING_NOTES[0]} {BUYING_NOTES[3]}</p>
             </div>
           </aside>
         </section>
@@ -204,28 +228,22 @@ export default function Pricing() {
         <section className="marketing-card marketing-live-ribbon">
           <div className="marketing-live-ribbon-head">
             <Users size={15} />
-            <strong>Packaging direction</strong>
+            <strong>Commercial anchors</strong>
           </div>
           <div className="marketing-live-ribbon-stream">
-            <div className="marketing-live-pill-item">
-              <span>Starter</span>
-              <code>One public app, one fast proof</code>
-            </div>
-            <div className="marketing-live-pill-item">
-              <span>Growth</span>
-              <code>Multi-site live monitoring</code>
-            </div>
-            <div className="marketing-live-pill-item">
-              <span>MSSP</span>
-              <code>Multi-tenant service delivery</code>
-            </div>
+            {QUOTE_TRANSPARENCY.slice(0, 3).map((item) => (
+              <div key={item.label} className="marketing-live-pill-item">
+                <span>{item.label}</span>
+                <code>{item.value}</code>
+              </div>
+            ))}
           </div>
         </section>
 
         <section className="marketing-section">
           <div className="marketing-section-head">
             <p>Plans</p>
-            <h2>Pick the plan that matches the deployment shape, not just the budget line.</h2>
+            <h2>Choose the plan that matches how your company buys today.</h2>
           </div>
           <div className="marketing-grid-3 marketing-plan-grid">
             {PLANS.map((plan) => (
@@ -237,6 +255,8 @@ export default function Pricing() {
                 <div className="marketing-plan-copy">
                   <h3>{plan.title}</h3>
                   <strong>{plan.audience}</strong>
+                  <p className="marketing-kicker">{plan.priceHint}</p>
+                  <p className="marketing-kicker">{plan.scopeHint}</p>
                   <p>{plan.description}</p>
                 </div>
                 <ul className="marketing-checklist marketing-checklist-compact">
@@ -257,34 +277,75 @@ export default function Pricing() {
 
         <section className="marketing-section">
           <div className="marketing-grid-2 marketing-split-proof">
-            <article className="marketing-card marketing-showcase marketing-proof-copy-card">
-              <p className="marketing-kicker">Plan fit</p>
-              <h3>Every plan still follows the same core product story: deception, evidence, and operator clarity.</h3>
+            <article className="marketing-card marketing-proof-copy-card">
+              <p className="marketing-kicker">What the first pilot should include</p>
+              <h3>What the first pilot includes.</h3>
               <p>
-                The difference is how much deployment pressure, integration depth, and operational scale your team needs. Starter buyers need proof fast.
-                Growth buyers need workflow fit. MSSPs need repeatable customer onboarding and clean analyst handoff.
+                A good first package is not vague platform access. It is one exposed surface, one operator workflow, one trust review,
+                and one decision point for expansion after the signal is proven.
               </p>
-            </article>
-            <article className="marketing-card marketing-list-card">
-              <ul className="marketing-list">
-                {COMPARISON_ROWS.map((row, index) => (
-                  <li key={row.label} className="simple marketing-plan-compare-row">
-                    <span>{String(index + 1).padStart(2, "0")}</span>
-                    <div>
-                      <strong>{row.label}</strong>
-                      <p>{row.values.join(" | ")}</p>
-                    </div>
+              <ul className="marketing-checklist marketing-checklist-compact">
+                {PILOT_DELIVERABLES.map((item) => (
+                  <li key={item}>
+                    <CheckCircle2 size={16} />
+                    <span>{item}</span>
                   </li>
                 ))}
               </ul>
             </article>
+            <article className="marketing-card marketing-list-card">
+              <p className="marketing-kicker">Quote clarity</p>
+              <h3 style={{ marginTop: 0 }}>Quote details that stay clear from the first call.</h3>
+              <div className="marketing-panel-mini-grid">
+                {QUOTE_TRANSPARENCY.map((item) => (
+                  <div key={item.label} className="marketing-panel-mini-card">
+                    <span>{item.label}</span>
+                    <strong>{item.value}</strong>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section className="marketing-section">
+          <div className="marketing-section-head">
+            <p>Buyer fit</p>
+            <h2>See the most common buyer shapes before the quote conversation starts.</h2>
+          </div>
+          <div className="marketing-grid-2">
+            {COMPANY_STAGE_FITS.map((item) => (
+              <article key={item.title} className="marketing-card marketing-showcase">
+                <div className="marketing-impact-head">
+                  <div className="marketing-icon-box">{item.icon}</div>
+                  <span className="marketing-impact-signal">{item.signal}</span>
+                </div>
+                <h3>{item.title}</h3>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="marketing-section">
+          <div className="marketing-section-head">
+            <p>Included in every plan</p>
+            <h2>Keep the first rollout readable even when the quote changes.</h2>
+          </div>
+          <div className="marketing-grid-2">
+            {EVERY_PLAN_INCLUDES.map((item) => (
+              <article key={item} className="marketing-card marketing-showcase">
+                <h3>{item}</h3>
+                <p>This is part of the baseline commercial story so buyers are not left guessing what the first phase actually covers.</p>
+              </article>
+            ))}
           </div>
         </section>
 
         <section className="marketing-card marketing-cta">
           <div className="marketing-cta-copy">
-            <h2>Need help choosing between Starter, Growth, and MSSP rollout?</h2>
-            <p>We can map the right plan based on your attack surface, deployment path, integrations, and operator workflow.</p>
+            <h2>Need help choosing the right pilot or rollout path?</h2>
+            <p>We can map the right plan based on your exposed routes, deployment path, integrations, and operator workflow.</p>
           </div>
           <div className="marketing-actions">
             <Link to={toCampaignPath("/contact")} className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("contact_team", "/pricing")}>

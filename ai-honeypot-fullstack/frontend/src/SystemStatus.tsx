@@ -1,34 +1,69 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
 import { Activity, Clock, RefreshCcw, Cpu, HardDrive, Wifi, Shield, Bell, CheckCircle2, Database, Brain } from 'lucide-react';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 
+type SystemStats = {
+  cpu: number | null;
+  memory: number | null;
+  latency: number | null;
+  threads: number | null;
+  uptime: string;
+};
+
+type SystemComponent = {
+  name: string;
+  status: string;
+  load?: number | string | null;
+  icon?: string;
+};
+
+type SystemNotification = {
+  severity?: "high" | "medium" | "low" | string;
+  msg: string;
+};
+
+type SystemMetrics = {
+  total_incidents: number;
+  critical_hits: number;
+};
+
+type SystemStatusResponse = {
+  cpu?: number | null;
+  memory?: number | null;
+  latency?: number | null;
+  threads?: number | null;
+  uptime?: string;
+  components?: SystemComponent[];
+  notifications?: SystemNotification[];
+  metrics?: SystemMetrics;
+};
+
 const SystemStatus = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [stats, setStats] = useState({
+    const [stats, setStats] = useState<SystemStats>({
         cpu: null,
         memory: null,
         latency: null,
         threads: null,
         uptime: "Initializing..."
     });
-    const [components, setComponents] = useState([]);
-    const [notifications, setNotifications] = useState([]);
-    const [metrics, setMetrics] = useState({ total_incidents: 0, critical_hits: 0 });
+    const [components, setComponents] = useState<SystemComponent[]>([]);
+    const [notifications, setNotifications] = useState<SystemNotification[]>([]);
+    const [metrics, setMetrics] = useState<SystemMetrics>({ total_incidents: 0, critical_hits: 0 });
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/system/status`, REAL_ONLY_PARAMS);
+            const res = await axios.get<SystemStatusResponse>(`${API_BASE}/system/status`, REAL_ONLY_PARAMS);
             setStats({
-                cpu: res.data.cpu,
-                memory: res.data.memory,
-                latency: res.data.latency,
-                threads: res.data.threads,
-                uptime: res.data.uptime
+                cpu: res.data.cpu ?? null,
+                memory: res.data.memory ?? null,
+                latency: res.data.latency ?? null,
+                threads: res.data.threads ?? null,
+                uptime: res.data.uptime || "Initializing..."
             });
-            setComponents(res.data.components);
+            setComponents(res.data.components || []);
             setNotifications(res.data.notifications || []);
             setMetrics(res.data.metrics || { total_incidents: 0, critical_hits: 0 });
         } catch (err) {
@@ -44,13 +79,13 @@ const SystemStatus = () => {
             `${WS_BASE}/ws/system`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
+                    const data = safeParseJson(event.data) as SystemStatusResponse | null;
                     if (!data) return;
                     setStats(prev => ({
                         ...prev,
-                        cpu: data.cpu,
-                        memory: data.memory,
-                        latency: data.latency
+                        cpu: data.cpu ?? prev.cpu,
+                        memory: data.memory ?? prev.memory,
+                        latency: data.latency ?? prev.latency
                     }));
                 },
                 onError: (err) => console.error("WS System Pulse Flow Error", err),
@@ -64,7 +99,7 @@ const SystemStatus = () => {
         };
     }, []);
 
-    const componentIconMap = {
+    const componentIconMap: Record<string, React.ElementType> = {
         database: Database,
         wifi: Wifi,
         activity: Activity,

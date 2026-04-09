@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
@@ -12,67 +11,207 @@ import { motion, AnimatePresence } from './utils/motionLite';
 import { isSyntheticEvent } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
 
-const PROFILE_CONFIG = {
+type ProfileId = 'defensive' | 'balanced' | 'aggressive';
+
+type ProtocolFlags = {
+    credential_injection: boolean;
+    honeyfile_generation: boolean;
+    ai_adaptive: boolean;
+    decoy_services: boolean;
+};
+
+type DeployMessage = {
+    type: 'success' | 'error';
+    text: string;
+};
+
+type DeceptionStatus = {
+    active_profile?: ProfileId;
+    protocols?: ProtocolFlags;
+    auto_mode?: boolean;
+    posture?: DeceptionPosture | null;
+    stats?: Record<string, number>;
+    escalation_matrix?: EscalationPhase[];
+    tactic_distribution?: Record<string, number>;
+    last_activity?: string;
+};
+
+type EscalationPhase = {
+    phase?: string;
+    count?: number;
+    active?: boolean;
+};
+
+type DeceptionPosture = {
+    dynamic_index?: number;
+    sample_size?: number;
+    recommended_profile?: ProfileId;
+};
+
+type Honeytoken = {
+    path?: string;
+    status?: string;
+    hits?: number;
+    unique_attackers?: number;
+    severity?: string;
+    last_hit?: string;
+};
+
+type CanaryTrigger = {
+    ip?: string;
+    time?: string;
+};
+
+type CanaryToken = {
+    label?: string;
+    url: string;
+    triggered?: boolean;
+    triggered_by?: CanaryTrigger;
+};
+
+type LiveFeedEvent = {
+    severity?: string;
+    event_type?: string;
+    ip?: string;
+    geo?: string;
+    tactic?: string;
+    url_path?: string;
+    cmd?: string;
+    ts?: string;
+};
+
+type ProtocolRuntimeModule = {
+    host?: string;
+    port?: number | string;
+    active_sessions?: number;
+    enabled?: boolean;
+    running?: boolean;
+    healthy?: boolean;
+};
+
+type ProtocolRuntime = {
+    summary?: {
+        registered?: number;
+        enabled?: number;
+        running?: number;
+        unhealthy?: string[];
+    };
+    modules?: Record<string, ProtocolRuntimeModule>;
+    persistence?: {
+        state_file?: string;
+        state_loaded?: boolean;
+    };
+};
+
+type ProtocolMetric = {
+    p95_latency_ms?: number;
+    errors_total?: number;
+};
+
+type ProtocolMetricsState = {
+    protocols?: Record<string, ProtocolMetric>;
+};
+
+type ProtocolAlert = {
+    protocol?: string;
+    severity?: string;
+    title?: string;
+    message?: string;
+    at?: string;
+    created_at?: string;
+};
+
+type AutoModeResponse = {
+    auto_mode?: boolean;
+    result?: {
+        profile?: ProfileId;
+        protocols?: ProtocolFlags;
+        posture?: DeceptionPosture;
+    };
+};
+
+type AutotuneResponse = {
+    profile?: ProfileId;
+    protocols?: ProtocolFlags;
+    posture?: DeceptionPosture;
+};
+
+type RuntimeToggleResponse = {
+    module?: ProtocolRuntimeModule;
+};
+
+type ApiErrorResponse = {
+    detail?: string;
+};
+
+const DEFAULT_PROTOCOLS: ProtocolFlags = {
+    credential_injection: true,
+    honeyfile_generation: true,
+    ai_adaptive: true,
+    decoy_services: false,
+};
+
+const PROFILE_CONFIG: Record<ProfileId, { color: string; label: string }> = {
   defensive: { color: '#58a6ff', label: 'Low Noise - Passive monitoring, minimal deception traces' },
   balanced: { color: '#d29922', label: 'Adaptive - Mix of real-sounding traps and gradual escalation' },
   aggressive: { color: '#f85149', label: 'Proactive Entrapment - Maximum honey, aggressive fingerprinting' }
 };
 
-const SEVERITY_COLORS = { high: '#f85149', medium: '#d29922', low: '#3fb950', critical: '#f85149' };
+const SEVERITY_COLORS: Record<string, string> = { high: '#f85149', medium: '#d29922', low: '#3fb950', critical: '#f85149' };
+
+function getErrorMessage(error: unknown, fallback: string) {
+    if (axios.isAxiosError<ApiErrorResponse>(error)) {
+        return error.response?.data?.detail || error.message || fallback;
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return fallback;
+}
 
 const DeceptionConfig = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [status, setStatus] = useState(null);
-    const [honeytokens, setHoneytokens] = useState([]);
-    const [canaryTokens, setCanaryTokens] = useState([]);
-    const [liveFeed, setLiveFeed] = useState([]);
-    const [activeProfile, setActiveProfile] = useState('balanced');
-    const [protocols, setProtocols] = useState({
-        credential_injection: true,
-        honeyfile_generation: true,
-        ai_adaptive: true,
-        decoy_services: false,
-    });
+    const [status, setStatus] = useState<DeceptionStatus | null>(null);
+    const [honeytokens, setHoneytokens] = useState<Honeytoken[]>([]);
+    const [canaryTokens, setCanaryTokens] = useState<CanaryToken[]>([]);
+    const [liveFeed, setLiveFeed] = useState<LiveFeedEvent[]>([]);
+    const [activeProfile, setActiveProfile] = useState<ProfileId>('balanced');
+    const [protocols, setProtocols] = useState<ProtocolFlags>(DEFAULT_PROTOCOLS);
     const [deploying, setDeploying] = useState(false);
-    const [deployMsg, setDeployMsg] = useState(null);
+    const [deployMsg, setDeployMsg] = useState<DeployMessage | null>(null);
     const [autoModeSaving, setAutoModeSaving] = useState(false);
     const [autoTuning, setAutoTuning] = useState(false);
     const [autoMode, setAutoMode] = useState(false);
-    const [posture, setPosture] = useState(null);
-    const [protocolRuntime, setProtocolRuntime] = useState(null);
-    const [protocolMetrics, setProtocolMetrics] = useState(null);
-    const [protocolAlerts, setProtocolAlerts] = useState([]);
-    const [runtimeToggleBusy, setRuntimeToggleBusy] = useState({});
+    const [posture, setPosture] = useState<DeceptionPosture | null>(null);
+    const [protocolRuntime, setProtocolRuntime] = useState<ProtocolRuntime | null>(null);
+    const [protocolMetrics, setProtocolMetrics] = useState<ProtocolMetricsState | null>(null);
+    const [protocolAlerts, setProtocolAlerts] = useState<ProtocolAlert[]>([]);
+    const [runtimeToggleBusy, setRuntimeToggleBusy] = useState<Record<string, boolean>>({});
     const [generating, setGenerating] = useState(false);
     const [newTokenLabel, setNewTokenLabel] = useState('');
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'honeytokens' | 'canary-tokens' | 'live-feed'>('overview');
 
     const fetchAll = useCallback(async () => {
         try {
             const [statusRes, tokenRes, canaryRes, feedRes, runtimeRes, metricsRes, alertsRes] = await Promise.all([
-                axios.get(`${API_BASE}/deception/status`),
-                axios.get(`${API_BASE}/deception/honeytokens`),
-                axios.get(`${API_BASE}/deception/canary-tokens`),
-                axios.get(`${API_BASE}/deception/live-feed`, REAL_ONLY_PARAMS),
-                axios.get(`${API_BASE}/protocols/status`).catch(() => ({ data: null })),
-                axios.get(`${API_BASE}/protocols/metrics`).catch(() => ({ data: null })),
-                axios.get(`${API_BASE}/protocols/alerts`).catch(() => ({ data: null })),
+                axios.get<DeceptionStatus>(`${API_BASE}/deception/status`),
+                axios.get<Honeytoken[]>(`${API_BASE}/deception/honeytokens`),
+                axios.get<CanaryToken[]>(`${API_BASE}/deception/canary-tokens`),
+                axios.get<LiveFeedEvent[]>(`${API_BASE}/deception/live-feed`, REAL_ONLY_PARAMS),
+                axios.get<ProtocolRuntime>(`${API_BASE}/protocols/status`).catch(() => ({ data: null as ProtocolRuntime | null })),
+                axios.get<{ metrics?: ProtocolMetricsState }>(`${API_BASE}/protocols/metrics`).catch(() => ({ data: null as { metrics?: ProtocolMetricsState } | null })),
+                axios.get<{ alerts?: ProtocolAlert[] }>(`${API_BASE}/protocols/alerts`).catch(() => ({ data: null as { alerts?: ProtocolAlert[] } | null })),
             ]);
             setStatus(statusRes.data);
-            setHoneytokens(tokenRes.data);
-            setCanaryTokens(canaryRes.data);
-            setLiveFeed(feedRes.data);
+            setHoneytokens(Array.isArray(tokenRes.data) ? tokenRes.data : []);
+            setCanaryTokens(Array.isArray(canaryRes.data) ? canaryRes.data : []);
+            setLiveFeed(Array.isArray(feedRes.data) ? feedRes.data : []);
             setProtocolRuntime(runtimeRes?.data || null);
             setProtocolMetrics(metricsRes?.data?.metrics || null);
-            setProtocolAlerts(alertsRes?.data?.alerts || []);
+            setProtocolAlerts(Array.isArray(alertsRes?.data?.alerts) ? alertsRes.data.alerts : []);
             setActiveProfile(statusRes.data.active_profile || 'balanced');
-            setProtocols(statusRes.data.protocols || {
-                credential_injection: true,
-                honeyfile_generation: true,
-                ai_adaptive: true,
-                decoy_services: false,
-            });
+            setProtocols(statusRes.data.protocols || DEFAULT_PROTOCOLS);
             setAutoMode(Boolean(statusRes.data.auto_mode));
             setPosture(statusRes.data.posture || null);
         } catch (err) {
@@ -89,13 +228,18 @@ const DeceptionConfig = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
-                    if (!data || isSyntheticEvent(data)) return;
+                    const raw = safeParseJson(event.data);
+                    if (!raw || typeof raw !== 'object' || isSyntheticEvent(raw)) return;
+                    const data = raw as LiveFeedEvent;
                     setLiveFeed(prev => [data, ...prev.slice(0, 19)]);
                     if (data.severity === 'high') {
                         setStatus(prev => prev ? {
                             ...prev,
-                            stats: { ...prev.stats, critical_threats: (prev.stats.critical_threats || 0) + 1, total_intercepts: (prev.stats.total_intercepts || 0) + 1 }
+                            stats: {
+                                ...(prev.stats || {}),
+                                critical_threats: ((prev.stats?.critical_threats) || 0) + 1,
+                                total_intercepts: ((prev.stats?.total_intercepts) || 0) + 1
+                            }
                         } : prev);
                     }
                 },
@@ -109,14 +253,14 @@ const DeceptionConfig = () => {
         setDeploying(true);
         setDeployMsg(null);
         try {
-            const res = await axios.post(`${API_BASE}/deception/deploy`, {
+            const res = await axios.post<{ message?: string }>(`${API_BASE}/deception/deploy`, {
                 profile: activeProfile,
                 protocols
             });
-            setDeployMsg({ type: 'success', text: res.data.message });
+            setDeployMsg({ type: 'success', text: res.data.message || 'Deception stack deployed.' });
             fetchAll();
         } catch (err) {
-            setDeployMsg({ type: 'error', text: err.response?.data?.detail || 'Deploy failed.' });
+            setDeployMsg({ type: 'error', text: getErrorMessage(err, 'Deploy failed.') });
         } finally {
             setDeploying(false);
         }
@@ -126,7 +270,7 @@ const DeceptionConfig = () => {
         const next = !autoMode;
         setAutoModeSaving(true);
         try {
-            const res = await axios.post(`${API_BASE}/deception/auto-mode`, { enabled: next });
+            const res = await axios.post<AutoModeResponse>(`${API_BASE}/deception/auto-mode`, { enabled: next });
             setAutoMode(Boolean(res.data.auto_mode));
             if (res.data.result?.profile) setActiveProfile(res.data.result.profile);
             if (res.data.result?.protocols) setProtocols(res.data.result.protocols);
@@ -137,7 +281,7 @@ const DeceptionConfig = () => {
             });
             fetchAll();
         } catch (err) {
-            setDeployMsg({ type: 'error', text: err.response?.data?.detail || 'Failed to update auto mode.' });
+            setDeployMsg({ type: 'error', text: getErrorMessage(err, 'Failed to update auto mode.') });
         } finally {
             setAutoModeSaving(false);
         }
@@ -146,7 +290,7 @@ const DeceptionConfig = () => {
     const handleRunAutotune = async () => {
         setAutoTuning(true);
         try {
-            const res = await axios.post(`${API_BASE}/deception/autotune`);
+            const res = await axios.post<AutotuneResponse>(`${API_BASE}/deception/autotune`);
             if (res.data?.profile) setActiveProfile(res.data.profile);
             if (res.data?.protocols) setProtocols(res.data.protocols);
             if (res.data?.posture) setPosture(res.data.posture);
@@ -156,7 +300,7 @@ const DeceptionConfig = () => {
             });
             fetchAll();
         } catch (err) {
-            setDeployMsg({ type: 'error', text: err.response?.data?.detail || 'Auto-tune failed.' });
+            setDeployMsg({ type: 'error', text: getErrorMessage(err, 'Auto-tune failed.') });
         } finally {
             setAutoTuning(false);
         }
@@ -166,7 +310,7 @@ const DeceptionConfig = () => {
         if (!newTokenLabel.trim()) return;
         setGenerating(true);
         try {
-            const res = await axios.post(`${API_BASE}/deception/canary-tokens/generate`, {
+            const res = await axios.post<CanaryToken>(`${API_BASE}/deception/canary-tokens/generate`, {
                 type: 'URL',
                 label: newTokenLabel.trim()
             });
@@ -179,7 +323,7 @@ const DeceptionConfig = () => {
         }
     };
 
-    const toggleProtocol = async (proto, currentStatus) => {
+    const toggleProtocol = async (proto: keyof ProtocolFlags, currentStatus: boolean) => {
         try {
             const newStatus = !currentStatus;
             setProtocols(prev => ({ ...prev, [proto]: newStatus }));
@@ -194,11 +338,11 @@ const DeceptionConfig = () => {
         }
     };
 
-    const handleRuntimeModuleToggle = async (moduleName, currentEnabled) => {
+    const handleRuntimeModuleToggle = async (moduleName: string, currentEnabled: boolean) => {
         setRuntimeToggleBusy(prev => ({ ...prev, [moduleName]: true }));
         try {
             const nextEnabled = !currentEnabled;
-            const res = await axios.post(`${API_BASE}/protocols/${moduleName}/toggle`, {
+            const res = await axios.post<RuntimeToggleResponse>(`${API_BASE}/protocols/${moduleName}/toggle`, {
                 enabled: nextEnabled
             });
             setDeployMsg({
@@ -206,9 +350,10 @@ const DeceptionConfig = () => {
                 text: `Runtime module ${moduleName.toUpperCase()} ${nextEnabled ? 'enabled' : 'disabled'}.`
             });
             if (res.data?.module) {
+                const nextModule = res.data.module;
                 setProtocolRuntime(prev => {
-                    const current = prev || { summary: {}, modules: {} };
-                    const nextModules = { ...(current.modules || {}), [moduleName]: res.data.module };
+                    const current: ProtocolRuntime = prev || { summary: {}, modules: {} };
+                    const nextModules: Record<string, ProtocolRuntimeModule> = { ...(current.modules || {}), [moduleName]: nextModule };
                     const nextSummary = {
                         ...(current.summary || {}),
                         registered: Object.keys(nextModules).length,
@@ -223,14 +368,14 @@ const DeceptionConfig = () => {
         } catch (err) {
             setDeployMsg({
                 type: 'error',
-                text: err.response?.data?.detail || `Failed to toggle runtime module ${moduleName}.`
+                text: getErrorMessage(err, `Failed to toggle runtime module ${moduleName}.`)
             });
         } finally {
             setRuntimeToggleBusy(prev => ({ ...prev, [moduleName]: false }));
         }
     };
 
-    const Switch = ({ active, onClick, label }) => (
+    const Switch = ({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) => (
         <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
             <div
                 onClick={onClick}
@@ -342,7 +487,7 @@ const DeceptionConfig = () => {
 
             {/* Tabs */}
             <div style={{ display: 'flex', gap: '4px', marginBottom: '20px', background: '#0d1117', padding: '4px', borderRadius: '10px', width: 'fit-content', border: '1px solid #21262d' }}>
-                {['overview', 'honeytokens', 'canary-tokens', 'live-feed'].map(tab => (
+                {(['overview', 'honeytokens', 'canary-tokens', 'live-feed'] as const).map(tab => (
                     <button key={tab} onClick={() => setActiveTab(tab)} style={{
                         background: activeTab === tab ? '#161b22' : 'transparent',
                         border: activeTab === tab ? '1px solid #30363d' : '1px solid transparent',
@@ -400,7 +545,7 @@ const DeceptionConfig = () => {
                             <Brain size={16} color="#d2a8ff" /> AI Deception Profile Selection
                         </h3>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
-                            {Object.entries(PROFILE_CONFIG).map(([id, cfg]) => (
+                            {(Object.entries(PROFILE_CONFIG) as [ProfileId, (typeof PROFILE_CONFIG)[ProfileId]][]).map(([id, cfg]) => (
                                 <div key={id} onClick={() => setActiveProfile(id)} style={{
                                     padding: '16px', borderRadius: '10px', cursor: 'pointer',
                                     background: activeProfile === id ? 'rgba(88,166,255,0.04)' : 'transparent',
@@ -610,10 +755,10 @@ const DeceptionConfig = () => {
                                             border: `1px solid ${t.status === 'TRIGGERED' ? '#f8514930' : '#3fb95030'}`
                                         }}>{t.status}</span>
                                     </td>
-                                    <td style={{ padding: '12px 16px', fontWeight: '700', color: t.hits > 0 ? '#f85149' : '#484f58' }}>{t.hits}</td>
+                                    <td style={{ padding: '12px 16px', fontWeight: '700', color: Number(t.hits || 0) > 0 ? '#f85149' : '#484f58' }}>{t.hits}</td>
                                     <td style={{ padding: '12px 16px', color: '#8b949e' }}>{t.unique_attackers}</td>
                                     <td style={{ padding: '12px 16px' }}>
-                                        <span style={{ color: SEVERITY_COLORS[t.severity] || '#8b949e', fontWeight: '800', fontSize: '11px' }}>
+                                        <span style={{ color: SEVERITY_COLORS[t.severity || 'low'] || '#8b949e', fontWeight: '800', fontSize: '11px' }}>
                                             {(t.severity || 'N/A').toUpperCase()}
                                         </span>
                                     </td>
@@ -684,7 +829,7 @@ const DeceptionConfig = () => {
                                         </span>
                                         {t.triggered_by && (
                                             <div style={{ marginTop: '6px', fontSize: '11px', color: '#8b949e' }}>
-                          by {t.triggered_by.ip} - {new Date(t.triggered_by.time).toLocaleString()}
+                          by {t.triggered_by.ip || 'unknown'} - {t.triggered_by.time ? new Date(t.triggered_by.time).toLocaleString() : 'n/a'}
                                             </div>
                                         )}
                                     </div>
@@ -716,8 +861,8 @@ const DeceptionConfig = () => {
                                     <span style={{
                                         fontSize: '11px', padding: '1px 8px', borderRadius: '10px', fontWeight: '800',
                                         background: event.severity === 'high' ? 'rgba(248,81,73,0.1)' : event.severity === 'medium' ? 'rgba(210,153,34,0.1)' : 'rgba(63,185,80,0.1)',
-                                        color: SEVERITY_COLORS[event.severity] || '#8b949e',
-                                        border: `1px solid ${SEVERITY_COLORS[event.severity] || '#8b949e'}30`
+                                        color: SEVERITY_COLORS[event.severity || 'low'] || '#8b949e',
+                                        border: `1px solid ${SEVERITY_COLORS[event.severity || 'low'] || '#8b949e'}30`
                                     }}>{(event.severity || 'low').toUpperCase()}</span>
                                 </div>
                                 <code style={{ fontSize: '12px', color: '#a5d6ff', background: '#161b22', padding: '2px 8px', borderRadius: '4px' }}>
@@ -725,7 +870,7 @@ const DeceptionConfig = () => {
                                 </code>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#484f58', fontSize: '11px' }}>
-                                <Clock size={10} /> {new Date(event.ts).toLocaleTimeString()}
+                                <Clock size={10} /> {event.ts ? new Date(event.ts).toLocaleTimeString() : 'n/a'}
                             </div>
                         </div>
                     ))}

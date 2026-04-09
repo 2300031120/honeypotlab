@@ -1,4 +1,3 @@
-// @ts-nocheck
 const CAMPAIGN_QUERY_KEYS = Object.freeze([
   "utm_source",
   "utm_medium",
@@ -8,11 +7,11 @@ const CAMPAIGN_QUERY_KEYS = Object.freeze([
   "campaign",
 ]);
 
-function isExternalOrProtocolPath(targetPath) {
+function isExternalOrProtocolPath(targetPath: string) {
   return /^(?:[a-z]+:)?\/\//i.test(targetPath) || /^[a-z]+:/i.test(targetPath);
 }
 
-export function buildCampaignAwarePath(targetPath, sourceSearch = "") {
+export function buildCampaignAwarePath(targetPath: string, sourceSearch = "") {
   const safeTargetPath = String(targetPath || "").trim();
   if (!safeTargetPath || isExternalOrProtocolPath(safeTargetPath)) {
     return safeTargetPath;

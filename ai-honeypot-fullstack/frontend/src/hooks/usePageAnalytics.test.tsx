@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { render } from "@testing-library/react";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
@@ -10,7 +9,11 @@ vi.mock("../utils/analytics", () => ({
   trackPageVisit: vi.fn(),
 }));
 
-function Probe({ pageName = "probe_page" }) {
+type ProbeProps = {
+  pageName?: string;
+};
+
+function Probe({ pageName = "probe_page" }: ProbeProps) {
   usePageAnalytics(pageName);
   return <div>probe</div>;
 }

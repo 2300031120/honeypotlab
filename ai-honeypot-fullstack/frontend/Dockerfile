@@ -9,18 +9,20 @@ RUN npm ci
 
 # Copy source code and build
 COPY . .
-ARG VITE_PUBLIC_SITE_NAME="CyberSentinel AI"
-ARG VITE_PUBLIC_SHORT_NAME="CyberSentinel"
-ARG VITE_PUBLIC_BRAND_TEXT="CYBERSENTINEL AI"
+ARG VITE_PUBLIC_SITE_NAME="CyberSentil"
+ARG VITE_PUBLIC_SHORT_NAME="CyberSentil"
+ARG VITE_PUBLIC_BRAND_TEXT="CYBERSENTIL"
 ARG VITE_PUBLIC_TAGLINE="Deception-led threat detection"
 ARG VITE_PUBLIC_SITE_DESCRIPTION="Deception-led threat detection platform for earlier attacker visibility, preserved evidence, and AI-assisted incident context."
 ARG VITE_PUBLIC_SITE_URL="http://localhost"
 ARG VITE_PUBLIC_APP_URL="http://localhost"
 ARG VITE_PUBLIC_LOGIN_URL=""
-ARG VITE_PUBLIC_COMPANY_NAME="CyberSentinel AI Labs"
-ARG VITE_PUBLIC_CONTACT_EMAIL="contact@cybersentinel.ai"
-ARG VITE_PUBLIC_SECURITY_EMAIL="security@cybersentinel.ai"
-ARG VITE_PUBLIC_PRIVACY_EMAIL="privacy@cybersentinel.ai"
+ARG VITE_PUBLIC_COMPANY_NAME="CyberSentil"
+ARG VITE_PUBLIC_CONTACT_EMAIL="contact@cybersentil.online"
+ARG VITE_PUBLIC_SECURITY_EMAIL="security@cybersentil.online"
+ARG VITE_PUBLIC_PRIVACY_EMAIL="privacy@cybersentil.online"
+ARG VITE_PUBLIC_DEMO_BOOKING_URL=""
+ARG VITE_PUBLIC_DEMO_BOOKING_LABEL="Book Live Slot"
 ARG VITE_PUBLIC_SHOW_STATUS_PILL="false"
 ARG VITE_GOOGLE_CLIENT_ID=""
 ENV VITE_PUBLIC_SITE_NAME=${VITE_PUBLIC_SITE_NAME}
@@ -35,6 +37,8 @@ ENV VITE_PUBLIC_COMPANY_NAME=${VITE_PUBLIC_COMPANY_NAME}
 ENV VITE_PUBLIC_CONTACT_EMAIL=${VITE_PUBLIC_CONTACT_EMAIL}
 ENV VITE_PUBLIC_SECURITY_EMAIL=${VITE_PUBLIC_SECURITY_EMAIL}
 ENV VITE_PUBLIC_PRIVACY_EMAIL=${VITE_PUBLIC_PRIVACY_EMAIL}
+ENV VITE_PUBLIC_DEMO_BOOKING_URL=${VITE_PUBLIC_DEMO_BOOKING_URL}
+ENV VITE_PUBLIC_DEMO_BOOKING_LABEL=${VITE_PUBLIC_DEMO_BOOKING_LABEL}
 ENV VITE_PUBLIC_SHOW_STATUS_PILL=${VITE_PUBLIC_SHOW_STATUS_PILL}
 ENV VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
 RUN node ./node_modules/vite/bin/vite.js build --config vite.config.ts
@@ -43,6 +47,7 @@ RUN node ./node_modules/vite/bin/vite.js build --config vite.config.ts
 FROM nginx:alpine
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx-security-headers.conf /etc/nginx/conf.d/nginx-security-headers.conf
 
 EXPOSE 80
 

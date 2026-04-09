@@ -1,6 +1,6 @@
 # Production Deploy Checklist
 
-Use this checklist before putting CyberSentinel on a public server.
+Use this checklist before putting CyberSentil on a public server.
 
 ## Launch gate
 

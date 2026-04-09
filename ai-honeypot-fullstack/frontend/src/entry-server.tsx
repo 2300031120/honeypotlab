@@ -5,7 +5,7 @@ import { AppShell } from "./App.tsx";
 export function render(url = "/") {
   const appHtml = renderToString(
     <StaticRouter location={url}>
-      <AppShell authenticated={false} isSsr />
+      <AppShell authChecked authenticated={false} isSsr />
     </StaticRouter>
   );
   return { appHtml };

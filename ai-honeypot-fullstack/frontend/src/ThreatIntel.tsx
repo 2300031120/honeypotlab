@@ -1,11 +1,89 @@
-// @ts-nocheck
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import { API_BASE, WS_BASE } from './apiConfig';
-import { Globe, Shield, Activity, AlertCircle, TrendingUp, Search, Zap, Crosshair, Network, Sparkles, User, Database } from 'lucide-react';
+import { Globe, Shield, Activity, AlertCircle, Search, Zap, Crosshair, Sparkles, User, Database } from 'lucide-react';
 import { motion, AnimatePresence } from './utils/motionLite';
 import { isSyntheticEvent, stableGeoPoint, stableHexFromText } from './utils/eventUtils';
 import { createManagedWebSocket, safeParseJson } from './utils/realtime';
+
+type ThreatEvent = {
+    id?: string | number;
+    ip?: string;
+    actorId?: string;
+    attacker_type?: string;
+    event_type?: string;
+    country?: string;
+    geo?: string;
+    geo_country?: string;
+    severity?: string;
+    timestamp_utc?: string;
+    ts?: string;
+};
+
+type AttackModel = {
+    id: string;
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    color: string;
+    actorId?: string | undefined;
+    toolId?: string | undefined;
+    country?: string | undefined;
+    ts: string;
+    ip?: string | undefined;
+    attacker_type?: string | undefined;
+};
+
+type HealthData = {
+    integrity?: {
+        trust_index?: number | null;
+    };
+};
+
+type IocEntry = {
+    type: string;
+    value: string;
+    ip?: string | undefined;
+    ts?: string | undefined;
+};
+
+type SearchResult = {
+    ip: string;
+    reputation: {
+        abuse_score: number;
+        usage_type?: string;
+    };
+    platform_history_count?: number;
+    is_blacklisted?: boolean;
+};
+
+type StatsResponse = {
+    geo_distribution?: Record<string, number>;
+    feed?: ThreatEvent[];
+};
+
+type RelationshipNode = {
+    id: string;
+    type: 'actor' | 'tool' | 'target';
+    label: string;
+    icon?: React.ElementType;
+    color: string;
+    x: number;
+    y: number;
+};
+
+type RelationshipLink = {
+    id: string;
+    source: string;
+    target: string;
+};
+
+type ActorRelationshipGraphProps = {
+    activeAttacks: AttackModel[];
+};
+
+type ThreatRealtimePayload = ThreatEvent & {
+    iocs?: IocEntry[];
+};
 
 // Simplified but professional World Map SVG Paths
 const WORLD_PATHS = [
@@ -21,22 +99,24 @@ const WORLD_PATHS = [
 
 const ThreatIntel = () => {
     const REAL_ONLY_PARAMS = { params: { include_training: false } };
-    const [searchIp, setSearchIp] = useState("");
-    const [searchResult, setSearchResult] = useState(null);
-    const [searchLoading, setSearchLoading] = useState(false);
-    const [healthData, setHealthData] = useState({ integrity: { trust_index: null } });
-    const [activeAttacks, setActiveAttacks] = useState([]);
-    const [iocs, setIocs] = useState([]);
-    const [iocLoading, setIocLoading] = useState(false);
-    const trustIndex = Number.isFinite(healthData.integrity?.trust_index) ? healthData.integrity.trust_index : null;
+    const [searchIp, setSearchIp] = useState<string>('');
+    const [searchResult, setSearchResult] = useState<SearchResult | null>(null);
+    const [searchLoading, setSearchLoading] = useState<boolean>(false);
+    const [healthData, setHealthData] = useState<HealthData>({ integrity: { trust_index: null } });
+    const [activeAttacks, setActiveAttacks] = useState<AttackModel[]>([]);
+    const [iocs, setIocs] = useState<IocEntry[]>([]);
+    const [iocLoading, setIocLoading] = useState<boolean>(false);
+    const trustIndex = typeof healthData.integrity?.trust_index === 'number' && Number.isFinite(healthData.integrity?.trust_index)
+        ? healthData.integrity?.trust_index
+        : null;
 
-    const mapAttackColor = (severity) => {
+    const mapAttackColor = (severity?: string) => {
         if (severity === 'high') return '#f85149';
         if (severity === 'medium') return '#d29922';
         return '#58a6ff';
     };
 
-    const buildAttackModel = (event, seed = '') => {
+    const buildAttackModel = (event: ThreatEvent, seed = ''): AttackModel => {
         const country = event?.country || event?.geo || event?.geo_country || 'Unknown';
         const actorId = event?.ip || event?.actorId || country;
         const toolId = event?.attacker_type || event?.event_type || 'Unknown Bot';
@@ -50,6 +130,8 @@ const ThreatIntel = () => {
             toolId,
             country,
             ts: event?.timestamp_utc || event?.ts || new Date().toISOString(),
+            ip: event?.ip,
+            attacker_type: event?.attacker_type,
         };
     };
 
@@ -66,10 +148,10 @@ const ThreatIntel = () => {
         if (!searchIp) return;
         setSearchLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/intelligence/reputation/${searchIp}`, REAL_ONLY_PARAMS);
+            const res = await axios.get<SearchResult>(`${API_BASE}/intelligence/reputation/${searchIp}`, REAL_ONLY_PARAMS);
             setSearchResult(res.data);
         } catch (err) {
-            console.error("IP Lookup failed", err);
+            console.error('IP Lookup failed', err);
         } finally {
             setSearchLoading(false);
         }
@@ -78,10 +160,10 @@ const ThreatIntel = () => {
     const fetchIOCs = async () => {
         setIocLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/intelligence/iocs`, REAL_ONLY_PARAMS);
-            setIocs(res.data);
+            const res = await axios.get<IocEntry[]>(`${API_BASE}/intelligence/iocs`, REAL_ONLY_PARAMS);
+            setIocs(Array.isArray(res.data) ? res.data : []);
         } catch (err) {
-            console.error("IOC Fetch failed", err);
+            console.error('IOC Fetch failed', err);
         } finally {
             setIocLoading(false);
         }
@@ -89,7 +171,7 @@ const ThreatIntel = () => {
 
     const fetchData = async () => {
         try {
-            const res = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
+            const res = await axios.get<StatsResponse>(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
             const geoData = res.data.geo_distribution || {};
             const feed = Array.isArray(res.data.feed) ? res.data.feed : [];
             let nextAttacks = feed.slice(0, 12).map((event, idx) => buildAttackModel(event, `feed-${idx}`));
@@ -109,10 +191,13 @@ const ThreatIntel = () => {
             setActiveAttacks(nextAttacks);
 
             // Fetch real health/trust data
-            const healthRes = await axios.get(`${API_BASE}/intelligence/health`, REAL_ONLY_PARAMS);
-            setHealthData(healthRes.data);
+            const healthRes = await axios.get<HealthData>(`${API_BASE}/intelligence/health`, REAL_ONLY_PARAMS);
+            const nextHealth = healthRes.data && typeof healthRes.data === 'object'
+                ? healthRes.data
+                : { integrity: { trust_index: null } };
+            setHealthData(nextHealth);
         } catch (err) {
-            console.error("Threat Intel Fetch failed", err);
+            console.error('Threat Intel Fetch failed', err);
         }
     };
 
@@ -129,31 +214,33 @@ const ThreatIntel = () => {
             `${WS_BASE}/ws/incidents`,
             {
                 onMessage: (event) => {
-                    const data = safeParseJson(event.data);
-                    if (!data || isSyntheticEvent(data)) return;
+                    const raw = safeParseJson(event.data);
+                    if (!raw || typeof raw !== 'object' || isSyntheticEvent(raw)) return;
+                    const data = raw as ThreatRealtimePayload;
 
                     if (data.geo || data.country || data.ip) {
                         const newAttack = buildAttackModel(data, stableHexFromText(JSON.stringify(data), 12));
                         setActiveAttacks(prev => {
                             const merged = [...prev, newAttack];
-                            const dedup = new Map();
+                            const dedup = new Map<string, AttackModel>();
                             merged.forEach((entry) => dedup.set(entry.id, entry));
                             return Array.from(dedup.values()).slice(-12);
                         });
                     }
 
-                    if (data.iocs && data.iocs.length > 0) {
+                    const incomingIocs = data.iocs;
+                    if (Array.isArray(incomingIocs) && incomingIocs.length > 0) {
                         setIocs(prev => {
-                            const newIocs = data.iocs.map(ioc => ({
+                            const newIocs: IocEntry[] = incomingIocs.map((ioc) => ({
                                 ...ioc,
                                 ts: data.ts || data.timestamp_utc || new Date().toISOString(),
-                                ip: data.ip,
+                                ip: data.ip || ioc.ip,
                             }));
                             return [...newIocs, ...prev].slice(0, 50);
                         });
                     }
                 },
-                onError: (err) => console.error("WS Threat Intel Flow Error", err),
+                onError: (err) => console.error('WS Threat Intel Flow Error', err),
             },
             { reconnect: true }
         );
@@ -164,28 +251,28 @@ const ThreatIntel = () => {
         };
     }, []);
 
-    const ActorRelationshipGraph = ({ activeAttacks }) => {
-        const [selectedEntity, setSelectedEntity] = useState(null);
-        const selectionRef = useRef(null);
+    const ActorRelationshipGraph = ({ activeAttacks }: ActorRelationshipGraphProps) => {
+        const [selectedEntity, setSelectedEntity] = useState<RelationshipNode | null>(null);
+        const selectionRef = useRef<RelationshipNode | null>(null);
         selectionRef.current = selectedEntity;
 
         const { nodes, links } = useMemo(() => {
-            const actorMap = new Map();
-            const toolMap = new Map();
+            const actorMap = new Map<string, RelationshipNode>();
+            const toolMap = new Map<string, RelationshipNode>();
 
             activeAttacks.slice(0, 8).forEach((attack, idx) => {
                 const actorId = attack.actorId || attack.ip || `Actor_${idx}`;
                 const toolId = attack.toolId || attack.attacker_type || 'Unknown Bot';
 
                 if (!actorMap.has(actorId)) {
-                    actorMap.set(actorId, { id: actorId, type: 'actor', label: actorId, icon: User, color: '#f85149' });
+                    actorMap.set(actorId, { id: actorId, type: 'actor', label: actorId, icon: User, color: '#f85149', x: 0, y: 0 });
                 }
                 if (!toolMap.has(toolId)) {
-                    toolMap.set(toolId, { id: toolId, type: 'tool', label: toolId, icon: Database, color: '#d29922' });
+                    toolMap.set(toolId, { id: toolId, type: 'tool', label: toolId, icon: Database, color: '#d29922', x: 0, y: 0 });
                 }
             });
 
-            const target = {
+            const target: RelationshipNode = {
                 id: 'Honeypot',
                 type: 'target',
                 label: 'SENTINEL_ALPHA',
@@ -207,7 +294,7 @@ const ThreatIntel = () => {
                 y: list.length === 1 ? 192 : 92 + ((220 / Math.max(list.length - 1, 1)) * index),
             }));
 
-            const nextLinks = [];
+            const nextLinks: RelationshipLink[] = [];
             actors.forEach((actor) => {
                 nextLinks.push({ id: `${actor.id}-root`, source: actor.id, target: target.id });
             });
@@ -223,7 +310,12 @@ const ThreatIntel = () => {
             return { nodes: [target, ...actors, ...tools], links: nextLinks };
         }, [activeAttacks]);
 
-        const nodeLookup = useMemo(() => Object.fromEntries(nodes.map((node) => [node.id, node])), [nodes]);
+        const nodeLookup = useMemo<Record<string, RelationshipNode>>(
+            () => Object.fromEntries(nodes.map((node) => [node.id, node])),
+            [nodes]
+        );
+
+        const SelectedIcon = selectedEntity?.icon;
 
         return (
             <div style={{ position: 'relative' }}>
@@ -293,9 +385,7 @@ const ThreatIntel = () => {
                         >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    {selectedEntity.icon && (
-                                        <selectedEntity.icon size={14} color={selectedEntity.color} />
-                                    )}
+                                    {SelectedIcon && <SelectedIcon size={14} color={selectedEntity.color} />}
                                     <span style={{ fontSize: '12px', fontWeight: '800' }}>{selectedEntity.label}</span>
                                 </div>
                                 <button onClick={() => setSelectedEntity(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer' }}>Close</button>
@@ -457,7 +547,7 @@ const ThreatIntel = () => {
                             ))}
 
                             {/* Threat Trajectories */}
-                            {activeAttacks.map(attack => (
+                            {activeAttacks.map((attack) => (
                                 <g key={attack.id}>
                                     <path
                                         d={`M ${attack.from.x} ${attack.from.y} C ${attack.from.x} ${attack.from.y - 120}, ${attack.to.x} ${attack.to.y - 120}, ${attack.to.x} ${attack.to.y} `}
@@ -524,10 +614,10 @@ const ThreatIntel = () => {
                                             ABUSE_SCORE: {searchResult.reputation.abuse_score}/100
                                         </div>
                                         <div style={{ fontSize: '12px', color: '#d1d5db', fontWeight: '500' }}>
-                                            TYPE: {searchResult.reputation.usage_type}
+                                            TYPE: {searchResult.reputation.usage_type || 'Unknown'}
                                         </div>
                                         <div style={{ fontSize: '12px', color: '#8b949e' }}>
-                                            HISTORY: {searchResult.platform_history_count} Events Recorded
+                                            HISTORY: {searchResult.platform_history_count ?? 0} Events Recorded
                                         </div>
                                         {searchResult.is_blacklisted && (
                                             <div className="premium-glass" style={{ fontSize: '10px', color: '#f85149', fontWeight: '900', marginTop: '8px', padding: '6px', textAlign: 'center', background: 'rgba(248,81,73,0.1)', borderRadius: '8px' }}>PERMANENT_QUARANTINE_LOCKED</div>
@@ -581,7 +671,7 @@ const ThreatIntel = () => {
                             )}
                         </div>
                         <p style={{ fontSize: '13px', color: '#8b949e', textAlign: 'center', marginTop: '20px', lineHeight: '1.6' }}>
-                            Platform integrity current state: <strong style={{ color: trustIndex > 90 ? '#3fb950' : '#f85149' }}>{trustIndex == null ? 'SCANNING...' : (trustIndex > 90 ? 'OPTIMAL' : 'DEGRADED')}</strong>.
+                            Platform integrity current state: <strong style={{ color: trustIndex != null && trustIndex > 90 ? '#3fb950' : '#f85149' }}>{trustIndex == null ? 'SCANNING...' : (trustIndex > 90 ? 'OPTIMAL' : 'DEGRADED')}</strong>.
                         </p>
                     </div>
 
@@ -651,9 +741,6 @@ const ThreatIntel = () => {
             </div>
         </div>
     );
-
 };
 
 export default ThreatIntel;
-
-

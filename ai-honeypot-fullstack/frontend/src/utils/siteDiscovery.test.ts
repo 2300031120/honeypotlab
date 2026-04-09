@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { renderLlmsTxt, renderRobots, renderSitemap, renderStructuredData } from "./siteDiscovery";
 
 describe("siteDiscovery", () => {
@@ -11,24 +10,24 @@ describe("siteDiscovery", () => {
   it("renders robots and llms assets", () => {
     const robots = renderRobots("https://example.com");
     const llms = renderLlmsTxt({
-      siteName: "CyberSentinel AI",
+      siteName: "CyberSentil",
       siteDescription: "Deception platform",
       siteUrl: "https://example.com",
     });
     expect(robots).toContain("Disallow: /dashboard");
-    expect(llms).toContain("# CyberSentinel AI");
+    expect(llms).toContain("# CyberSentil");
     expect(llms).toContain("https://example.com/platform");
   });
 
   it("renders valid structured data JSON", () => {
     const raw = renderStructuredData({
-      siteName: "CyberSentinel AI",
+      siteName: "CyberSentil",
       siteDescription: "Deception platform",
       siteUrl: "https://example.com",
-      companyName: "CyberSentinel AI Labs",
+      companyName: "CyberSentil",
     });
     const parsed = JSON.parse(raw);
     expect(Array.isArray(parsed)).toBe(true);
-    expect(parsed.some((entry) => entry["@type"] === "SoftwareApplication")).toBe(true);
+    expect(parsed.some((entry: { "@type"?: string }) => entry["@type"] === "SoftwareApplication")).toBe(true);
   });
 });

@@ -1,8 +1,115 @@
-// @ts-nocheck
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { AlertCircle, Inbox, RefreshCw, Search, X } from "lucide-react";
 import { API_BASE } from "./apiConfig";
+
+type LeadFilters = {
+  request_type: string;
+  status: string;
+  assigned_to: string;
+  q: string;
+  created_from: string;
+  created_to: string;
+};
+
+type Lead = {
+  id: number;
+  created_at?: string;
+  updated_at?: string;
+  request_type?: string;
+  assigned_to?: string;
+  spam_score?: number;
+  is_repeat?: boolean;
+  name?: string;
+  email?: string;
+  organization?: string;
+  use_case?: string;
+  message?: string;
+  status?: string;
+  notification_error?: string;
+  notification_channel_status?: Record<string, string>;
+  notification_sent_at?: string;
+  source_page?: string;
+  campaign?: string;
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+  first_response_at?: string;
+};
+
+type LeadOwner = {
+  username: string;
+};
+
+type LeadNote = {
+  id: number | string;
+  author_username?: string;
+  created_at?: string;
+  note_text?: string;
+};
+
+type LeadStatusHistoryEntry = {
+  id: number | string;
+  old_status?: string;
+  new_status?: string;
+  changed_by_username?: string;
+  changed_at?: string;
+};
+
+type LeadDetail = {
+  lead: Lead;
+  notes?: LeadNote[];
+  status_history?: LeadStatusHistoryEntry[];
+};
+
+type LeadMeta = {
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+type LeadReport = {
+  totals?: {
+    all?: number;
+    repeat?: number;
+    notification_failures?: number;
+  };
+  demo_requests_by_week?: Array<{ count?: number }>;
+};
+
+type StatusConfigResponse = {
+  statuses?: string[];
+  transitions?: Record<string, string[]>;
+};
+
+type LeadListResponse = {
+  items?: Lead[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+};
+
+type LeadOwnersResponse = {
+  owners?: LeadOwner[];
+};
+
+type LeadStatusUpdateResponse = {
+  lead?: Lead;
+  history_item?: LeadStatusHistoryEntry;
+};
+
+type LeadNoteResponse = {
+  note?: LeadNote;
+  lead?: Lead;
+};
+
+type LeadAssignResponse = {
+  lead?: Lead;
+};
+
+type ApiErrorResponse = {
+  detail?: string;
+};
 
 const FALLBACK_STATUS_OPTIONS = [
   "new",
@@ -14,7 +121,7 @@ const FALLBACK_STATUS_OPTIONS = [
   "spam",
 ];
 
-const INITIAL_FILTERS = {
+const INITIAL_FILTERS: LeadFilters = {
   request_type: "",
   status: "",
   assigned_to: "",
@@ -23,18 +130,28 @@ const INITIAL_FILTERS = {
   created_to: "",
 };
 
-const panelStyle = {
+const panelStyle: React.CSSProperties = {
   border: "1px solid #30363d",
   borderRadius: "12px",
   background: "rgba(13,17,23,0.85)",
 };
 
-function statusLabel(value) {
-  return String(value || "").replaceAll("_", " ");
+function getErrorMessage(error: unknown, fallback: string) {
+  if (axios.isAxiosError<ApiErrorResponse>(error)) {
+    return error.response?.data?.detail || error.message || fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
 }
 
-function toneForStatus(value) {
-  const tones = {
+function statusLabel(value: string | null | undefined) {
+  return String(value || "").split("_").join(" ");
+}
+
+function toneForStatus(value: string | null | undefined) {
+  const tones: Record<string, { bg: string; color: string; border: string }> = {
     new: { bg: "rgba(56,139,253,0.18)", color: "#93c5fd", border: "rgba(56,139,253,0.42)" },
     contacted: { bg: "rgba(45,212,191,0.15)", color: "#5eead4", border: "rgba(45,212,191,0.42)" },
     qualified: { bg: "rgba(163,230,53,0.16)", color: "#bef264", border: "rgba(163,230,53,0.38)" },
@@ -46,7 +163,7 @@ function toneForStatus(value) {
   return tones[String(value || "").toLowerCase()] || tones.new;
 }
 
-function hasNotificationFailure(lead) {
+function hasNotificationFailure(lead: Lead | null | undefined) {
   if (!lead) {
     return false;
   }
@@ -57,48 +174,72 @@ function hasNotificationFailure(lead) {
   return Boolean(lead.notification_error) || channelStates.includes("error");
 }
 
-function notificationLabel(lead) {
+function notificationTone(value: string | null | undefined) {
+  const normalized = String(value || "").toLowerCase();
+  if (normalized === "sent") {
+    return { color: "#86efac", border: "rgba(34,197,94,0.4)" };
+  }
+  if (normalized === "partial") {
+    return { color: "#fde047", border: "rgba(250,204,21,0.45)" };
+  }
+  if (normalized === "error") {
+    return { color: "#fca5a5", border: "rgba(248,113,113,0.45)" };
+  }
+  if (normalized.startsWith("skipped")) {
+    return { color: "#cbd5e1", border: "rgba(148,163,184,0.45)" };
+  }
+  if (normalized === "no_channels" || normalized === "disabled" || normalized === "duplicate" || normalized === "blocked") {
+    return { color: "#cbd5e1", border: "rgba(148,163,184,0.45)" };
+  }
+  return { color: "#93c5fd", border: "rgba(88,166,255,0.3)" };
+}
+
+function notificationLabel(lead: Lead | null | undefined) {
   if (!lead || String(lead.request_type || "").toLowerCase() !== "demo") {
     return "n/a";
   }
+  const systemState = String(lead.notification_channel_status?.system || "").toLowerCase();
+  if (systemState === "blocked" || systemState === "duplicate" || systemState === "no_channels") {
+    return systemState;
+  }
   if (hasNotificationFailure(lead)) {
+    if (lead.notification_sent_at) {
+      return "partial";
+    }
     return "failed";
   }
   if (lead.notification_sent_at) {
     return "sent";
   }
-  if (lead.notification_channel_status?.system === "no_channels") {
-    return "no_channels";
-  }
   return "pending";
 }
 
 export default function AdminLeads() {
-  const [filters, setFilters] = useState(INITIAL_FILTERS);
-  const [query, setQuery] = useState(INITIAL_FILTERS);
-  const [statusOptions, setStatusOptions] = useState(FALLBACK_STATUS_OPTIONS);
-  const [statusTransitions, setStatusTransitions] = useState({});
-  const [leads, setLeads] = useState([]);
-  const [meta, setMeta] = useState({ total: 0, limit: 50, offset: 0 });
+  const [filters, setFilters] = useState<LeadFilters>(INITIAL_FILTERS);
+  const [query, setQuery] = useState<LeadFilters>(INITIAL_FILTERS);
+  const [statusOptions, setStatusOptions] = useState<string[]>(FALLBACK_STATUS_OPTIONS);
+  const [statusTransitions, setStatusTransitions] = useState<Record<string, string[]>>({});
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [meta, setMeta] = useState<LeadMeta>({ total: 0, limit: 50, offset: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
-  const [updatingId, setUpdatingId] = useState(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
-  const [selectedLeadId, setSelectedLeadId] = useState(null);
-  const [detail, setDetail] = useState(null);
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<LeadDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-  const [owners, setOwners] = useState([]);
+  const [owners, setOwners] = useState<LeadOwner[]>([]);
   const [assigning, setAssigning] = useState(false);
-  const [report, setReport] = useState(null);
+  const [report, setReport] = useState<LeadReport | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
 
   const loadStatusConfig = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE}/admin/leads/statuses`);
+      const response = await axios.get<StatusConfigResponse>(`${API_BASE}/admin/leads/statuses`);
       const data = response.data || {};
       setStatusOptions(
         Array.isArray(data.statuses) && data.statuses.length > 0 ? data.statuses : FALLBACK_STATUS_OPTIONS
@@ -119,7 +260,7 @@ export default function AdminLeads() {
       }
       setError("");
       try {
-        const response = await axios.get(`${API_BASE}/admin/leads`, {
+        const response = await axios.get<LeadListResponse>(`${API_BASE}/admin/leads`, {
           params: {
             request_type: query.request_type || undefined,
             status: query.status || undefined,
@@ -135,7 +276,7 @@ export default function AdminLeads() {
         setLeads(Array.isArray(data.items) ? data.items : []);
         setMeta({ total: Number(data.total || 0), limit: Number(data.limit || 50), offset: Number(data.offset || 0) });
       } catch (err) {
-        setError(err?.response?.data?.detail || "Unable to load leads at the moment.");
+        setError(getErrorMessage(err, "Unable to load leads at the moment."));
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -146,7 +287,7 @@ export default function AdminLeads() {
 
   const loadOwners = useCallback(async () => {
     try {
-      const response = await axios.get(`${API_BASE}/admin/leads/owners`);
+      const response = await axios.get<LeadOwnersResponse>(`${API_BASE}/admin/leads/owners`);
       const nextOwners = Array.isArray(response.data?.owners) ? response.data.owners : [];
       setOwners(nextOwners);
     } catch {
@@ -157,7 +298,7 @@ export default function AdminLeads() {
   const loadReport = useCallback(async () => {
     setReportLoading(true);
     try {
-      const response = await axios.get(`${API_BASE}/admin/leads/report`);
+      const response = await axios.get<LeadReport>(`${API_BASE}/admin/leads/report`);
       setReport(response.data || null);
     } catch {
       setReport(null);
@@ -166,15 +307,15 @@ export default function AdminLeads() {
     }
   }, []);
 
-  const loadLeadDetail = useCallback(async (leadId) => {
+  const loadLeadDetail = useCallback(async (leadId: number) => {
     setDetailLoading(true);
     setDetailError("");
     try {
-      const response = await axios.get(`${API_BASE}/admin/leads/${leadId}`);
+      const response = await axios.get<LeadDetail>(`${API_BASE}/admin/leads/${leadId}`);
       setDetail(response.data || null);
     } catch (err) {
       setDetail(null);
-      setDetailError(err?.response?.data?.detail || "Unable to load lead details.");
+      setDetailError(getErrorMessage(err, "Unable to load lead details."));
     } finally {
       setDetailLoading(false);
     }
@@ -199,7 +340,7 @@ export default function AdminLeads() {
     return `${meta.total} leads | ${type} | ${status}`;
   }, [meta.total, query.request_type, query.status]);
 
-  const rowStatusOptions = (currentStatus) => {
+  const rowStatusOptions = (currentStatus: string | null | undefined) => {
     const normalized = String(currentStatus || "new");
     const allowed = Array.isArray(statusTransitions?.[normalized]) ? statusTransitions[normalized] : [];
     const allowedSet = new Set([normalized, ...allowed]);
@@ -207,7 +348,7 @@ export default function AdminLeads() {
     return ordered.length > 0 ? ordered : statusOptions;
   };
 
-  const openLeadDetail = async (leadId) => {
+  const openLeadDetail = async (leadId: number) => {
     setSelectedLeadId(leadId);
     setNoteText("");
     await loadLeadDetail(leadId);
@@ -220,10 +361,10 @@ export default function AdminLeads() {
     setNoteText("");
   };
 
-  const handleStatusUpdate = async (leadId, nextStatus) => {
+  const handleStatusUpdate = async (leadId: number, nextStatus: string) => {
     setUpdatingId(leadId);
     try {
-      const response = await axios.post(`${API_BASE}/admin/leads/${leadId}/status`, { status: nextStatus });
+      const response = await axios.post<LeadStatusUpdateResponse>(`${API_BASE}/admin/leads/${leadId}/status`, { status: nextStatus });
       const nextLead = response?.data?.lead;
       const historyItem = response?.data?.history_item;
       if (nextLead) {
@@ -243,7 +384,7 @@ export default function AdminLeads() {
       }
       loadReport();
     } catch (err) {
-      window.alert(err?.response?.data?.detail || "Failed to update lead status.");
+      window.alert(getErrorMessage(err, "Failed to update lead status."));
     } finally {
       setUpdatingId(null);
     }
@@ -261,15 +402,20 @@ export default function AdminLeads() {
 
     setSavingNote(true);
     try {
-      const response = await axios.post(`${API_BASE}/admin/leads/${selectedLeadId}/notes`, { note: trimmed });
+      const response = await axios.post<LeadNoteResponse>(`${API_BASE}/admin/leads/${selectedLeadId}/notes`, { note: trimmed });
       const note = response?.data?.note;
       const nextLead = response?.data?.lead;
       if (note) {
-        setDetail((prev) => ({
-          ...prev,
-          lead: nextLead || prev?.lead,
-          notes: [note, ...(Array.isArray(prev?.notes) ? prev.notes : [])],
-        }));
+        setDetail((prev) => {
+          if (!prev) {
+            return prev;
+          }
+          return {
+            ...prev,
+            lead: nextLead || prev.lead,
+            notes: [note, ...(Array.isArray(prev.notes) ? prev.notes : [])],
+          };
+        });
       }
       if (nextLead) {
         setLeads((prev) => prev.map((lead) => (lead.id === selectedLeadId ? { ...lead, ...nextLead } : lead)));
@@ -277,35 +423,40 @@ export default function AdminLeads() {
       setNoteText("");
       loadReport();
     } catch (err) {
-      window.alert(err?.response?.data?.detail || "Unable to save note.");
+      window.alert(getErrorMessage(err, "Unable to save note."));
     } finally {
       setSavingNote(false);
     }
   };
 
-  const handleAssign = async (assignedTo) => {
+  const handleAssign = async (assignedTo: string) => {
     if (!selectedLeadId) {
       return;
     }
     setAssigning(true);
     try {
-      const response = await axios.post(`${API_BASE}/admin/leads/${selectedLeadId}/assign`, {
+      const response = await axios.post<LeadAssignResponse>(`${API_BASE}/admin/leads/${selectedLeadId}/assign`, {
         assigned_to: assignedTo || "",
       });
       const nextLead = response?.data?.lead;
       if (nextLead) {
-        setDetail((prev) => ({ ...prev, lead: nextLead }));
+        setDetail((prev) => {
+          if (!prev) {
+            return prev;
+          }
+          return { ...prev, lead: nextLead };
+        });
         setLeads((prev) => prev.map((lead) => (lead.id === selectedLeadId ? { ...lead, ...nextLead } : lead)));
       }
       loadReport();
     } catch (err) {
-      window.alert(err?.response?.data?.detail || "Unable to assign lead.");
+      window.alert(getErrorMessage(err, "Unable to assign lead."));
     } finally {
       setAssigning(false);
     }
   };
 
-  const applyFilters = (event) => {
+  const applyFilters = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setQuery({ ...filters });
   };
@@ -519,6 +670,18 @@ export default function AdminLeads() {
                       <Badge border="rgba(148,163,184,0.45)" color="#cbd5e1">notify: {notificationLabel(detail.lead)}</Badge>
                     </div>
                     <div style={{ marginTop: "8px", color: "#8b949e", fontSize: "12px" }}>{detail.lead.notification_error || "No notification errors"}</div>
+                    {detail.lead.notification_channel_status && Object.keys(detail.lead.notification_channel_status).length > 0 ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "10px" }}>
+                        {Object.entries(detail.lead.notification_channel_status).map(([channel, state]) => {
+                          const tone = notificationTone(state);
+                          return (
+                            <Badge key={channel} border={tone.border} color={tone.color}>
+                              {channel}: {statusLabel(state)}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    ) : null}
                     <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "10px", marginTop: "10px" }}>
                       <select
                         value={detail.lead.assigned_to || ""}
@@ -575,7 +738,15 @@ export default function AdminLeads() {
   );
 }
 
-function SelectField({ label, value, onChange, options, format }) {
+type SelectFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: string[];
+  format?: (value: string) => string;
+};
+
+function SelectField({ label, value, onChange, options, format }: SelectFieldProps) {
   return (
     <label style={{ display: "grid", gap: "4px" }}>
       <span style={{ fontSize: "11px", color: "#8b949e", fontWeight: 700 }}>{label}</span>
@@ -588,7 +759,13 @@ function SelectField({ label, value, onChange, options, format }) {
   );
 }
 
-function DateField({ label, value, onChange }) {
+type DateFieldProps = {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+};
+
+function DateField({ label, value, onChange }: DateFieldProps) {
   return (
     <label style={{ display: "grid", gap: "4px" }}>
       <span style={{ fontSize: "11px", color: "#8b949e", fontWeight: 700 }}>{label}</span>
@@ -597,7 +774,13 @@ function DateField({ label, value, onChange }) {
   );
 }
 
-function Badge({ children, color, border }) {
+type BadgeProps = {
+  children: React.ReactNode;
+  color: string;
+  border: string;
+};
+
+function Badge({ children, color, border }: BadgeProps) {
   return (
     <span style={{ fontSize: "10px", padding: "3px 7px", borderRadius: "999px", border: `1px solid ${border}`, color, textTransform: "uppercase", fontWeight: 800, width: "fit-content" }}>
       {children}
@@ -605,15 +788,15 @@ function Badge({ children, color, border }) {
   );
 }
 
-function Th({ children }) {
+function Th({ children }: { children: React.ReactNode }) {
   return <th style={{ textAlign: "left", fontSize: "11px", color: "#8b949e", padding: "10px 12px", fontWeight: 800 }}>{children}</th>;
 }
 
-function Td({ children }) {
+function Td({ children }: { children: React.ReactNode }) {
   return <td style={{ padding: "10px 12px", fontSize: "12px", color: "#e6edf3", verticalAlign: "top" }}>{children}</td>;
 }
 
-function DetailCard({ title, children }) {
+function DetailCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section style={{ ...panelStyle, padding: "12px" }}>
       <h3 style={{ margin: 0, fontSize: "13px", fontWeight: 800, marginBottom: "10px" }}>{title}</h3>
@@ -622,11 +805,11 @@ function DetailCard({ title, children }) {
   );
 }
 
-function DetailGrid({ children }) {
+function DetailGrid({ children }: { children: React.ReactNode }) {
   return <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: "10px" }}>{children}</div>;
 }
 
-function DetailItem({ label, value }) {
+function DetailItem({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div>
       <div style={{ fontSize: "11px", color: "#8b949e", marginBottom: "4px", fontWeight: 700 }}>{label}</div>
@@ -635,7 +818,7 @@ function DetailItem({ label, value }) {
   );
 }
 
-function SummaryPill({ label, value }) {
+function SummaryPill({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ border: "1px solid #30363d", borderRadius: "8px", padding: "8px", background: "#0b1016" }}>
       <div style={{ fontSize: "10px", color: "#8b949e", fontWeight: 700, textTransform: "uppercase" }}>{label}</div>
@@ -644,7 +827,7 @@ function SummaryPill({ label, value }) {
   );
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div style={{ border: "1px solid #30363d", borderRadius: "8px", padding: "10px", background: "#0b1016" }}>
       <div style={{ fontSize: "11px", color: "#8b949e", fontWeight: 700 }}>{label}</div>

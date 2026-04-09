@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
       interval: 10s
@@ -40,9 +40,9 @@ services:
     environment:
       - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
       - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret-change-me}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
       - PROTOCOL_SSH_AUTH_TRAP_ENABLED=${PROTOCOL_SSH_AUTH_TRAP_ENABLED:-true}
-      - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-admin:Winter2026!,deploy:Deploy@2026!,reporting:Report#2026}
+      - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-admin:Winter2026!,deploy:Deploy@2026!,reporting:Report#2026}  # ⚠️ CRITICAL: Change to realistic credentials in production
       - SSH_DECOY_LISTEN_HOST=0.0.0.0
       - SSH_DECOY_PORT=2222
       - SSH_DECOY_SITE_ID=${SSH_DECOY_SITE_ID:-}
@@ -75,7 +75,7 @@ services:
       - cowrie
     environment:
       - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret-change-me}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
       - COWRIE_SITE_ID=${COWRIE_SITE_ID:-}
       - COWRIE_JSON_LOG=${COWRIE_JSON_LOG:-/cowrie/cowrie-git/var/log/cowrie/cowrie.json}
       - COWRIE_HTTP_TIMEOUT_SEC=${COWRIE_HTTP_TIMEOUT_SEC:-4}
@@ -89,6 +89,30 @@ services:
     restart: unless-stopped
     expose:
       - "5000"
+    # SECURITY HARDENING - Network Segmentation
+    networks:
+      - app-tier
+      - data-tier
+    # SECURITY HARDENING - Resource Limits
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    # SECURITY HARDENING - Container Security
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=100m
+    user: "1000:1000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -96,10 +120,10 @@ services:
         condition: service_started
     environment:
       - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://cybersentinel:cybersentinel@postgres:5432/cybersentinel}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://cybersentinel:ChangeThisLocalDbPassword_2026!@postgres:5432/cybersentinel}
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver,backend}
@@ -113,6 +137,22 @@ services:
       - AUTH_RATE_LIMIT_MAX_ATTEMPTS=${AUTH_RATE_LIMIT_MAX_ATTEMPTS:-8}
       - LEAD_RATE_LIMIT_WINDOW_SECONDS=${LEAD_RATE_LIMIT_WINDOW_SECONDS:-300}
       - LEAD_RATE_LIMIT_MAX_ATTEMPTS=${LEAD_RATE_LIMIT_MAX_ATTEMPTS:-5}
+      - LEAD_NOTIFICATION_WEBHOOK_URL=${LEAD_NOTIFICATION_WEBHOOK_URL:-}
+      - LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS=${LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS:-5}
+      - LEAD_NOTIFICATION_EMAIL_TO=${LEAD_NOTIFICATION_EMAIL_TO:-}
+      - LEAD_NOTIFICATION_BRAND_NAME=${LEAD_NOTIFICATION_BRAND_NAME:-CyberSentil}
+      - LEAD_NOTIFICATION_CONTACT_EMAIL=${LEAD_NOTIFICATION_CONTACT_EMAIL:-}
+      - LEAD_AUTOREPLY_ENABLED=${LEAD_AUTOREPLY_ENABLED:-false}
+      - LEAD_AUTOREPLY_REPLY_TO=${LEAD_AUTOREPLY_REPLY_TO:-}
+      - LEAD_AUTOREPLY_DEMO_BOOKING_URL=${LEAD_AUTOREPLY_DEMO_BOOKING_URL:-}
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-CyberSentil}
+      - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=llama3
       - OLLAMA_REQUEST_TIMEOUT_SECONDS=${OLLAMA_REQUEST_TIMEOUT_SECONDS:-45}
@@ -121,19 +161,19 @@ services:
       - AI_BREAKER_COOLDOWN_SECONDS=${AI_BREAKER_COOLDOWN_SECONDS:-60}
       - THREAT_ANALYSIS_AI_TIMEOUT_SECONDS=${THREAT_ANALYSIS_AI_TIMEOUT_SECONDS:-8}
       - SHELL_RESPONSE_AI_TIMEOUT_SECONDS=${SHELL_RESPONSE_AI_TIMEOUT_SECONDS:-8}
-      - TERMINAL_REAL_EXEC_ENABLED=${TERMINAL_REAL_EXEC_ENABLED:-true}
+      - TERMINAL_REAL_EXEC_ENABLED=${TERMINAL_REAL_EXEC_ENABLED:-false}
       - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
       - TERMINAL_EXEC_TIMEOUT_SEC=${TERMINAL_EXEC_TIMEOUT_SEC:-8}
       - TERMINAL_MAX_OUTPUT_CHARS=${TERMINAL_MAX_OUTPUT_CHARS:-12000}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
       - SSH_DECOY_HEALTH_URL=${SSH_DECOY_HEALTH_URL:-http://ssh-decoy:5101/health}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me-at-least-32b}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me-at-least-32b}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char key
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
       - BOOTSTRAP_ADMIN_USERNAME=${BOOTSTRAP_ADMIN_USERNAME:-admin}
-      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@cybersentinel.local}
-      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-Admin@123}
+      - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@cybersentil.local}
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-ChangeThisAdminPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
       - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-true}
-      - ALLOW_SIGNUP=${ALLOW_SIGNUP:-true}
+      - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
       - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-}
       - SPLUNK_HEC_TOKEN=${SPLUNK_HEC_TOKEN:-}
       - SPLUNK_HEC_VERIFY_TLS=${SPLUNK_HEC_VERIFY_TLS:-true}
@@ -149,20 +189,50 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_PUBLIC_SITE_NAME: ${VITE_PUBLIC_SITE_NAME:-CyberSentinel AI}
-        VITE_PUBLIC_SHORT_NAME: ${VITE_PUBLIC_SHORT_NAME:-CyberSentinel}
-        VITE_PUBLIC_BRAND_TEXT: ${VITE_PUBLIC_BRAND_TEXT:-CYBERSENTINEL AI}
+        VITE_PUBLIC_SITE_NAME: ${VITE_PUBLIC_SITE_NAME:-CyberSentil}
+        VITE_PUBLIC_SHORT_NAME: ${VITE_PUBLIC_SHORT_NAME:-CyberSentil}
+        VITE_PUBLIC_BRAND_TEXT: ${VITE_PUBLIC_BRAND_TEXT:-CYBERSENTIL}
         VITE_PUBLIC_TAGLINE: ${VITE_PUBLIC_TAGLINE:-Deception-led threat detection}
         VITE_PUBLIC_SITE_DESCRIPTION: ${VITE_PUBLIC_SITE_DESCRIPTION:-Deception-led threat detection platform for earlier attacker visibility, preserved evidence, and AI-assisted incident context.}
         VITE_PUBLIC_SITE_URL: ${VITE_PUBLIC_SITE_URL:-http://localhost}
         VITE_PUBLIC_APP_URL: ${VITE_PUBLIC_APP_URL:-http://localhost}
         VITE_PUBLIC_LOGIN_URL: ${VITE_PUBLIC_LOGIN_URL:-}
-        VITE_PUBLIC_COMPANY_NAME: ${VITE_PUBLIC_COMPANY_NAME:-CyberSentinel AI Labs}
-        VITE_PUBLIC_CONTACT_EMAIL: ${VITE_PUBLIC_CONTACT_EMAIL:-contact@cybersentinel.ai}
-        VITE_PUBLIC_SECURITY_EMAIL: ${VITE_PUBLIC_SECURITY_EMAIL:-security@cybersentinel.ai}
-        VITE_PUBLIC_PRIVACY_EMAIL: ${VITE_PUBLIC_PRIVACY_EMAIL:-privacy@cybersentinel.ai}
+        VITE_PUBLIC_COMPANY_NAME: ${VITE_PUBLIC_COMPANY_NAME:-CyberSentil}
+        VITE_PUBLIC_CONTACT_EMAIL: ${VITE_PUBLIC_CONTACT_EMAIL:-contact@cybersentil.online}
+        VITE_PUBLIC_SECURITY_EMAIL: ${VITE_PUBLIC_SECURITY_EMAIL:-security@cybersentil.online}
+        VITE_PUBLIC_PRIVACY_EMAIL: ${VITE_PUBLIC_PRIVACY_EMAIL:-privacy@cybersentil.online}
+        VITE_PUBLIC_DEMO_BOOKING_URL: ${VITE_PUBLIC_DEMO_BOOKING_URL:-}
+        VITE_PUBLIC_DEMO_BOOKING_LABEL: ${VITE_PUBLIC_DEMO_BOOKING_LABEL:-Book Live Slot}
         VITE_PUBLIC_SHOW_STATUS_PILL: ${VITE_PUBLIC_SHOW_STATUS_PILL:-false}
         VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
+    # SECURITY HARDENING - Network Segmentation
+    networks:
+      - dmz-tier
+      - app-tier
+    # SECURITY HARDENING - Resource Limits
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    # SECURITY HARDENING - Container Security
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+      - SETGID
+      - SETUID
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,size=50m
+      - /var/cache/nginx:noexec,nosuid,size=20m
+      - /var/run:noexec,nosuid,size=5m
+    user: "101:101"
     restart: unless-stopped
     ports:
       - "80:80"
@@ -214,6 +284,33 @@ services:
     depends_on:
       - frontend
     command: tunnel --no-autoupdate --url http://frontend:80
+
+# SECURITY HARDENING - Network Segmentation
+networks:
+  dmz-tier:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.28.1.0/24
+  app-tier:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.2.0/24
+  data-tier:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.3.0/24
+  honeypot-tier:
+    driver: bridge
+    internal: false
+    ipam:
+      config:
+        - subnet: 172.28.4.0/24
 
 volumes:
   postgres_data:

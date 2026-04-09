@@ -115,14 +115,14 @@ function bootstrapAuthTransport(): void {
 if (typeof window !== "undefined") {
   installHydrationRecoveryGuard();
 
-  let hasStoredToken = false;
+  let hasStoredProfile = false;
   try {
-    hasStoredToken = Boolean(localStorage.getItem("token"));
+    hasStoredProfile = Boolean(localStorage.getItem("user_profile"));
   } catch {
-    hasStoredToken = false;
+    hasStoredProfile = false;
   }
 
-  if (hasStoredToken) {
+  if (hasStoredProfile) {
     bootstrapAuthTransport();
   } else if (typeof window.requestIdleCallback === "function") {
     window.requestIdleCallback(bootstrapAuthTransport, { timeout: 2500 });

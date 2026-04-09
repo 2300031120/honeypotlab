@@ -1,8 +1,18 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE } from "./apiConfig";
 import { buildAuthHeaders, clearAuthSession } from "./utils/auth";
+
+type Site = {
+  id: string | number;
+  name: string;
+  domain: string;
+  api_key?: string;
+};
+
+type SnippetLanguage = "node" | "python" | "php";
+
+const getErrorMessage = (err: unknown) => (err instanceof Error ? err.message : String(err));
 
 const INTEGRATION_STEPS = [
   {
@@ -26,7 +36,7 @@ const RECOMMENDED_SIGNALS = [
   "Decoy download clicks, canary token hits, or fake credential usage",
 ];
 
-const CODE_SNIPPETS = {
+const CODE_SNIPPETS: Record<SnippetLanguage, string> = {
   node: `const payload = {
   event_type: "auth_fail",
   url_path: "/login",
@@ -101,26 +111,32 @@ curl_close($ch);`,
 
 const Sites = () => {
   const navigate = useNavigate();
-  const [sites, setSites] = useState([]);
-  const [name, setName] = useState("");
-  const [domain, setDomain] = useState("");
-  const [createdKey, setCreatedKey] = useState(null);
-  const [error, setError] = useState(null);
-  const [snippetLanguage, setSnippetLanguage] = useState("node");
+  const [sites, setSites] = useState<Site[]>([]);
+  const [name, setName] = useState<string>("");
+  const [domain, setDomain] = useState<string>("");
+  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [snippetLanguage, setSnippetLanguage] = useState<SnippetLanguage>("node");
 
   const loadSites = async () => {
     try {
-      const res = await fetch(`${API_BASE}/sites`, { headers: buildAuthHeaders() });
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/sites`, {
+        credentials: "include",
+        headers: buildAuthHeaders(),
+      });
+      const data = (await res.json()) as unknown;
       if (res.status === 401) {
         clearAuthSession();
         navigate("/auth/login");
         return;
       }
-      if (!res.ok) throw new Error(data?.detail || "Failed to load sites");
-      setSites(data);
+      if (!res.ok) {
+        const detail = (data as { detail?: string })?.detail;
+        throw new Error(detail || "Failed to load sites");
+      }
+      setSites((data as Site[]) || []);
     } catch (e) {
-      setError(e.message);
+      setError(getErrorMessage(e));
     }
   };
 
@@ -128,49 +144,51 @@ const Sites = () => {
     loadSites();
   }, []);
 
-  const createSite = async (e) => {
+  const createSite = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setCreatedKey(null);
     try {
       const res = await fetch(`${API_BASE}/sites`, {
+        credentials: "include",
         method: "POST",
         headers: buildAuthHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ name, domain }),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { api_key?: string; detail?: string };
       if (res.status === 401) {
         clearAuthSession();
       navigate("/auth/login");
         return;
       }
       if (!res.ok) throw new Error(data?.detail || "Failed to create site");
-      setCreatedKey(data.api_key);
+      setCreatedKey(data.api_key || null);
       setName("");
       setDomain("");
       await loadSites();
     } catch (e2) {
-      setError(e2.message);
+      setError(getErrorMessage(e2));
     }
   };
 
-  const rotateKey = async (siteId) => {
+  const rotateKey = async (siteId: Site["id"]) => {
     setError(null);
     try {
       const res = await fetch(`${API_BASE}/sites/${siteId}/rotate-key`, {
+        credentials: "include",
         method: "POST",
         headers: buildAuthHeaders(),
       });
-      const data = await res.json();
+      const data = (await res.json()) as { api_key?: string; detail?: string };
       if (res.status === 401) {
         clearAuthSession();
       navigate("/auth/login");
         return;
       }
       if (!res.ok) throw new Error(data?.detail || "Failed to rotate key");
-      setCreatedKey(data.api_key);
+      setCreatedKey(data.api_key || null);
     } catch (e) {
-      setError(e.message);
+      setError(getErrorMessage(e));
     }
   };
 
@@ -263,12 +281,13 @@ const Sites = () => {
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
           {Object.keys(CODE_SNIPPETS).map((language) => {
-            const active = snippetLanguage === language;
+            const typedLanguage = language as SnippetLanguage;
+            const active = snippetLanguage === typedLanguage;
             return (
               <button
                 key={language}
                 type="button"
-                onClick={() => setSnippetLanguage(language)}
+                onClick={() => setSnippetLanguage(typedLanguage)}
                 style={{
                   padding: "10px 14px",
                   borderRadius: 10,
@@ -280,7 +299,7 @@ const Sites = () => {
                   textTransform: "capitalize",
                 }}
               >
-                {language}
+                {typedLanguage}
               </button>
             );
           })}

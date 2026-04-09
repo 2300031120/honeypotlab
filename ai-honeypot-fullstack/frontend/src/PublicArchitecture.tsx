@@ -119,8 +119,8 @@ export default function PublicArchitecture() {
               ))}
             </div>
             <div className="marketing-actions">
-              <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/architecture")}>
-                Request Demo <ArrowRight size={16} />
+              <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/architecture")}>
+                Open Resources <ArrowRight size={16} />
               </Link>
               <Link to="/platform" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_platform", "/architecture")}>
                 View Platform
@@ -275,11 +275,11 @@ export default function PublicArchitecture() {
         <section className="marketing-card marketing-cta">
           <div className="marketing-cta-copy">
             <h2>Need a clean architecture walkthrough for your team?</h2>
-            <p>Use this flow to explain how {productName} supports monitoring, investigation, and cyber-readiness programs.</p>
+            <p>Use this flow to explain how {productName} supports monitoring, investigation, and technical review without losing the buyer story.</p>
           </div>
           <div className="marketing-actions">
-            <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/architecture")}>
-              Request Demo
+            <Link to="/resources" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("view_resources", "/architecture")}>
+              Open Resources
             </Link>
             <Link to="/contact" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("contact_team", "/architecture")}>
               Contact Team

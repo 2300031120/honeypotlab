@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Export tenant blocked IPs from CyberSentinel into edge-consumable files.
+Export tenant blocked IPs from CyberSentil into edge-consumable files.
 
 Examples:
   py -3 deploy/scripts/export_edge_blocks.py --base-url https://security.example.com --token <jwt>
@@ -63,7 +63,7 @@ def fetch_export(url: str, token: str, timeout: int) -> bytes:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Export CyberSentinel blocked IPs for edge enforcement.")
+    parser = argparse.ArgumentParser(description="Export CyberSentil blocked IPs for edge enforcement.")
     parser.add_argument("--base-url", default=os.environ.get("CYBERSENTINEL_BASE_URL", ""), help="Public base URL for the deployment.")
     parser.add_argument("--token", default=os.environ.get("CYBERSENTINEL_OPERATOR_TOKEN", ""), help="Operator bearer token.")
     parser.add_argument("--api-prefix", default=os.environ.get("CYBERSENTINEL_API_PREFIX", "/api"), help="API prefix used by the public deployment.")

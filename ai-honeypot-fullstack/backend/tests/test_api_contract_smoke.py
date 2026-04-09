@@ -44,6 +44,7 @@ def load_main(monkeypatch, tmp_path):
         "main",
         "core.config",
         "core.database",
+        "core.lead_notifications",
         "core.request_security",
         "core.security",
         "core.splunk",

@@ -1,14 +1,38 @@
-// @ts-nocheck
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Cloud, ShieldCheck, Users } from "lucide-react";
 import { trackCtaClick } from "../utils/analytics";
 import { PUBLIC_SITE } from "../siteConfig";
 
+type ProfileAction = {
+  to: string;
+  label: string;
+  tracking: string;
+};
+
+type BuyerProfile = {
+  id: string;
+  label: string;
+  plan: string;
+  title: string;
+  summary: string;
+  signals: string[];
+  bullets: string[];
+  focusLabel: string;
+  focusValue: string;
+  rolloutLabel: string;
+  rolloutValue: string;
+  outcomeLabel: string;
+  outcomeValue: string;
+  primary: ProfileAction;
+  secondary: ProfileAction;
+  icon: React.ReactNode;
+};
+
 const STORAGE_KEY = "public_site_home_profile";
 const PRODUCT_NAME = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
 
-const PROFILES = [
+const PROFILES: BuyerProfile[] = [
   {
     id: "mssp",
     label: "MSSP",
@@ -103,7 +127,7 @@ const PROFILES = [
   },
 ];
 
-function resolveInitialProfile() {
+function resolveInitialProfile(): string {
   if (typeof window === "undefined") {
     return PROFILES[0].id;
   }
@@ -118,7 +142,11 @@ function resolveInitialProfile() {
   return PROFILES[0].id;
 }
 
-export default function BuyerProfileGuide({ pagePath = "/" }) {
+type BuyerProfileGuideProps = {
+  pagePath?: string;
+};
+
+export default function BuyerProfileGuide({ pagePath = "/" }: BuyerProfileGuideProps) {
   const [activeProfileId, setActiveProfileId] = useState(resolveInitialProfile);
 
   const activeProfile = useMemo(
@@ -137,7 +165,7 @@ export default function BuyerProfileGuide({ pagePath = "/" }) {
     }
   }, [activeProfileId]);
 
-  const handleProfileSelect = (profileId) => {
+  const handleProfileSelect = (profileId: string) => {
     setActiveProfileId(profileId);
     trackCtaClick(`profile_${profileId}`, pagePath);
   };

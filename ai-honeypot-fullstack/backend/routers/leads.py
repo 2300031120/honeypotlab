@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import io
 import json
+import logging
 import secrets
 import sqlite3
 from typing import Any
@@ -12,8 +13,11 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from core.audit import record_operator_action
 from core.config import ALLOWED_STATUS, LEAD_RATE_LIMIT_MAX_ATTEMPTS, LEAD_RATE_LIMIT_WINDOW_SECONDS, SECRET_KEY, STATUS_TRANSITIONS
 from core.database import db
+from core.lead_notifications import dispatch_lead_notifications
+from core.public_hosts import normalize_public_host, select_matching_site_row
 from core.request_security import build_rate_limit_dependency
 from core.time_utils import iso_now, utc_now
 from dependencies import current_admin_user, current_user
@@ -21,39 +25,26 @@ from schemas import LeadAssignPayload, LeadNotePayload, LeadSubmission, StatusUp
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 lead_rate_limit = build_rate_limit_dependency("lead-submit", LEAD_RATE_LIMIT_MAX_ATTEMPTS, LEAD_RATE_LIMIT_WINDOW_SECONDS)
 LEAD_CHALLENGE_TTL_SECONDS = 15 * 60
 
 
-def _normalize_public_host(value: str | None) -> str:
-    candidate = str(value or "").strip().lower()
-    if ":" in candidate:
-        candidate = candidate.split(":", 1)[0]
-    if candidate.startswith("www."):
-        candidate = candidate[4:]
-    return candidate
-
-
 def _resolve_lead_scope_from_host(conn, host: str) -> tuple[int | None, int | None]:
     rows = conn.execute("select id, user_id, domain from sites order by id asc").fetchall()
-    if not rows:
+    row = select_matching_site_row(rows, host, allow_local_singleton_fallback=True)
+    if row is None:
         return None, None
-    for row in rows:
-        domain = _normalize_public_host(row.get("domain"))
-        if domain and (host == domain or host.endswith(f".{domain}")):
-            return (int(row["user_id"]) if row.get("user_id") is not None else None, int(row["id"]))
-    if host in {"localhost", "127.0.0.1", "testserver", "backend"} and len(rows) == 1:
-        row = rows[0]
-        return (int(row["user_id"]) if row.get("user_id") is not None else None, int(row["id"]))
-    return None, None
+    user_id = row["user_id"] if row["user_id"] is not None else None
+    return (int(user_id) if user_id is not None else None, int(row["id"]))
 
 
 def _resolve_lead_scope(conn, request: Request, payload: "LeadSubmission") -> tuple[int | None, int | None]:
-    host = _normalize_public_host(request.headers.get("host") or request.url.hostname or "")
+    host = normalize_public_host(request.headers.get("host") or request.url.hostname or "")
     user_id, site_id = _resolve_lead_scope_from_host(conn, host)
     if user_id is not None or site_id is not None:
         return user_id, site_id
-    source_host = _normalize_public_host(urlparse(str(payload.source or "")).hostname or "")
+    source_host = normalize_public_host(urlparse(str(payload.source or "")).hostname or "")
     if source_host:
         return _resolve_lead_scope_from_host(conn, source_host)
     return None, None
@@ -112,13 +103,34 @@ def verify_challenge(challenge_id: str | None, challenge_answer: str | None) -> 
         return False
 
 
+def honeypot_triggered(payload: LeadSubmission) -> bool:
+    if payload.referral_code.strip():
+        return True
+    legacy_value = payload.website.strip()
+    if not legacy_value:
+        return False
+    normalized_legacy = legacy_value.casefold()
+    if normalized_legacy in {
+        payload.email.strip().casefold(),
+        payload.name.strip().casefold(),
+        payload.organization.strip().casefold(),
+    }:
+        return False
+    return True
+
+
 def save_lead(request_type: str, payload: LeadSubmission, request: Request) -> dict[str, Any]:
-    if payload.website.strip():
+    if honeypot_triggered(payload):
         raise HTTPException(status_code=400, detail="Spam trap triggered.")
     if not verify_challenge(payload.challenge_id, payload.challenge_answer):
         raise HTTPException(status_code=400, detail="Challenge validation failed.")
     now = iso_now()
     email = payload.email.strip().lower()
+    lead_id = 0
+    user_id: int | None = None
+    site_id: int | None = None
+    is_repeat = 0
+    status = "new"
     with db() as conn:
         user_id, site_id = _resolve_lead_scope(conn, request, payload)
         if user_id is not None:
@@ -136,8 +148,6 @@ def save_lead(request_type: str, payload: LeadSubmission, request: Request) -> d
         if len(payload.message.strip()) < 14:
             spam_score += 20
         status = "spam" if spam_score >= 40 else "new"
-        notification_status = {"system": "sent" if status != "spam" else "error"}
-        notification_error = "" if status != "spam" else "Flagged for review"
         cur = conn.execute(
             """
             insert into leads (
@@ -165,11 +175,53 @@ def save_lead(request_type: str, payload: LeadSubmission, request: Request) -> d
                 payload.utm_source,
                 payload.utm_medium,
                 payload.utm_campaign,
-                now if status != "spam" else None,
-                notification_error,
-                json.dumps(notification_status),
+                None,
+                "",
+                json.dumps({"system": "pending"}),
                 now,
                 now,
+            ),
+        )
+        lead_id = int(cur.lastrowid or 0)
+    notification_result: dict[str, Any]
+    try:
+        notification_result = dispatch_lead_notifications(
+            {
+                "id": lead_id,
+                "user_id": user_id,
+                "site_id": site_id,
+                "request_type": request_type,
+                "name": payload.name.strip(),
+                "email": email,
+                "organization": payload.organization.strip(),
+                "use_case": payload.use_case.strip(),
+                "message": payload.message.strip(),
+                "status": status,
+                "is_repeat": bool(is_repeat),
+                "source_page": payload.source,
+                "campaign": payload.campaign,
+                "utm_source": payload.utm_source,
+                "utm_medium": payload.utm_medium,
+                "utm_campaign": payload.utm_campaign,
+                "created_at": now,
+            }
+        )
+    except Exception as exc:
+        logger.exception("Lead notification dispatch failed for lead #%s", lead_id)
+        notification_result = {
+            "notification_channel_status": {"system": "error"},
+            "notification_error": f"notification_runtime: {exc}",
+            "notification_sent_at": None,
+        }
+    with db() as conn:
+        conn.execute(
+            "update leads set notification_sent_at = ?, notification_error = ?, notification_channel_status = ?, updated_at = ? where id = ?",
+            (
+                notification_result.get("notification_sent_at"),
+                str(notification_result.get("notification_error") or ""),
+                json.dumps(notification_result.get("notification_channel_status") or {}),
+                iso_now(),
+                lead_id,
             ),
         )
     if status == "spam":
@@ -185,7 +237,7 @@ def save_lead(request_type: str, payload: LeadSubmission, request: Request) -> d
         next_step = "team_review"
         review_state = "new"
     return {
-        "id": cur.lastrowid,
+        "id": lead_id,
         "status": "duplicate_suppressed" if is_repeat else "accepted",
         "duplicate": bool(is_repeat),
         "is_repeat": bool(is_repeat),
@@ -338,36 +390,75 @@ def admin_update_lead_status(lead_id: int, payload: StatusUpdate, user: dict[str
     now = iso_now()
     with db() as conn:
         lead = _tenant_lead_or_404(conn, int(user["id"]), lead_id)
+        current_status = str(lead["status"] or "new")
+        allowed_next = STATUS_TRANSITIONS.get(current_status, [])
+        if payload.status != current_status and payload.status not in allowed_next:
+            raise HTTPException(status_code=400, detail=f"Invalid transition from {current_status} to {payload.status}.")
         conn.execute(
             "update leads set status = ?, updated_at = ?, first_response_at = coalesce(first_response_at, ?) where id = ?",
             (payload.status, now, now if payload.status != "new" else None, lead_id),
         )
         cur = conn.execute(
             "insert into lead_status_history (lead_id, old_status, new_status, changed_by_username, changed_at) values (?, ?, ?, ?, ?)",
-            (lead_id, lead["status"], payload.status, actor, now),
+            (lead_id, current_status, payload.status, actor, now),
         )
         updated = conn.execute("select * from leads where id = ?", (lead_id,)).fetchone()
         history_row = conn.execute("select * from lead_status_history where id = ?", (cur.lastrowid,)).fetchone()
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=actor,
+            action="lead.status_update",
+            summary=f"Updated lead #{lead_id} status from {current_status} to {payload.status}",
+            severity="medium",
+            target_type="lead",
+            target_id=lead_id,
+            metadata={"old_status": current_status, "new_status": payload.status},
+        )
     return {"lead": lead_with_flags(updated), "history_item": dict(history_row)}
 
 
 @router.post("/admin/leads/{lead_id}/notes")
 def admin_add_lead_note(lead_id: int, payload: LeadNotePayload, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
     actor = (user or {}).get("username", "admin")
+    note_text = payload.note.strip()
     with db() as conn:
         lead = _tenant_lead_or_404(conn, int(user["id"]), lead_id)
         cur = conn.execute(
             "insert into lead_notes (lead_id, author_username, note_text, created_at) values (?, ?, ?, ?)",
-            (lead_id, actor, payload.note.strip(), iso_now()),
+            (lead_id, actor, note_text, iso_now()),
         )
         note = conn.execute("select * from lead_notes where id = ?", (cur.lastrowid,)).fetchone()
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(actor),
+            action="lead.add_note",
+            summary=f"Added note to lead #{lead_id}",
+            severity="low",
+            target_type="lead",
+            target_id=lead_id,
+            metadata={"note_length": len(note_text)},
+        )
     return {"note": dict(note), "lead": lead_with_flags(lead)}
 
 
 @router.post("/admin/leads/{lead_id}/assign")
 def admin_assign_lead(lead_id: int, payload: LeadAssignPayload, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    assigned_to = payload.assigned_to.strip()
     with db() as conn:
         _tenant_lead_or_404(conn, int(user["id"]), lead_id)
-        conn.execute("update leads set assigned_to = ?, updated_at = ? where id = ?", (payload.assigned_to.strip(), iso_now(), lead_id))
+        conn.execute("update leads set assigned_to = ?, updated_at = ? where id = ?", (assigned_to, iso_now(), lead_id))
         updated = conn.execute("select * from leads where id = ?", (lead_id,)).fetchone()
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str((user or {}).get("username") or "admin"),
+            action="lead.assign",
+            summary=f"Assigned lead #{lead_id} to {assigned_to}",
+            severity="medium",
+            target_type="lead",
+            target_id=lead_id,
+            metadata={"assigned_to": assigned_to},
+        )
     return {"lead": lead_with_flags(updated)}

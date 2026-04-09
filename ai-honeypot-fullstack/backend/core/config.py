@@ -2,17 +2,17 @@ import os
 from urllib.parse import urlparse
 
 
-APP_TITLE = "CyberSentinel Backend"
+APP_TITLE = "CyberSentil Backend"
 APP_ENV = os.getenv("APP_ENV", "development").strip().lower() or "development"
 JWT_ALGO = "HS256"
 JWT_EXP_HOURS = 12
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip()
 BOOTSTRAP_ADMIN_USERNAME = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "admin").strip() or "admin"
-BOOTSTRAP_ADMIN_EMAIL = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@cybersentinel.local").strip() or "admin@cybersentinel.local"
-BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "Admin@123")
+BOOTSTRAP_ADMIN_EMAIL = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@cybersentil.local").strip() or "admin@cybersentil.local"
+BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "ChangeThisAdminPassword_2026!")
 ENABLE_DEMO_SEED = os.getenv("ENABLE_DEMO_SEED", "true").strip().lower() in {"1", "true", "yes", "on"}
-ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP", "true").strip().lower() in {"1", "true", "yes", "on"}
+ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP", "false").strip().lower() in {"1", "true", "yes", "on"}
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
 BACKEND_DB_PATH = os.getenv("BACKEND_DB_PATH", "").strip()
 ALLOWED_STATUS = ["new", "contacted", "qualified", "demo_scheduled", "closed_won", "closed_lost", "spam"]
@@ -92,6 +92,13 @@ def has_real_trap_credentials(value: str) -> bool:
     return True
 
 
+def origin_from_url(value: str) -> str:
+    parsed = urlparse(str(value or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return ""
+    return f"{parsed.scheme}://{parsed.netloc}".lower()
+
+
 def trusted_host_matches(hostname: str, candidates: list[str]) -> bool:
     target = str(hostname or "").strip().lower()
     if not target:
@@ -132,21 +139,69 @@ def _resolve_db_path() -> str:
     return os.path.normpath(os.path.join(_BACKEND_DIR, target))
 
 
+def _resolve_csrf_trusted_origins() -> list[str]:
+    candidates: set[str] = set()
+    for raw in split_env_csv("CSRF_TRUSTED_ORIGINS"):
+        origin = origin_from_url(raw)
+        if origin:
+            candidates.add(origin)
+
+    public_origin = origin_from_url(PUBLIC_BASE_URL)
+    if public_origin:
+        candidates.add(public_origin)
+
+    for raw in CORS_ORIGINS:
+        if raw == "*":
+            continue
+        origin = origin_from_url(raw)
+        if origin:
+            candidates.add(origin)
+
+    if APP_ENV != "production":
+        candidates.update(
+            {
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+                "http://localhost:4173",
+                "http://127.0.0.1:4173",
+                "http://testserver",
+            }
+        )
+    return sorted(candidates)
+
+
 SECRET_KEY = _resolve_secret_key()
 DB_PATH = _resolve_db_path()
 DATABASE_BACKEND = database_backend_from_url(DATABASE_URL)
 CORS_ORIGINS = split_env_csv("CORS_ORIGINS", "*")
 TRUSTED_HOSTS = split_env_csv("TRUSTED_HOSTS")
+CSRF_TRUSTED_ORIGINS = _resolve_csrf_trusted_origins()
 FORCE_HTTPS_REDIRECT = env_flag("FORCE_HTTPS_REDIRECT", default=APP_ENV == "production")
 SECURITY_HEADERS_ENABLED = env_flag("SECURITY_HEADERS_ENABLED", default=True)
 SECURITY_HSTS_SECONDS = max(0, env_int("SECURITY_HSTS_SECONDS", 31536000 if APP_ENV == "production" else 0))
 SECURITY_CONTENT_SECURITY_POLICY = os.getenv("SECURITY_CONTENT_SECURITY_POLICY", "").strip()
 DECOY_COOKIE_SECURE = env_flag("DECOY_COOKIE_SECURE", default=APP_ENV == "production")
 DECOY_COOKIE_SAMESITE = os.getenv("DECOY_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
+AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "cybersentil_session").strip() or "cybersentil_session"
+AUTH_COOKIE_SECURE = env_flag("AUTH_COOKIE_SECURE", default=APP_ENV == "production")
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
+AUTH_COOKIE_MAX_AGE_SECONDS = max(300, env_int("AUTH_COOKIE_MAX_AGE_SECONDS", JWT_EXP_HOURS * 3600))
 AUTH_RATE_LIMIT_WINDOW_SECONDS = env_int("AUTH_RATE_LIMIT_WINDOW_SECONDS", 60)
 AUTH_RATE_LIMIT_MAX_ATTEMPTS = env_int("AUTH_RATE_LIMIT_MAX_ATTEMPTS", 8)
 LEAD_RATE_LIMIT_WINDOW_SECONDS = env_int("LEAD_RATE_LIMIT_WINDOW_SECONDS", 300)
 LEAD_RATE_LIMIT_MAX_ATTEMPTS = env_int("LEAD_RATE_LIMIT_MAX_ATTEMPTS", 5)
+TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS = env_int("TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS", 60)
+TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS = env_int("TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS", 60)
+AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS = env_int("AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS", 60)
+AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS = env_int("AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS", 20)
+URL_SCAN_RATE_LIMIT_WINDOW_SECONDS = env_int("URL_SCAN_RATE_LIMIT_WINDOW_SECONDS", 60)
+URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS = env_int("URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS", 20)
+SIMULATOR_RATE_LIMIT_WINDOW_SECONDS = env_int("SIMULATOR_RATE_LIMIT_WINDOW_SECONDS", 60)
+SIMULATOR_RATE_LIMIT_MAX_ATTEMPTS = env_int("SIMULATOR_RATE_LIMIT_MAX_ATTEMPTS", 12)
+FINAL_REPORT_RATE_LIMIT_WINDOW_SECONDS = env_int("FINAL_REPORT_RATE_LIMIT_WINDOW_SECONDS", 60)
+FINAL_REPORT_RATE_LIMIT_MAX_ATTEMPTS = env_int("FINAL_REPORT_RATE_LIMIT_MAX_ATTEMPTS", 12)
+RESEARCH_RUN_RATE_LIMIT_WINDOW_SECONDS = env_int("RESEARCH_RUN_RATE_LIMIT_WINDOW_SECONDS", 60)
+RESEARCH_RUN_RATE_LIMIT_MAX_ATTEMPTS = env_int("RESEARCH_RUN_RATE_LIMIT_MAX_ATTEMPTS", 6)
 TERMINAL_REAL_EXEC_ENABLED = env_flag("TERMINAL_REAL_EXEC_ENABLED", default=False)
 TERMINAL_SANDBOX_URL = os.getenv("TERMINAL_SANDBOX_URL", "").strip()
 TERMINAL_EXEC_TIMEOUT_SEC = max(1, env_int("TERMINAL_EXEC_TIMEOUT_SEC", 8))
@@ -161,6 +216,28 @@ LOG_REQUESTS = env_flag("LOG_REQUESTS", default=True)
 SENTRY_DSN = os.getenv("SENTRY_DSN", "").strip()
 SENTRY_ENVIRONMENT = os.getenv("SENTRY_ENVIRONMENT", APP_ENV).strip() or APP_ENV
 SENTRY_TRACES_SAMPLE_RATE = env_float("SENTRY_TRACES_SAMPLE_RATE", 0.0)
+LEAD_NOTIFICATION_WEBHOOK_URL = os.getenv("LEAD_NOTIFICATION_WEBHOOK_URL", "").strip()
+LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS = max(1, env_int("LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS", 5))
+LEAD_NOTIFICATION_EMAIL_TO = split_env_csv("LEAD_NOTIFICATION_EMAIL_TO")
+LEAD_NOTIFICATION_BRAND_NAME = (
+    os.getenv("LEAD_NOTIFICATION_BRAND_NAME", os.getenv("VITE_PUBLIC_SHORT_NAME", "CyberSentil")).strip() or "CyberSentil"
+)
+LEAD_NOTIFICATION_CONTACT_EMAIL = (
+    os.getenv("LEAD_NOTIFICATION_CONTACT_EMAIL", os.getenv("VITE_PUBLIC_CONTACT_EMAIL", "")).strip()
+)
+LEAD_AUTOREPLY_ENABLED = env_flag("LEAD_AUTOREPLY_ENABLED", default=False)
+LEAD_AUTOREPLY_REPLY_TO = os.getenv("LEAD_AUTOREPLY_REPLY_TO", "").strip()
+LEAD_AUTOREPLY_DEMO_BOOKING_URL = os.getenv(
+    "LEAD_AUTOREPLY_DEMO_BOOKING_URL", os.getenv("VITE_PUBLIC_DEMO_BOOKING_URL", "")
+).strip()
+SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
+SMTP_PORT = env_int("SMTP_PORT", 587)
+SMTP_USERNAME = os.getenv("SMTP_USERNAME", "").strip()
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "").strip()
+SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", LEAD_NOTIFICATION_BRAND_NAME).strip() or LEAD_NOTIFICATION_BRAND_NAME
+SMTP_USE_TLS = env_flag("SMTP_USE_TLS", default=True)
+SMTP_USE_SSL = env_flag("SMTP_USE_SSL", default=False)
 PROTOCOL_SHARED_SECRET = os.getenv("PROTOCOL_SHARED_SECRET", "").strip() or ("dev-protocol-shared-secret" if APP_ENV != "production" else "")
 PROTOCOL_SSH_AUTH_TRAP_ENABLED = env_flag("PROTOCOL_SSH_AUTH_TRAP_ENABLED", default=True)
 PROTOCOL_SSH_TRAP_CREDENTIALS = os.getenv("PROTOCOL_SSH_TRAP_CREDENTIALS", "").strip()
@@ -186,10 +263,28 @@ def validate_runtime_config() -> None:
         failures.append("DECOY_COOKIE_SAMESITE must be one of: lax, strict, none.")
     if DECOY_COOKIE_SAMESITE == "none" and not DECOY_COOKIE_SECURE:
         failures.append("DECOY_COOKIE_SECURE must be true when DECOY_COOKIE_SAMESITE is 'none'.")
+    if AUTH_COOKIE_SAMESITE not in {"lax", "strict", "none"}:
+        failures.append("AUTH_COOKIE_SAMESITE must be one of: lax, strict, none.")
+    if AUTH_COOKIE_SAMESITE == "none" and not AUTH_COOKIE_SECURE:
+        failures.append("AUTH_COOKIE_SECURE must be true when AUTH_COOKIE_SAMESITE is 'none'.")
+    if any(not origin_from_url(item) for item in CSRF_TRUSTED_ORIGINS):
+        failures.append("CSRF_TRUSTED_ORIGINS must contain valid HTTP/HTTPS origins.")
     if AUTH_RATE_LIMIT_WINDOW_SECONDS < 1 or AUTH_RATE_LIMIT_MAX_ATTEMPTS < 1:
         failures.append("AUTH rate limit settings must be positive integers.")
     if LEAD_RATE_LIMIT_WINDOW_SECONDS < 1 or LEAD_RATE_LIMIT_MAX_ATTEMPTS < 1:
         failures.append("Lead rate limit settings must be positive integers.")
+    if TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS < 1 or TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("Terminal command rate limit settings must be positive integers.")
+    if AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS < 1 or AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("AI advisor rate limit settings must be positive integers.")
+    if URL_SCAN_RATE_LIMIT_WINDOW_SECONDS < 1 or URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("URL scan rate limit settings must be positive integers.")
+    if SIMULATOR_RATE_LIMIT_WINDOW_SECONDS < 1 or SIMULATOR_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("Simulator rate limit settings must be positive integers.")
+    if FINAL_REPORT_RATE_LIMIT_WINDOW_SECONDS < 1 or FINAL_REPORT_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("Final report rate limit settings must be positive integers.")
+    if RESEARCH_RUN_RATE_LIMIT_WINDOW_SECONDS < 1 or RESEARCH_RUN_RATE_LIMIT_MAX_ATTEMPTS < 1:
+        failures.append("Research run rate limit settings must be positive integers.")
     if SPLUNK_HEC_URL or SPLUNK_HEC_TOKEN:
         parsed_splunk = urlparse(SPLUNK_HEC_URL) if SPLUNK_HEC_URL else None
         if not SPLUNK_HEC_URL or not SPLUNK_HEC_TOKEN:
@@ -204,10 +299,35 @@ def validate_runtime_config() -> None:
             failures.append("SENTRY_DSN must be a valid HTTP/HTTPS URL.")
         if not 0.0 <= SENTRY_TRACES_SAMPLE_RATE <= 1.0:
             failures.append("SENTRY_TRACES_SAMPLE_RATE must be between 0.0 and 1.0.")
+    if LEAD_NOTIFICATION_WEBHOOK_URL:
+        parsed_webhook = urlparse(LEAD_NOTIFICATION_WEBHOOK_URL)
+        if parsed_webhook.scheme not in {"http", "https"} or not parsed_webhook.netloc:
+            failures.append("LEAD_NOTIFICATION_WEBHOOK_URL must be a valid HTTP/HTTPS URL.")
+        elif is_placeholder_secret(LEAD_NOTIFICATION_WEBHOOK_URL):
+            failures.append("LEAD_NOTIFICATION_WEBHOOK_URL cannot use placeholder/example values.")
+    smtp_any = any(
+        [
+            SMTP_HOST,
+            SMTP_USERNAME,
+            SMTP_PASSWORD,
+            SMTP_FROM_EMAIL,
+            bool(LEAD_NOTIFICATION_EMAIL_TO),
+            LEAD_AUTOREPLY_ENABLED,
+        ]
+    )
+    if SMTP_PORT < 1 or SMTP_PORT > 65535:
+        failures.append("SMTP_PORT must be between 1 and 65535.")
+    if SMTP_USE_TLS and SMTP_USE_SSL:
+        failures.append("SMTP_USE_TLS and SMTP_USE_SSL cannot both be true.")
+    if smtp_any:
+        if not SMTP_HOST:
+            failures.append("SMTP_HOST must be set when lead email follow-up is enabled.")
+        if not SMTP_FROM_EMAIL:
+            failures.append("SMTP_FROM_EMAIL must be set when lead email follow-up is enabled.")
 
     if APP_ENV == "production":
-        if BOOTSTRAP_ADMIN_PASSWORD == "Admin@123":
-            failures.append("BOOTSTRAP_ADMIN_PASSWORD must be changed for production.")
+        if len(BOOTSTRAP_ADMIN_PASSWORD) < 12 or is_placeholder_secret(BOOTSTRAP_ADMIN_PASSWORD):
+            failures.append("BOOTSTRAP_ADMIN_PASSWORD must be set to a strong non-placeholder value for production.")
         if ENABLE_DEMO_SEED:
             failures.append("ENABLE_DEMO_SEED must be false in production.")
         if not PUBLIC_BASE_URL or parsed_public is None or parsed_public.scheme != "https" or not parsed_public.netloc:
@@ -222,6 +342,13 @@ def validate_runtime_config() -> None:
             failures.append("CORS_ORIGINS must be explicitly set and cannot include '*'.")
         if any("localhost" in item.lower() or "127.0.0.1" in item.lower() for item in CORS_ORIGINS):
             failures.append("CORS_ORIGINS cannot contain localhost/127.0.0.1 in production.")
+        if not CSRF_TRUSTED_ORIGINS:
+            failures.append("CSRF_TRUSTED_ORIGINS must include at least one trusted origin in production.")
+        if any("localhost" in item or "127.0.0.1" in item for item in CSRF_TRUSTED_ORIGINS):
+            failures.append("CSRF_TRUSTED_ORIGINS cannot contain localhost/127.0.0.1 in production.")
+        if public_origin := origin_from_url(PUBLIC_BASE_URL):
+            if public_origin not in CSRF_TRUSTED_ORIGINS:
+                failures.append("CSRF_TRUSTED_ORIGINS must include the PUBLIC_BASE_URL origin in production.")
         if not TRUSTED_HOSTS or "*" in TRUSTED_HOSTS:
             failures.append("TRUSTED_HOSTS must be explicitly set and cannot include '*'.")
         if any("localhost" in item.lower() or "127.0.0.1" in item.lower() for item in TRUSTED_HOSTS):

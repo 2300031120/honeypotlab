@@ -1,12 +1,47 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import axios from "axios";
 import { API_BASE } from "./apiConfig";
 import { buildAuthHeaders } from "./utils/auth";
-import { ArrowLeft, Activity, Brain, Shield, Zap, AlertTriangle } from 'lucide-react';
+import { Activity, Brain, AlertTriangle } from 'lucide-react';
+
+type TerminalHistoryEntry = {
+    type: 'output' | 'input';
+    content: string;
+};
+
+type VulnerabilityEntry = {
+    type: string;
+    severity: string;
+    vector: string;
+};
+
+type AiMetadata = {
+    confidence?: number;
+    intent?: string;
+    mitre_tactic?: string;
+    stage?: string;
+    entropy?: number;
+    mitre_technique?: string;
+    thought?: string;
+    explanation?: string;
+    vulnerabilities?: VulnerabilityEntry[];
+};
+
+type TerminalResponse = {
+    session_id?: string;
+    ai_metadata?: AiMetadata;
+    execution_mode?: string;
+    execution_status?: string;
+    output?: string;
+    prompt?: string;
+};
+
+type TerminalErrorResponse = {
+    detail?: string;
+};
 
 const Terminal = () => {
-    const [history, setHistory] = useState([
+    const [history, setHistory] = useState<TerminalHistoryEntry[]>([
         { type: 'output', content: 'Linux honeypot 5.15.0-virtual x86_64 GNU/Linux' },
         { type: 'output', content: 'System initialized. logical volume management... ok' },
         { type: 'output', content: 'Welcome to Ubuntu 22.04.3 LTS (GNU/Linux 5.15.0-91-generic x86_64)' },
@@ -20,15 +55,15 @@ const Terminal = () => {
     const [input, setInput] = useState('');
     const [prompt, setPrompt] = useState('admin@honeypot:~$');
     const [isTyping, setIsTyping] = useState(false);
-    const [cmdHistory, setCmdHistory] = useState([]);
+    const [cmdHistory, setCmdHistory] = useState<string[]>([]);
     const [historyIndex, setHistoryIndex] = useState(-1);
-    const inputRef = useRef(null);
-    const bottomRef = useRef(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
 
-    const [aiMetadata, setAiMetadata] = useState(null);
+    const [aiMetadata, setAiMetadata] = useState<AiMetadata | null>(null);
     const [executionMode, setExecutionMode] = useState("emulated");
     const [executionStatus, setExecutionStatus] = useState("idle");
-    const [sessionId, setSessionId] = useState(null);
+    const [sessionId, setSessionId] = useState<string | null>(null);
 
     useEffect(() => {
         if (inputRef.current) inputRef.current.focus();
@@ -38,14 +73,14 @@ const Terminal = () => {
         if (bottomRef.current) bottomRef.current.scrollIntoView({ behavior: 'smooth' });
     }, [history, isTyping]);
 
-    const getScoreColor = (score) => {
+    const getScoreColor = (score: number) => {
         if (score >= 80) return '#f85149'; // Red
         if (score >= 60) return '#d29922'; // Orange
         if (score >= 30) return '#e3b341'; // Yellow
         return '#3fb950'; // Green
     };
 
-    const handleKeyDown = async (e) => {
+    const handleKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (cmdHistory.length > 0) {
@@ -78,7 +113,8 @@ const Terminal = () => {
                 return;
             }
 
-            const newHistory = [...history, { type: 'input', content: `${prompt} ${cmd} ` }];
+            const inputEntry: TerminalHistoryEntry = { type: 'input', content: `${prompt} ${cmd} ` };
+            const newHistory = [...history, inputEntry];
             setHistory(newHistory);
             setInput('');
 
@@ -91,7 +127,7 @@ const Terminal = () => {
 
             setIsTyping(true);
             try {
-                const res = await axios.post(
+                const res = await axios.post<TerminalResponse>(
                     `${API_BASE}/terminal/cmd`,
                     { cmd: cmd, session_id: sessionId },
                     {
@@ -115,7 +151,11 @@ const Terminal = () => {
                 }
                 setPrompt(res.data.prompt || "admin@honeypot:~$");
             } catch (err) {
-                const detail = err?.response?.data?.detail || err?.message || "Backend unavailable";
+                const detail = axios.isAxiosError<TerminalErrorResponse>(err)
+                    ? err.response?.data?.detail || err.message
+                    : err instanceof Error
+                        ? err.message
+                        : "Backend unavailable";
                 const output = `terminal-error: command execution failed (${detail})`;
                 setExecutionStatus("error");
                 const outputLines = output.split('\n');
@@ -147,7 +187,7 @@ const Terminal = () => {
                             admin@honeypot: ~
                         </div>
                     </div>
-                    <div className="terminal-container" style={{ height: '75vh', fontSize: '12px' }} onClick={() => inputRef.current.focus()}>
+                    <div className="terminal-container" style={{ height: '75vh', fontSize: '12px' }} onClick={() => inputRef.current?.focus()}>
                         <div className="terminal-output">
                             {history.map((line, i) => (
                                 <div key={i} className={`line ${line.type} `}>
@@ -167,7 +207,7 @@ const Terminal = () => {
                                 onKeyDown={handleKeyDown}
                                 autoFocus
                                 disabled={isTyping}
-                                spellCheck="false"
+                                spellCheck={false}
                                 autoComplete="off"
                             />
                             <span className="cursor"></span>
@@ -255,7 +295,7 @@ const Terminal = () => {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: '10px', color: '#8b949e', marginBottom: '2px' }}>ENTROPY</div>
-                                    <div style={{ fontSize: '12px', fontWeight: '700', color: aiMetadata.entropy > 0.6 ? '#f85149' : '#3fb950' }}>{aiMetadata.entropy || '0.12'}</div>
+                                    <div style={{ fontSize: '12px', fontWeight: '700', color: (aiMetadata.entropy ?? 0) > 0.6 ? '#f85149' : '#3fb950' }}>{aiMetadata.entropy || '0.12'}</div>
                                 </div>
                             </div>
                             <div style={{ marginBottom: '12px' }}>

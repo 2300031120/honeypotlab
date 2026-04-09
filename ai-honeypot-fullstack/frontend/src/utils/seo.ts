@@ -39,11 +39,14 @@ export function useSeo(options: SeoOptions = {}) {
       return;
     }
 
-    const resolvedTitle = applyPublicBranding(title || PUBLIC_SITE.siteName);
-    const resolvedDescription = applyPublicBranding(description || PUBLIC_SITE.siteDescription);
-    const resolvedOgTitle = applyPublicBranding(ogTitle || resolvedTitle || PUBLIC_SITE.siteName);
-    const resolvedOgDescription = applyPublicBranding(ogDescription || resolvedDescription || PUBLIC_SITE.siteDescription);
-    const resolvedOgUrl = ogUrl || (typeof window !== "undefined" ? window.location.href : PUBLIC_SITE.siteUrl);
+    const resolvedTitle = String(applyPublicBranding(title || PUBLIC_SITE.siteName || ""));
+    const resolvedDescription = String(applyPublicBranding(description || PUBLIC_SITE.siteDescription || ""));
+    const resolvedOgTitle = String(applyPublicBranding(ogTitle || resolvedTitle || PUBLIC_SITE.siteName || ""));
+    const resolvedOgDescription = String(
+      applyPublicBranding(ogDescription || resolvedDescription || PUBLIC_SITE.siteDescription || "")
+    );
+    const resolvedOgUrl =
+      ogUrl || (typeof window !== "undefined" ? window.location.href : PUBLIC_SITE.siteUrl) || "";
 
     if (title) {
       document.title = resolvedTitle;
@@ -62,7 +65,7 @@ export function useSeo(options: SeoOptions = {}) {
     ogTypeTag.setAttribute("content", ogType);
 
     const ogUrlTag = ensureMetaTag('meta[property="og:url"]', { property: "og:url" });
-    ogUrlTag.setAttribute("content", resolvedOgUrl || PUBLIC_SITE.siteUrl);
+    ogUrlTag.setAttribute("content", resolvedOgUrl || PUBLIC_SITE.siteUrl || "");
 
     const ogSiteNameTag = ensureMetaTag('meta[property="og:site_name"]', { property: "og:site_name" });
     ogSiteNameTag.setAttribute("content", PUBLIC_SITE.siteName);

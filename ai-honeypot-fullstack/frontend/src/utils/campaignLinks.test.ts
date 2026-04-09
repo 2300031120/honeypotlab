@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { buildCampaignAwarePath } from "./campaignLinks";
 
 describe("buildCampaignAwarePath", () => {

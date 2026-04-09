@@ -1,15 +1,38 @@
-// @ts-nocheck
 import React, { useMemo } from "react";
 
 const DEFAULT_WIDTH = 800;
 const DEFAULT_HEIGHT = 450;
 const DEFAULT_TARGET = { lat: 51.5074, lng: -0.1278 };
 
-function clamp(value, min, max) {
+type GlobePoint = {
+  id?: string | number;
+  label?: string;
+  lat?: number;
+  lng?: number;
+  size?: number;
+  color?: string;
+};
+
+type ArcPoint = {
+  startLat?: number;
+  startLng?: number;
+  endLat?: number;
+  endLng?: number;
+  color?: string;
+};
+
+type ThreatGlobeProps = {
+  globeData?: GlobePoint[];
+  arcsData?: ArcPoint[];
+  width?: number;
+  height?: number;
+};
+
+function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
-function projectPoint(lat, lng, width, height) {
+function projectPoint(lat: number, lng: number, width: number, height: number) {
   const radius = Math.min(width * 0.31, height * 0.44);
   const centerX = width * 0.5;
   const centerY = height * 0.53;
@@ -26,19 +49,24 @@ function projectPoint(lat, lng, width, height) {
   };
 }
 
-function arcPath(start, end, lift = 40) {
+function arcPath(start: { x: number; y: number }, end: { x: number; y: number }, lift = 40) {
   const controlX = (start.x + end.x) / 2;
   const controlY = Math.min(start.y, end.y) - lift;
   return `M ${start.x} ${start.y} Q ${controlX} ${controlY} ${end.x} ${end.y}`;
 }
 
-export default function ThreatGlobe({ globeData = [], arcsData = [], width = DEFAULT_WIDTH, height = DEFAULT_HEIGHT }) {
+export default function ThreatGlobe({
+  globeData = [],
+  arcsData = [],
+  width = DEFAULT_WIDTH,
+  height = DEFAULT_HEIGHT,
+}: ThreatGlobeProps) {
   const targetPoint = useMemo(() => projectPoint(DEFAULT_TARGET.lat, DEFAULT_TARGET.lng, width, height), [width, height]);
 
   const points = useMemo(() => {
     return globeData
       .map((point, index) => {
-        const projection = projectPoint(point.lat, point.lng, width, height);
+        const projection = projectPoint(Number(point.lat ?? 0), Number(point.lng ?? 0), width, height);
         const intensity = clamp(Number(point.size || 0.18) * 26, 5, 16);
         return {
           id: point.id || point.label || `point-${index}`,
@@ -55,9 +83,10 @@ export default function ThreatGlobe({ globeData = [], arcsData = [], width = DEF
 
   const arcs = useMemo(() => {
     return arcsData.slice(0, 18).map((arc, index) => {
-      const start = projectPoint(arc.startLat, arc.startLng, width, height);
-      const end = Number.isFinite(Number(arc.endLat)) && Number.isFinite(Number(arc.endLng))
-        ? projectPoint(arc.endLat, arc.endLng, width, height)
+      const start = projectPoint(Number(arc.startLat ?? 0), Number(arc.startLng ?? 0), width, height);
+      const end =
+        Number.isFinite(Number(arc.endLat)) && Number.isFinite(Number(arc.endLng))
+          ? projectPoint(Number(arc.endLat), Number(arc.endLng), width, height)
         : targetPoint;
       const depthFactor = clamp((start.depth + 1) / 2, 0.2, 1);
       return {

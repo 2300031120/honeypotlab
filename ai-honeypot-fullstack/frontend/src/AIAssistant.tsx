@@ -1,31 +1,22 @@
-// @ts-nocheck
 import React from 'react';
 import { MessageSquare } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import { isAuthenticated } from './utils/auth';
 
 const AIAssistant = () => {
-  const location = useLocation();
-  const publicPaths = [
-    '/',
-    '/platform',
-    '/architecture',
-    '/use-cases',
-    '/demo',
-    '/contact',
-    '/privacy',
-    '/terms',
-    '/security',
-  ];
-  const isPublicPage = publicPaths.includes(location.pathname);
+  const isSignedIn = isAuthenticated();
+
+  if (!isSignedIn) {
+    return null;
+  }
 
   return (
     <Link
       to="/ai-companion"
       aria-label="Ask AI Companion"
-      className={`ai-assistant-fab ${isPublicPage ? 'ai-assistant-fab-public' : 'ai-assistant-fab-private'}`}
+      className="ai-assistant-fab ai-assistant-fab-private"
     >
       <MessageSquare size={24} />
-      {isPublicPage ? <span>Ask AI Companion</span> : null}
     </Link>
   );
 };

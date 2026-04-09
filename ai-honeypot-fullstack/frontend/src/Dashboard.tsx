@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
@@ -13,8 +12,133 @@ import ThreatGlobe from "./components/dashboard/ThreatGlobe";
 import { isSyntheticEvent, stableGeoLatLng } from "./utils/eventUtils";
 import { createManagedWebSocket, safeParseJson } from "./utils/realtime";
 
+type TrapMeta = { color: string; label: string; icon: string };
+type TrapConfig = Record<string, TrapMeta>;
+
+type DashboardSummary = {
+  total: number;
+  critical: number;
+  blocked: number;
+};
+
+type DashboardFeedEvent = {
+  id?: string | number;
+  ts?: string | number | null;
+  url_path?: string;
+  cmd?: string;
+  event_type?: string | null;
+  severity?: "high" | "medium" | "low" | string;
+  geo?: string;
+  country?: string;
+  ip?: string | null;
+  session_id?: string | number | null;
+  http_method?: string;
+  attacker_type?: string;
+  reputation?: number;
+};
+
+type DashboardStats = {
+  summary: DashboardSummary;
+  feed: DashboardFeedEvent[];
+  trap_distribution: Record<string, number>;
+  mitre_distribution?: Record<string, number>;
+  demo_mode?: boolean;
+};
+
+type GlobePoint = {
+  lat: number;
+  lng: number;
+  size: number;
+  color: string;
+  label: string;
+  id?: string | number;
+};
+
+type GlobeArc = {
+  startLat: number;
+  startLng: number;
+  endLat: number;
+  endLng: number;
+  color?: string;
+};
+
+type SeverityDatum = { name: string; value: number };
+type MitreDatum = { name: string; value: number };
+
+type Predictions = {
+  forecast?: Array<Record<string, unknown>>;
+  confidence?: number;
+};
+
+type HealthData = {
+  resources?: { cpu?: number | null; memory?: number | null };
+  neural_hive?: { latency_ms?: number | null };
+  integrity?: { trust_index?: number | null; siem_sync?: string | number | null };
+};
+
+type OpsReadinessCheck = { key?: string; status?: "pass" | "warn" | "fail" | string; summary?: string };
+
+type OpsReadiness = {
+  status?: string;
+  checks?: OpsReadinessCheck[];
+  next_actions?: string[];
+  coverage?: {
+    sites_total?: number;
+    events_total?: number;
+    canary_tokens_total?: number;
+    latest_event_at?: string | null;
+  };
+};
+
+type AdaptiveSession = {
+  session_id?: string;
+  policy_risk_score?: number;
+  policy_strategy?: string;
+  event_count?: number;
+  country?: string;
+  ip?: string;
+  start_ts?: string;
+};
+
+type AdaptiveMetrics = {
+  profile_mode: string;
+  summary: {
+    total_sessions: number;
+    avg_policy_risk_score: number;
+    avg_interaction_steps: number;
+  };
+  distribution: {
+    policy_strategy: Record<string, number>;
+  };
+  sessions: AdaptiveSession[];
+};
+
+type AdaptiveIntelligence = {
+  window: { event_count: number; hours: number };
+  policy_summary: {
+    total_sessions: number;
+    avg_policy_risk_score: number;
+    dominant_strategy: string | null;
+    strategy_distribution: Record<string, number>;
+  };
+  top_countries: Array<{ country: string; risk_index?: number; events?: number; critical_events?: number; avg_score?: number }>;
+  top_paths: Array<{ path: string; hits?: number; avg_score?: number }>;
+  tactic_matrix: Array<{ tactic: string; severity: string; events: number }>;
+  risk_series: Array<{ ts?: string; value?: number }>;
+  high_risk_sessions: Array<{ session_id?: string; policy_risk_score?: number }>;
+};
+
+type TimelineItem = {
+  index?: number;
+  ts?: string;
+  policy_risk_score?: number;
+  policy_strategy?: string;
+  event_type?: string;
+  cmd?: string;
+};
+
 // Trap severity config
-const TRAP_CONFIG = {
+const TRAP_CONFIG: TrapConfig = {
   '/.env': { color: '#f85149', label: 'CRITICAL', icon: '🔑' },
   '/wp-login.php': { color: '#f85149', label: 'HIGH', icon: '🔐' },
   '/phpmyadmin/': { color: '#d29922', label: 'HIGH', icon: '🛢' },
@@ -31,7 +155,7 @@ const TRAP_CONFIG = {
   '/wp-admin/': { color: '#d29922', label: 'MEDIUM', icon: '📁' },
 };
 
-const EMPTY_ADAPTIVE_METRICS = {
+const EMPTY_ADAPTIVE_METRICS: AdaptiveMetrics = {
   profile_mode: "adaptive",
   summary: {
     total_sessions: 0,
@@ -44,7 +168,7 @@ const EMPTY_ADAPTIVE_METRICS = {
   sessions: [],
 };
 
-const EMPTY_ADAPTIVE_INTELLIGENCE = {
+const EMPTY_ADAPTIVE_INTELLIGENCE: AdaptiveIntelligence = {
   window: { event_count: 0, hours: 24 },
   policy_summary: {
     total_sessions: 0,
@@ -61,35 +185,36 @@ const EMPTY_ADAPTIVE_INTELLIGENCE = {
 
 const Dashboard = () => {
   const REAL_ONLY_PARAMS = { params: { include_training: false } };
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     summary: { total: 0, critical: 0, blocked: 0 },
     feed: [],
-    trap_distribution: {}
+    trap_distribution: {},
+    demo_mode: false,
   });
-  const [severityData, setSeverityData] = useState([]);
-  const [mitreData, setMitreData] = useState([]);
-  const [httpTrapFeed, setHttpTrapFeed] = useState([]);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [severityData, setSeverityData] = useState<SeverityDatum[]>([]);
+  const [mitreData, setMitreData] = useState<MitreDatum[]>([]);
+  const [httpTrapFeed, setHttpTrapFeed] = useState<DashboardFeedEvent[]>([]);
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const [globeData, setGlobeData] = useState([]);
-  const [arcsData, setArcsData] = useState([]);
-  const [predictions, setPredictions] = useState(null);
-  const [healthData, setHealthData] = useState({
+  const [globeData, setGlobeData] = useState<GlobePoint[]>([]);
+  const [arcsData, setArcsData] = useState<GlobeArc[]>([]);
+  const [predictions, setPredictions] = useState<Predictions | null>(null);
+  const [healthData, setHealthData] = useState<HealthData>({
     resources: { cpu: null, memory: null },
     neural_hive: { latency_ms: null },
     integrity: { trust_index: null, siem_sync: null }
   });
-  const [opsReadiness, setOpsReadiness] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
-  const [loadError, setLoadError] = useState('');
-  const [lastUpdatedAt, setLastUpdatedAt] = useState('');
-  const [adaptiveMetrics, setAdaptiveMetrics] = useState(EMPTY_ADAPTIVE_METRICS);
-  const [adaptiveIntelligence, setAdaptiveIntelligence] = useState(EMPTY_ADAPTIVE_INTELLIGENCE);
-  const [selectedTimelineSession, setSelectedTimelineSession] = useState("");
-  const [sessionTimeline, setSessionTimeline] = useState([]);
-  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [opsReadiness, setOpsReadiness] = useState<OpsReadiness | null>(null);
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string>('');
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<string>('');
+  const [adaptiveMetrics, setAdaptiveMetrics] = useState<AdaptiveMetrics>(EMPTY_ADAPTIVE_METRICS);
+  const [adaptiveIntelligence, setAdaptiveIntelligence] = useState<AdaptiveIntelligence>(EMPTY_ADAPTIVE_INTELLIGENCE);
+  const [selectedTimelineSession, setSelectedTimelineSession] = useState<string>("");
+  const [sessionTimeline, setSessionTimeline] = useState<TimelineItem[]>([]);
+  const [timelineLoading, setTimelineLoading] = useState<boolean>(false);
   const latencyMs = Number(healthData.neural_hive?.latency_ms);
   const latencyScore = Number.isFinite(latencyMs) ? Math.max(0, 100 - (latencyMs / 10)) : null;
   const avgPolicyRisk = Number(adaptiveMetrics.summary?.avg_policy_risk_score || 0);
@@ -107,8 +232,9 @@ const Dashboard = () => {
   const readinessTone = opsReadiness?.status === "ready" ? "#3fb950" : "#d29922";
   const readinessLabel = opsReadiness?.status === "ready" ? "ROLL_OUT_READY" : "ATTENTION_NEEDED";
   const readinessActions = (opsReadiness?.next_actions || []).slice(0, 3);
+  const usingSampleIncident = Boolean(stats.demo_mode);
 
-  const loadAdaptiveTimeline = async (sessionId) => {
+  const loadAdaptiveTimeline = async (sessionId: string) => {
     const safeSessionId = String(sessionId || "").trim();
     if (!safeSessionId) {
       setSelectedTimelineSession("");
@@ -117,7 +243,10 @@ const Dashboard = () => {
     }
     setTimelineLoading(true);
     try {
-      const res = await axios.get(`${API_BASE}/deception/adaptive/timeline/${encodeURIComponent(safeSessionId)}`, REAL_ONLY_PARAMS);
+      const res = await axios.get<{ timeline?: TimelineItem[] }>(
+        `${API_BASE}/deception/adaptive/timeline/${encodeURIComponent(safeSessionId)}`,
+        REAL_ONLY_PARAMS
+      );
       const payload = res.data || {};
       setSelectedTimelineSession(safeSessionId);
       setSessionTimeline(payload.timeline || []);
@@ -131,31 +260,33 @@ const Dashboard = () => {
   };
 
   const fetchData = async () => {
-    const errors = [];
+    const errors: string[] = [];
     let candidateTimelineSession = selectedTimelineSession;
     setRefreshing(true);
     setLoadError('');
     try {
       const res = await axios.get(`${API_BASE}/dashboard/stats`, REAL_ONLY_PARAMS);
-      const data = {
+      const data: DashboardStats = {
         summary: res.data.summary || { total: 0, critical: 0, blocked: 0 },
         feed: res.data.feed || [],
         trap_distribution: res.data.trap_distribution || {},
-        mitre_distribution: res.data.mitre_distribution || {}
+        mitre_distribution: res.data.mitre_distribution || {},
+        demo_mode: Boolean(res.data.demo_mode),
       };
       setStats(data);
 
       // Globe Data
-      const points = data.feed.filter(e => e.geo).map(e => ({
-        ...(stableGeoLatLng(e.geo || e.country || e.ip || "Unknown", e.ip || e.session_id || e.id)),
+      const points: GlobePoint[] = data.feed.filter((e) => e.geo).map((e) => ({
+        ...(stableGeoLatLng(String(e.geo || e.country || e.ip || "Unknown"), String(e.ip || e.session_id || e.id || ""))),
         size: e.severity === 'high' ? 0.5 : 0.2,
         color: e.severity === 'high' ? '#f85149' : '#58a6ff',
-        label: `${e.cmd || e.event_type} (${e.geo})`
+        label: `${e.cmd || e.event_type} (${e.geo})`,
+        ...(e.id !== undefined && e.id !== null ? { id: e.id } : {})
       }));
       setGlobeData(points);
 
       // 3D Arcs: Attacks landing on Honeypot (Central Europe baseline)
-      const arcs = points.map(p => ({
+      const arcs: GlobeArc[] = points.map((p) => ({
         startLat: p.lat,
         startLng: p.lng,
         endLat: 51.5074, // London/Center of honeypot cluster
@@ -165,11 +296,14 @@ const Dashboard = () => {
       setArcsData(arcs);
 
       // Separate HTTP trap events for the trap panel
-      const traps = (data.feed || []).filter(e => e.event_type === 'http_probe' || e.url_path);
+      const traps = (data.feed || []).filter((e) => e.event_type === 'http_probe' || e.url_path);
       setHttpTrapFeed(traps.slice(0, 20));
 
-      const sev = { high: 0, medium: 0, low: 0 };
-      data.feed.forEach(e => sev[e.severity] = (sev[e.severity] || 0) + 1);
+      const sev: Record<string, number> = { high: 0, medium: 0, low: 0 };
+      data.feed.forEach((e) => {
+        const key = String(e.severity || "low");
+        sev[key] = (sev[key] || 0) + 1;
+      });
       setSeverityData([
         { name: 'Critical', value: sev.high },
         { name: 'Medium', value: sev.medium },
@@ -177,7 +311,7 @@ const Dashboard = () => {
       ]);
 
       // MITRE Distribution
-      setMitreData(Object.keys(data.mitre_distribution).map(t => ({ name: t, value: data.mitre_distribution[t] })));
+      setMitreData(Object.keys(data.mitre_distribution || {}).map((t) => ({ name: t, value: data.mitre_distribution?.[t] || 0 })));
     } catch (err) {
       errors.push("dashboard");
       console.error("Fetch stats failed", err);
@@ -225,7 +359,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       errors.push("adaptive_metrics");
-      if (err?.response?.status !== 401) {
+      if (!axios.isAxiosError(err) || err.response?.status !== 401) {
         console.error("Fetch adaptive metrics failed", err);
       }
       setAdaptiveMetrics(EMPTY_ADAPTIVE_METRICS);
@@ -248,7 +382,7 @@ const Dashboard = () => {
       }
     } catch (err) {
       errors.push("adaptive_intel");
-      if (err?.response?.status !== 401) {
+      if (!axios.isAxiosError(err) || err.response?.status !== 401) {
         console.error("Fetch adaptive intelligence failed", err);
       }
       setAdaptiveIntelligence(EMPTY_ADAPTIVE_INTELLIGENCE);
@@ -268,7 +402,7 @@ const Dashboard = () => {
     fetchData();
 
     // Mouse tracking for interactive effects
-    const handleMouseMove = (e) => {
+    const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener('mousemove', handleMouseMove);
@@ -277,19 +411,23 @@ const Dashboard = () => {
       `${WS_BASE}/ws/incidents`,
       {
         onMessage: (event) => {
-          const data = safeParseJson(event.data);
-          if (!data || isSyntheticEvent(data)) return;
+          const payload = typeof event.data === "string" ? safeParseJson<DashboardFeedEvent>(event.data) : null;
+          const isSynthetic = payload
+            ? isSyntheticEvent({ ...payload, session_id: payload.session_id != null ? String(payload.session_id) : null })
+            : false;
+          if (!payload || isSynthetic) return;
           setStats(prev => ({
             ...prev,
             summary: {
               ...prev.summary,
               total: (prev.summary?.total || 0) + 1,
-              critical: data.severity === 'high' ? (prev.summary?.critical || 0) + 1 : (prev.summary?.critical || 0)
+              critical: payload.severity === 'high' ? (prev.summary?.critical || 0) + 1 : (prev.summary?.critical || 0)
             },
-            feed: [data, ...(prev.feed || []).slice(0, 49)]
+            feed: [payload, ...(prev.feed || []).slice(0, 49)],
+            demo_mode: false,
           }));
-          if (data.url_path || data.event_type === 'http_probe') {
-            setHttpTrapFeed(prev => [data, ...prev.slice(0, 19)]);
+          if (payload.url_path || payload.event_type === 'http_probe') {
+            setHttpTrapFeed(prev => [payload, ...prev.slice(0, 19)]);
           }
         },
         onError: (err) => console.error("WS Message Error", err),
@@ -303,16 +441,22 @@ const Dashboard = () => {
     };
   }, []);
 
-  const blockAdversary = async (ip) => {
-    if (!window.confirm(`Autonomous Response: Block IP ${ip}?`)) return;
+  const blockAdversary = async (ip?: string | null) => {
+    const targetIp = String(ip || "").trim();
+    if (!targetIp) {
+      alert("Block failed: missing IP.");
+      return;
+    }
+    if (!window.confirm(`Autonomous Response: Block IP ${targetIp}?`)) return;
     try {
-      const res = await axios.post(`${API_BASE}/soc/block-ip`, { ip, reason: "Manual SOC Intervention" });
+      const res = await axios.post(`${API_BASE}/soc/block-ip`, { ip: targetIp, reason: "Manual SOC Intervention" });
       if (res.data.status === "success") {
         alert(res.data.message);
         setStats(prev => ({ ...prev, summary: { ...prev.summary, blocked: ((prev.summary?.blocked) || 0) + 1 } }));
       }
     } catch (err) {
-      alert("Block failed: " + (err.response?.data?.message || err.message));
+      const message = axios.isAxiosError(err) ? err.response?.data?.message || err.message : (err as Error | undefined)?.message;
+      alert("Block failed: " + (message || "Unknown error"));
     }
   };
 
@@ -321,13 +465,14 @@ const Dashboard = () => {
   };
 
 
-  const getSeverityBadge = (sev) => {
-    const styles = {
+  const getSeverityBadge = (sev?: string) => {
+    const styles: Record<string, { bg: string; color: string; label: string }> = {
       high: { bg: 'rgba(248,81,73,0.15)', color: '#f85149', label: 'CRITICAL' },
       medium: { bg: 'rgba(210,153,34,0.15)', color: '#d29922', label: 'MEDIUM' },
       low: { bg: 'rgba(56,139,253,0.15)', color: '#3fb950', label: 'BASELINE' }
     };
-    const s = styles[sev] || styles.low;
+    const key = String(sev || "low");
+    const s = styles[key] || styles.low;
     return (
       <span style={{
         background: s.bg, color: s.color, padding: '2px 8px', borderRadius: '4px',
@@ -467,6 +612,49 @@ const Dashboard = () => {
         </div>
       )}
 
+      {usingSampleIncident && (
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            marginBottom: '24px',
+            borderRadius: '18px',
+            border: '1px solid rgba(88, 166, 255, 0.24)',
+            background: 'linear-gradient(135deg, rgba(17, 24, 39, 0.96), rgba(15, 23, 42, 0.92))',
+            padding: '18px 20px',
+            position: 'relative',
+            zIndex: 1,
+            boxShadow: '0 18px 40px rgba(2, 6, 23, 0.35)',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div style={{ maxWidth: '720px' }}>
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '5px 10px', borderRadius: '999px', background: 'rgba(88, 166, 255, 0.12)', border: '1px solid rgba(88, 166, 255, 0.28)', color: '#93c5fd', fontSize: '11px', fontWeight: '900', letterSpacing: '0.9px', textTransform: 'uppercase' }}>
+                <Target size={14} />
+                Sample Incident Active
+              </div>
+              <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: '900', color: '#f8fafc' }}>
+                This workspace is showing the guided incident path instead of live tenant telemetry.
+              </h2>
+              <p style={{ margin: 0, color: '#94a3b8', fontSize: '13px', lineHeight: 1.65 }}>
+                Use the current signal chain to walk through the product in order: route touch, telemetry review, forensics reconstruction, and operator audit trail. The banner clears automatically once real tenant events arrive.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <Link to="/telemetry" style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: '10px', background: 'rgba(31, 111, 235, 0.16)', border: '1px solid rgba(88, 166, 255, 0.28)', color: '#bfdbfe', fontWeight: '800', fontSize: '12px' }}>
+                Open Telemetry
+              </Link>
+              <Link to="/forensics/detail" style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.12)', border: '1px solid rgba(245, 158, 11, 0.28)', color: '#fcd34d', fontWeight: '800', fontSize: '12px' }}>
+                Open Forensics
+              </Link>
+              <Link to="/audit" style={{ textDecoration: 'none', padding: '10px 14px', borderRadius: '10px', background: 'rgba(34, 197, 94, 0.12)', border: '1px solid rgba(34, 197, 94, 0.24)', color: '#86efac', fontWeight: '800', fontSize: '12px' }}>
+                Open Audit Trail
+              </Link>
+            </div>
+          </div>
+        </motion.section>
+      )}
+
       {/* ENHANCED UNIVERSAL SPLUNK SEARCH */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -493,7 +681,7 @@ const Dashboard = () => {
         </div>
         <input
           type="text"
-          placeholder="| pivot CyberSentinel_Honeypot count(Event) by mitre_tactic, severity"
+          placeholder="| pivot CyberSentil_Honeypot count(Event) by mitre_tactic, severity"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
@@ -740,7 +928,7 @@ const Dashboard = () => {
                   return (
                     <div key={strategy}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '11px' }}>
-                        <span style={{ color: '#e6edf3', fontWeight: '700' }}>{String(strategy).replaceAll('_', ' ')}</span>
+                        <span style={{ color: '#e6edf3', fontWeight: '700' }}>{String(strategy).replace(/_/g, ' ')}</span>
                         <span style={{ color: '#58a6ff', fontWeight: '800' }}>{safeCount}</span>
                       </div>
                       <div style={{ height: '8px', borderRadius: '999px', background: '#1f2937', overflow: 'hidden' }}>
@@ -755,7 +943,7 @@ const Dashboard = () => {
 
           <div>
             <div style={{ fontSize: '12px', color: '#8b949e', marginBottom: '10px', fontWeight: '700' }}>
-              Top Risk Sessions ({dominantPolicyStrategy === "none" ? "N/A" : dominantPolicyStrategy.replaceAll('_', ' ')})
+              Top Risk Sessions ({dominantPolicyStrategy === "none" ? "N/A" : dominantPolicyStrategy.replace(/_/g, ' ')})
             </div>
             <div style={{ fontSize: '10px', color: '#6e7681', marginBottom: '8px' }}>
               Click a session to inspect adaptive timeline.
@@ -780,7 +968,12 @@ const Dashboard = () => {
                         <td style={{ padding: '8px', color: '#e6edf3', fontFamily: "'JetBrains Mono', monospace" }}>
                           <button
                             type="button"
-                            onClick={() => loadAdaptiveTimeline(session.session_id)}
+                            onClick={() => {
+                              const sessionId = String(session.session_id || "");
+                              if (sessionId) {
+                                loadAdaptiveTimeline(sessionId);
+                              }
+                            }}
                             style={{
                               background: selectedTimelineSession === session.session_id ? 'rgba(88,166,255,0.18)' : 'transparent',
                               border: selectedTimelineSession === session.session_id ? '1px solid rgba(88,166,255,0.4)' : '1px solid transparent',
@@ -796,7 +989,7 @@ const Dashboard = () => {
                           </button>
                         </td>
                         <td style={{ padding: '8px', color: '#58a6ff' }}>
-                          {String(session.policy_strategy || "n/a").replaceAll('_', ' ')}
+                          {String(session.policy_strategy || "n/a").replace(/_/g, ' ')}
                         </td>
                         <td style={{ padding: '8px', textAlign: 'right', color: '#ff7b72', fontWeight: '800' }}>
                           {Number(session.policy_risk_score || 0).toFixed(1)}
@@ -950,9 +1143,10 @@ const Dashboard = () => {
               <p style={{ fontSize: '11px', marginTop: '4px' }}>Try: <code style={{ background: '#21262d', padding: '2px 6px', borderRadius: '4px' }}>curl http://your-domain/.env</code></p>
             </div>
           ) : (
-            <AnimatePresence initial={false}>
+            <AnimatePresence>
               {httpTrapFeed.map((ev, i) => {
-                const trapCfg = TRAP_CONFIG[ev.url_path] || { color: '#8b949e', label: 'PROBE', icon: '🌐' };
+                const trapCfg =
+                  TRAP_CONFIG[String(ev.url_path || "")] || { color: '#8b949e', label: 'PROBE', icon: '🌐' };
                 return (
                   <motion.div
                     key={ev.id || i}
@@ -966,7 +1160,7 @@ const Dashboard = () => {
                   >
                     <span style={{ fontSize: '18px' }}>{trapCfg.icon}</span>
                     <span style={{ color: '#58a6ff', fontSize: '11px', minWidth: '75px', fontFamily: "monospace", fontWeight: '700' }}>
-                      {new Date(ev.ts).toLocaleTimeString()}
+                      {new Date(ev.ts ?? Date.now()).toLocaleTimeString()}
                     </span>
                     <span style={{
                       background: `${trapCfg.color}20`, color: trapCfg.color,
@@ -1030,7 +1224,7 @@ const Dashboard = () => {
               </div>
             </div>
           ) : (
-            <AnimatePresence initial={false}>
+            <AnimatePresence>
               {stats.feed.map((ev, i) => (
                 <motion.div
                   key={ev.id || `${ev.ts}-${i}`}
@@ -1047,7 +1241,7 @@ const Dashboard = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flex: 1, minWidth: 0 }}>
                     <span style={{ color: '#58a6ff', fontSize: '11px', minWidth: '80px', fontFamily: "'JetBrains Mono', monospace", fontWeight: '700' }}>
-                      {new Date(ev.ts).toLocaleTimeString()}
+                      {new Date(ev.ts ?? Date.now()).toLocaleTimeString()}
                     </span>
                     {getSeverityBadge(ev.severity)}
                     {/* Event type badge */}
@@ -1096,7 +1290,16 @@ const Dashboard = () => {
   );
 };
 
-const KPICard = ({ label, value, color, icon, trend, border }) => (
+type KPICardProps = {
+  label: string;
+  value: React.ReactNode;
+  color: string;
+  icon: React.ReactNode;
+  trend: string;
+  border?: string;
+};
+
+const KPICard = ({ label, value, color, icon, trend, border }: KPICardProps) => (
   <motion.div
     whileHover={{ y: -5 }}
     className={`glass-card ${border}`}
@@ -1129,13 +1332,15 @@ const readinessActionStyle = {
   letterSpacing: '0.04em'
 };
 
-const readinessStateStyles = {
+const readinessStateStyles: Record<string, { border: string; background: string; color: string; label: string }> = {
   pass: { border: '1px solid rgba(63,185,80,0.24)', background: 'rgba(63,185,80,0.08)', color: '#3fb950', label: 'PASS' },
   warn: { border: '1px solid rgba(210,153,34,0.24)', background: 'rgba(210,153,34,0.08)', color: '#d29922', label: 'WARN' },
   fail: { border: '1px solid rgba(248,81,73,0.24)', background: 'rgba(248,81,73,0.08)', color: '#f85149', label: 'FAIL' },
 };
 
-const ReadinessMetric = ({ label, value }) => (
+type ReadinessMetricProps = { label: string; value: React.ReactNode };
+
+const ReadinessMetric = ({ label, value }: ReadinessMetricProps) => (
   <div style={{
     minWidth: '92px',
     padding: '10px 12px',
@@ -1150,8 +1355,10 @@ const ReadinessMetric = ({ label, value }) => (
   </div>
 );
 
-const ReadinessCheckCard = ({ item }) => {
-  const tone = readinessStateStyles[item.status] || readinessStateStyles.warn;
+type ReadinessCheckCardProps = { item: OpsReadinessCheck };
+
+const ReadinessCheckCard = ({ item }: ReadinessCheckCardProps) => {
+  const tone = readinessStateStyles[item.status || "warn"] || readinessStateStyles.warn;
   return (
     <div style={{
       borderRadius: '14px',
@@ -1159,7 +1366,7 @@ const ReadinessCheckCard = ({ item }) => {
       ...tone
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '8px' }}>
-        <strong style={{ fontSize: '12px', color: tone.color }}>{String(item.key || '').replaceAll('_', ' ').toUpperCase()}</strong>
+        <strong style={{ fontSize: '12px', color: tone.color }}>{String(item.key || '').replace(/_/g, ' ').toUpperCase()}</strong>
         <span style={{ fontSize: '10px', fontWeight: '900', color: tone.color }}>{tone.label}</span>
       </div>
       <div style={{ color: '#e6edf3', fontSize: '12px', lineHeight: 1.6 }}>{item.summary}</div>
@@ -1168,7 +1375,9 @@ const ReadinessCheckCard = ({ item }) => {
 };
 
 
-const HealthBar = ({ label, value, color }) => {
+type HealthBarProps = { label: string; value?: number | null | undefined; color: string };
+
+const HealthBar = ({ label, value, color }: HealthBarProps) => {
   const displayValue = Number.isFinite(value) ? value : null;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

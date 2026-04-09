@@ -1,21 +1,38 @@
-// @ts-nocheck
-import { getAuthToken } from "./auth";
+import { clearAuthSession, getAuthToken } from "./auth";
 
-export function safeParseJson(payload) {
+export function safeParseJson<T = unknown>(payload: string): T | null {
   try {
-    return JSON.parse(payload);
+    return JSON.parse(payload) as T;
   } catch {
     return null;
   }
 }
 
-export function createManagedWebSocket(url, handlers = {}, options = {}) {
-  const {
-    onOpen,
-    onMessage,
-    onClose,
-    onError,
-  } = handlers;
+type WebSocketHandlers = {
+  onOpen?: (event: Event) => void;
+  onMessage?: (event: MessageEvent) => void;
+  onClose?: (event: CloseEvent) => void;
+  onError?: (event: Event) => void;
+};
+
+type WebSocketOptions = {
+  auth?: boolean;
+  reconnect?: boolean;
+  initialDelayMs?: number;
+  maxDelayMs?: number;
+};
+
+type ManagedWebSocket = {
+  close: () => void;
+  send: (message: string) => void;
+};
+
+export function createManagedWebSocket(
+  url: string,
+  handlers: WebSocketHandlers = {},
+  options: WebSocketOptions = {}
+): ManagedWebSocket {
+  const { onOpen, onMessage, onClose, onError } = handlers;
 
   const {
     auth = true,
@@ -24,9 +41,9 @@ export function createManagedWebSocket(url, handlers = {}, options = {}) {
     maxDelayMs = 15000,
   } = options;
 
-  let socket = null;
+  let socket: WebSocket | null = null;
   let reconnectDelay = initialDelayMs;
-  let reconnectTimer = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let closedByUser = false;
 
   const clearReconnectTimer = () => {
@@ -50,19 +67,22 @@ export function createManagedWebSocket(url, handlers = {}, options = {}) {
     clearReconnectTimer();
     try {
       const targetUrl = new URL(url, window.location.origin);
-      const token = auth ? getAuthToken() : "";
-      if (token) {
-        targetUrl.searchParams.set("token", token);
-      }
       socket = new WebSocket(targetUrl.toString());
     } catch (err) {
-      onError?.(err);
+      onError?.(err as Event);
       scheduleReconnect();
       return;
     }
 
     socket.onopen = (event) => {
       reconnectDelay = initialDelayMs;
+      if (auth) {
+        const token = getAuthToken();
+        const activeSocket = socket;
+        if (token) {
+          activeSocket?.send(JSON.stringify({ type: "auth", token }));
+        }
+      }
       onOpen?.(event);
     };
 
@@ -76,6 +96,11 @@ export function createManagedWebSocket(url, handlers = {}, options = {}) {
 
     socket.onclose = (event) => {
       onClose?.(event);
+      if (auth && event.code === 1008) {
+        closedByUser = true;
+        clearAuthSession();
+        return;
+      }
       scheduleReconnect();
     };
   };

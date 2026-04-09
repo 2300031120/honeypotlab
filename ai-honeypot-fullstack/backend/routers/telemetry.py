@@ -1,6 +1,8 @@
 import asyncio
+import csv
 from contextlib import suppress
 import html
+import io
 import ipaddress
 import json
 import logging
@@ -17,36 +19,83 @@ from datetime import datetime, timedelta
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    WebSocketException,
+)
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 
+from core.audit import (
+    log_command_validation_failure,
+    log_rate_limit_violation,
+    log_security_event,
+    log_sql_injection_attempt,
+    operator_action_log_entry,
+    record_operator_action,
+)
 from core.config import (
     ALLOW_SIGNUP,
+    AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS,
+    AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS,
     APP_ENV,
     DATABASE_BACKEND,
     DECOY_COOKIE_SAMESITE,
     DECOY_COOKIE_SECURE,
     ENABLE_DEMO_SEED,
+    FINAL_REPORT_RATE_LIMIT_MAX_ATTEMPTS,
+    FINAL_REPORT_RATE_LIMIT_WINDOW_SECONDS,
     FORCE_HTTPS_REDIRECT,
     GOOGLE_CLIENT_ID,
     PROTOCOL_SHARED_SECRET,
     PROTOCOL_SSH_AUTH_TRAP_ENABLED,
     PUBLIC_BASE_URL,
+    RESEARCH_RUN_RATE_LIMIT_MAX_ATTEMPTS,
+    RESEARCH_RUN_RATE_LIMIT_WINDOW_SECONDS,
+    SIMULATOR_RATE_LIMIT_MAX_ATTEMPTS,
+    SIMULATOR_RATE_LIMIT_WINDOW_SECONDS,
     SSH_DECOY_HEALTH_URL,
+    TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS,
+    TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS,
     TERMINAL_EXEC_TIMEOUT_SEC,
     TERMINAL_MAX_OUTPUT_CHARS,
     TERMINAL_REAL_EXEC_ENABLED,
     TERMINAL_SANDBOX_URL,
     TRUSTED_HOSTS,
+    URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS,
+    URL_SCAN_RATE_LIMIT_WINDOW_SECONDS,
     is_placeholder_secret,
     trusted_host_matches,
 )
 from core.database import build_summary, db, frontend_event, normalize_event
-from core.security import stable_hash
+from core.event_safety import clean_event_text, sanitize_captured_data
+from core.public_hosts import normalize_public_host, select_matching_site_row
+from core.request_security import enforce_rate_limit
 from core.security import hash_api_key
+from core.security import integrity_fingerprint
+from core.security import sha256_hex
+from core.security import sign_integrity_payload
+from core.security import stable_hash
 from core.splunk import forward_event_to_splunk
 from core.time_utils import iso_now, utc_now
-from dependencies import current_admin_user, current_user, current_websocket_user, optional_user
+from dependencies import (
+    current_admin_user,
+    current_user,
+    current_websocket_user,
+    optional_user,
+)
 from schemas import (
     AdvisorPayload,
     AutoModePayload,
@@ -66,6 +115,51 @@ from schemas import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 ROUTER_STARTED_AT = utc_now()
+AUDIT_LOG_SOURCES = {"all", "incident", "response", "operator"}
+
+
+def _build_operator_rate_limit_dependency(scope: str, limit: int, window_seconds: int):
+    def dependency(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+        enforce_rate_limit(
+            f"operator:{scope}:user:{int(user['id'])}",
+            limit=limit,
+            window_seconds=window_seconds,
+        )
+        return user
+
+    return dependency
+
+
+final_report_rate_limit = _build_operator_rate_limit_dependency(
+    "forensics-final-report",
+    FINAL_REPORT_RATE_LIMIT_MAX_ATTEMPTS,
+    FINAL_REPORT_RATE_LIMIT_WINDOW_SECONDS,
+)
+simulator_rate_limit = _build_operator_rate_limit_dependency(
+    "simulator-inject",
+    SIMULATOR_RATE_LIMIT_MAX_ATTEMPTS,
+    SIMULATOR_RATE_LIMIT_WINDOW_SECONDS,
+)
+terminal_cmd_rate_limit = _build_operator_rate_limit_dependency(
+    "terminal-cmd",
+    TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS,
+    TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS,
+)
+ai_advisor_rate_limit = _build_operator_rate_limit_dependency(
+    "ai-expert-advisor",
+    AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS,
+    AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS,
+)
+url_scan_rate_limit = _build_operator_rate_limit_dependency(
+    "intel-url-scan",
+    URL_SCAN_RATE_LIMIT_MAX_ATTEMPTS,
+    URL_SCAN_RATE_LIMIT_WINDOW_SECONDS,
+)
+research_run_rate_limit = _build_operator_rate_limit_dependency(
+    "research-run",
+    RESEARCH_RUN_RATE_LIMIT_MAX_ATTEMPTS,
+    RESEARCH_RUN_RATE_LIMIT_WINDOW_SECONDS,
+)
 
 DEFAULT_DECEPTION_PROTOCOLS = {
     "credential_injection": True,
@@ -106,14 +200,216 @@ DEFAULT_HONEYTOKEN_PATHS = [
     "/.git/config",
 ]
 PUBLIC_DEMO_SNAPSHOT_TEMPLATES = [
-    {"event_type": "http_probe", "path": "/.env", "severity": "high", "score": 92, "ip": "203.0.113.24", "geo": "Singapore", "behavior": "credential_sinkhole"},
-    {"event_type": "http_probe", "path": "/phpmyadmin/", "severity": "high", "score": 88, "ip": "198.51.100.13", "geo": "Germany", "behavior": "credential_spray"},
-    {"event_type": "wp_probe", "path": "/wp-login.php", "severity": "medium", "score": 72, "ip": "198.51.100.31", "geo": "India", "behavior": "progressive_disclosure"},
-    {"event_type": "admin_probe", "path": "/admin/login", "severity": "medium", "score": 69, "ip": "203.0.113.73", "geo": "United States", "behavior": "progressive_disclosure"},
-    {"event_type": "exposure_scan", "path": "/.git/config", "severity": "high", "score": 86, "ip": "192.0.2.42", "geo": "Japan", "behavior": "credential_sinkhole"},
-    {"event_type": "api_probe", "path": "/actuator/env", "severity": "medium", "score": 64, "ip": "203.0.113.91", "geo": "Brazil", "behavior": "observe"},
-    {"event_type": "xmlrpc_probe", "path": "/xmlrpc.php", "severity": "medium", "score": 61, "ip": "198.51.100.88", "geo": "United Kingdom", "behavior": "progressive_disclosure"},
-    {"event_type": "backup_probe", "path": "/backup.sql", "severity": "high", "score": 85, "ip": "192.0.2.58", "geo": "Netherlands", "behavior": "credential_sinkhole"},
+    {
+        "event_type": "http_probe",
+        "path": "/.env",
+        "severity": "high",
+        "score": 92,
+        "ip": "203.0.113.24",
+        "geo": "Singapore",
+        "behavior": "credential_sinkhole",
+    },
+    {
+        "event_type": "http_probe",
+        "path": "/phpmyadmin/",
+        "severity": "high",
+        "score": 88,
+        "ip": "198.51.100.13",
+        "geo": "Germany",
+        "behavior": "credential_spray",
+    },
+    {
+        "event_type": "wp_probe",
+        "path": "/wp-login.php",
+        "severity": "medium",
+        "score": 72,
+        "ip": "198.51.100.31",
+        "geo": "India",
+        "behavior": "progressive_disclosure",
+    },
+    {
+        "event_type": "admin_probe",
+        "path": "/admin/login",
+        "severity": "medium",
+        "score": 69,
+        "ip": "203.0.113.73",
+        "geo": "United States",
+        "behavior": "progressive_disclosure",
+    },
+    {
+        "event_type": "exposure_scan",
+        "path": "/.git/config",
+        "severity": "high",
+        "score": 86,
+        "ip": "192.0.2.42",
+        "geo": "Japan",
+        "behavior": "credential_sinkhole",
+    },
+    {
+        "event_type": "api_probe",
+        "path": "/actuator/env",
+        "severity": "medium",
+        "score": 64,
+        "ip": "203.0.113.91",
+        "geo": "Brazil",
+        "behavior": "observe",
+    },
+    {
+        "event_type": "xmlrpc_probe",
+        "path": "/xmlrpc.php",
+        "severity": "medium",
+        "score": 61,
+        "ip": "198.51.100.88",
+        "geo": "United Kingdom",
+        "behavior": "progressive_disclosure",
+    },
+    {
+        "event_type": "backup_probe",
+        "path": "/backup.sql",
+        "severity": "high",
+        "score": 85,
+        "ip": "192.0.2.58",
+        "geo": "Netherlands",
+        "behavior": "credential_sinkhole",
+    },
+]
+SAMPLE_INCIDENT_TEMPLATES = [
+    {
+        "minutes_ago": 48,
+        "session_id": "sample-portal-01",
+        "event_type": "admin_probe",
+        "severity": "medium",
+        "score": 68,
+        "ip": "198.51.100.44",
+        "geo": "Singapore",
+        "url_path": "/admin/login",
+        "http_method": "GET",
+        "cmd": None,
+        "attacker_type": "scanner",
+        "reputation": 61,
+        "mitre_tactic": "Reconnaissance",
+        "mitre_technique": "T1595",
+        "policy_strategy": "progressive_disclosure",
+        "policy_risk_score": 72,
+        "captured_data": {
+            "surface": "admin_login",
+            "note": "Decoy admin panel fingerprinted.",
+        },
+    },
+    {
+        "minutes_ago": 41,
+        "session_id": "sample-portal-01",
+        "event_type": "credential_harvest",
+        "severity": "high",
+        "score": 86,
+        "ip": "198.51.100.44",
+        "geo": "Singapore",
+        "url_path": "/admin/login",
+        "http_method": "POST",
+        "cmd": None,
+        "attacker_type": "interactive",
+        "reputation": 78,
+        "mitre_tactic": "Credential Access",
+        "mitre_technique": "T1110",
+        "policy_strategy": "credential_sinkhole",
+        "policy_risk_score": 91,
+        "captured_data": {
+            "username": "opsadmin",
+            "password": "[REDACTED]",
+            "source": "admin_decoy_form",
+        },
+    },
+    {
+        "minutes_ago": 34,
+        "session_id": "sample-portal-01",
+        "event_type": "terminal_exec",
+        "severity": "high",
+        "score": 93,
+        "ip": "198.51.100.44",
+        "geo": "Singapore",
+        "url_path": "/admin/console",
+        "http_method": "POST",
+        "cmd": "cat /var/www/html/.env",
+        "attacker_type": "interactive",
+        "reputation": 88,
+        "mitre_tactic": "Discovery",
+        "mitre_technique": "T1083",
+        "policy_strategy": "aggressive_containment",
+        "policy_risk_score": 96,
+        "captured_data": {
+            "output": "APP_ENV=production\nDB_HOST=10.0.4.12\nJWT_SECRET=[FAKE_SECRET]\n",
+            "status": "blocked",
+            "prompt": "admin@web-ops-01:~/portal$",
+            "cwd": "/home/admin/portal",
+            "execution_mode": "emulated",
+        },
+    },
+    {
+        "minutes_ago": 28,
+        "session_id": "sample-api-01",
+        "event_type": "api_probe",
+        "severity": "medium",
+        "score": 71,
+        "ip": "203.0.113.121",
+        "geo": "Germany",
+        "url_path": "/api/internal/users",
+        "http_method": "GET",
+        "cmd": None,
+        "attacker_type": "bot",
+        "reputation": 63,
+        "mitre_tactic": "Reconnaissance",
+        "mitre_technique": "T1595",
+        "policy_strategy": "observe",
+        "policy_risk_score": 74,
+        "captured_data": {
+            "headers": {"x-forwarded-for": "203.0.113.121"},
+            "surface": "internal_api",
+        },
+    },
+    {
+        "minutes_ago": 22,
+        "session_id": "sample-api-01",
+        "event_type": "token_probe",
+        "severity": "high",
+        "score": 89,
+        "ip": "203.0.113.121",
+        "geo": "Germany",
+        "url_path": "/actuator/env",
+        "http_method": "GET",
+        "cmd": None,
+        "attacker_type": "interactive",
+        "reputation": 81,
+        "mitre_tactic": "Credential Access",
+        "mitre_technique": "T1552",
+        "policy_strategy": "credential_sinkhole",
+        "policy_risk_score": 93,
+        "captured_data": {"token_hint": "svc-export", "surface": "actuator"},
+    },
+    {
+        "minutes_ago": 15,
+        "session_id": "sample-api-01",
+        "event_type": "terminal_exec",
+        "severity": "high",
+        "score": 94,
+        "ip": "203.0.113.121",
+        "geo": "Germany",
+        "url_path": "/api/admin/export",
+        "http_method": "POST",
+        "cmd": "curl -s https://portal.example.com/api/admin/export",
+        "attacker_type": "interactive",
+        "reputation": 91,
+        "mitre_tactic": "Execution",
+        "mitre_technique": "T1059",
+        "policy_strategy": "aggressive_containment",
+        "policy_risk_score": 97,
+        "captured_data": {
+            "output": '{"status":"blocked","reason":"egress sinkhole"}',
+            "status": "blocked",
+            "prompt": "admin@api-gateway-02:/srv$",
+            "cwd": "/srv",
+            "execution_mode": "emulated",
+        },
+    },
 ]
 AUTO_RESPONSE_EVENT_LIMIT = 120
 AUTO_RESPONSE_BLOCK_CONFIDENCE = 78
@@ -127,7 +423,12 @@ TACTIC_TO_PHASE = {
     "Credential Access": "Contain",
 }
 SEVERITY_RANK = {"low": 1, "medium": 2, "high": 3, "critical": 4}
-DEFAULT_TERMINAL_HOSTS = ["web-ops-01", "db-gateway-02", "vault-proxy-01", "ops-cache-04"]
+DEFAULT_TERMINAL_HOSTS = [
+    "web-ops-01",
+    "db-gateway-02",
+    "vault-proxy-01",
+    "ops-cache-04",
+]
 DEFAULT_TERMINAL_DIRECTORIES = [
     "/",
     "/bin",
@@ -157,12 +458,20 @@ DEFAULT_TERMINAL_FILES = {
     "/opt/ops/deploy.sh": "#!/bin/bash\nexport APP_ENV=production\nsystemctl restart honeypot-http\n",
     "/srv/backups/payroll_2024.csv": "employee_id,name,bank_ref\n1042,Anika Rao,masked-8472\n1198,Rahul Iyer,masked-2891\n",
     "/var/log/auth.log": "Mar 28 09:14:22 web-ops-01 sshd[1842]: Failed password for invalid user deploy from 203.0.113.14 port 60211 ssh2\n",
-    "/var/www/html/.env": "APP_ENV=production\nDB_HOST=10.0.4.12\nDB_USER=svc_portal\nDB_PASSWORD=H0neyStack#2026\nJWT_SECRET=redacted-placeholder\n",
+    "/var/www/html/.env": "APP_ENV=production\nDB_HOST=10.0.4.12\nDB_USER=svc_portal\nDB_PASSWORD=[FAKE_PASSWORD]\nJWT_SECRET=[FAKE_SECRET]\n",
     "/var/www/html/index.php": "<?php\n$portal = 'Secure Operations Portal';\necho $portal;\n",
 }
 WEB_DECOY_COOKIE = "cybersentinel_decoy"
 WEB_DECOY_SESSION_LIMIT = 240
-WEB_DECOY_ACCEPT_USERS = {"root", "admin", "dbadmin", "pma", "administrator", "wp_admin", "opsadmin"}
+WEB_DECOY_ACCEPT_USERS = {
+    "root",
+    "admin",
+    "dbadmin",
+    "pma",
+    "administrator",
+    "wp_admin",
+    "opsadmin",
+}
 WEB_DECOY_SESSIONS: dict[str, dict[str, Any]] = {}
 WEB_DECOY_DATABASES = {
     "operations": {
@@ -175,9 +484,27 @@ WEB_DECOY_DATABASES = {
                 {"name": "status", "type": "varchar(16)", "key": ""},
             ],
             "rows": [
-                {"id": 1, "username": "svc_portal", "email": "svc_portal@ops.local", "role": "service", "status": "active"},
-                {"id": 2, "username": "admin", "email": "admin@ops.local", "role": "administrator", "status": "active"},
-                {"id": 3, "username": "reporting", "email": "reporting@ops.local", "role": "analyst", "status": "locked"},
+                {
+                    "id": 1,
+                    "username": "svc_portal",
+                    "email": "svc_portal@ops.local",
+                    "role": "service",
+                    "status": "active",
+                },
+                {
+                    "id": 2,
+                    "username": "admin",
+                    "email": "admin@ops.local",
+                    "role": "administrator",
+                    "status": "active",
+                },
+                {
+                    "id": 3,
+                    "username": "reporting",
+                    "email": "reporting@ops.local",
+                    "role": "analyst",
+                    "status": "locked",
+                },
             ],
         },
         "sessions": {
@@ -188,8 +515,18 @@ WEB_DECOY_DATABASES = {
                 {"name": "last_seen", "type": "datetime", "key": ""},
             ],
             "rows": [
-                {"session_id": "sess-8f2a1d", "user_id": 2, "ip_address": "10.0.4.18", "last_seen": "2026-03-28 09:06:11"},
-                {"session_id": "sess-11ca29", "user_id": 1, "ip_address": "10.0.4.22", "last_seen": "2026-03-28 08:58:44"},
+                {
+                    "session_id": "sess-8f2a1d",
+                    "user_id": 2,
+                    "ip_address": "10.0.4.18",
+                    "last_seen": "2026-03-28 09:06:11",
+                },
+                {
+                    "session_id": "sess-11ca29",
+                    "user_id": 1,
+                    "ip_address": "10.0.4.22",
+                    "last_seen": "2026-03-28 08:58:44",
+                },
             ],
         },
         "audit_log": {
@@ -200,8 +537,18 @@ WEB_DECOY_DATABASES = {
                 {"name": "created_at", "type": "datetime", "key": ""},
             ],
             "rows": [
-                {"event_id": 9042, "actor": "svc_portal", "action": "exported payroll summary", "created_at": "2026-03-28 08:31:05"},
-                {"event_id": 9043, "actor": "admin", "action": "rotated edge API credential", "created_at": "2026-03-28 08:39:51"},
+                {
+                    "event_id": 9042,
+                    "actor": "svc_portal",
+                    "action": "exported payroll summary",
+                    "created_at": "2026-03-28 08:31:05",
+                },
+                {
+                    "event_id": 9043,
+                    "actor": "admin",
+                    "action": "rotated edge API credential",
+                    "created_at": "2026-03-28 08:39:51",
+                },
             ],
         },
     },
@@ -214,8 +561,18 @@ WEB_DECOY_DATABASES = {
                 {"name": "tier", "type": "varchar(24)", "key": ""},
             ],
             "rows": [
-                {"contact_id": 1021, "full_name": "Anika Rao", "email": "anika.rao@crm.local", "tier": "enterprise"},
-                {"contact_id": 1034, "full_name": "Rahul Iyer", "email": "rahul.iyer@crm.local", "tier": "priority"},
+                {
+                    "contact_id": 1021,
+                    "full_name": "Anika Rao",
+                    "email": "anika.rao@crm.local",
+                    "tier": "enterprise",
+                },
+                {
+                    "contact_id": 1034,
+                    "full_name": "Rahul Iyer",
+                    "email": "rahul.iyer@crm.local",
+                    "tier": "priority",
+                },
             ],
         },
         "tickets": {
@@ -226,15 +583,25 @@ WEB_DECOY_DATABASES = {
                 {"name": "state", "type": "varchar(20)", "key": ""},
             ],
             "rows": [
-                {"ticket_id": 5501, "owner": "ops-bot", "summary": "Portal cache drift on node 04", "state": "open"},
-                {"ticket_id": 5502, "owner": "admin", "summary": "Reset decoy mail relay token", "state": "closed"},
+                {
+                    "ticket_id": 5501,
+                    "owner": "ops-bot",
+                    "summary": "Portal cache drift on node 04",
+                    "state": "open",
+                },
+                {
+                    "ticket_id": 5502,
+                    "owner": "admin",
+                    "summary": "Reset decoy mail relay token",
+                    "state": "closed",
+                },
             ],
         },
     },
 }
 WEB_DECOY_FILES = {
     "/.env": {
-        "body": "APP_ENV=production\nDB_HOST=10.0.4.12\nDB_USER=svc_portal\nDB_PASSWORD=H0neyStack#2026\nJWT_SECRET=redacted-placeholder\n",
+        "body": "APP_ENV=production\nDB_HOST=10.0.4.12\nDB_USER=svc_portal\nDB_PASSWORD=[FAKE_PASSWORD]\nJWT_SECRET=[FAKE_SECRET]\n",
         "content_type": "text/plain; charset=utf-8",
         "severity": "high",
         "score": 91,
@@ -244,7 +611,7 @@ WEB_DECOY_FILES = {
         "policy_risk_score": 93,
     },
     "/.git/config": {
-        "body": "[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n[remote \"origin\"]\n\turl = git@github.example:finance/portal.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n",
+        "body": '[core]\n\trepositoryformatversion = 0\n\tfilemode = true\n\tbare = false\n[remote "origin"]\n\turl = git@github.example:finance/portal.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n',
         "content_type": "text/plain; charset=utf-8",
         "severity": "high",
         "score": 88,
@@ -254,7 +621,7 @@ WEB_DECOY_FILES = {
         "policy_risk_score": 90,
     },
     "/config.php": {
-        "body": "<?php\n$cfg['Servers'][1]['host'] = '10.0.4.12';\n$cfg['Servers'][1]['user'] = 'svc_portal';\n$cfg['Servers'][1]['password'] = 'redacted-placeholder';\n",
+        "body": "<?php\n$cfg['Servers'][1]['host'] = '10.0.4.12';\n$cfg['Servers'][1]['user'] = 'svc_portal';\n$cfg['Servers'][1]['password'] = '[FAKE_PASSWORD]';\n",
         "content_type": "text/plain; charset=utf-8",
         "severity": "high",
         "score": 83,
@@ -264,7 +631,7 @@ WEB_DECOY_FILES = {
         "policy_risk_score": 86,
     },
     "/backup.sql": {
-        "body": "-- CyberSentinel decoy dump\nCREATE TABLE users (id int, username varchar(64), email varchar(128));\nINSERT INTO users VALUES (1,'svc_portal','svc_portal@ops.local');\n",
+        "body": "-- CyberSentil decoy dump\nCREATE TABLE users (id int, username varchar(64), email varchar(128));\nINSERT INTO users VALUES (1,'svc_portal','svc_portal@ops.local');\n",
         "content_type": "text/plain; charset=utf-8",
         "severity": "high",
         "score": 87,
@@ -274,7 +641,7 @@ WEB_DECOY_FILES = {
         "policy_risk_score": 89,
     },
     "/db.sql": {
-        "body": "-- CyberSentinel decoy schema snapshot\nCREATE TABLE sessions (session_id varchar(48), user_id int, ip_address varchar(48));\n",
+        "body": "-- CyberSentil decoy schema snapshot\nCREATE TABLE sessions (session_id varchar(48), user_id int, ip_address varchar(48));\n",
         "content_type": "text/plain; charset=utf-8",
         "severity": "medium",
         "score": 76,
@@ -296,29 +663,16 @@ WEB_DECOY_FILES = {
 }
 
 
-def _normalize_public_host(value: str | None) -> str:
-    candidate = str(value or "").strip().lower()
-    if not candidate:
-        return ""
-    if "://" in candidate:
-        parsed = urlparse(candidate)
-        candidate = parsed.hostname or ""
-    candidate = candidate.split(",", 1)[0].strip()
-    if candidate.startswith("[") and "]" in candidate:
-        candidate = candidate[1:candidate.index("]")]
-    elif ":" in candidate:
-        candidate = candidate.split(":", 1)[0]
-    if candidate.startswith("www."):
-        candidate = candidate[4:]
-    return candidate
-
-
 def _request_host(request: Request) -> str:
-    return _normalize_public_host(request.headers.get("host") or request.url.hostname or "")
+    return normalize_public_host(
+        request.headers.get("host") or request.url.hostname or ""
+    )
 
 
 def _request_ip(request: Request) -> str:
-    forwarded = str(request.headers.get("x-forwarded-for") or "").split(",", 1)[0].strip()
+    forwarded = (
+        str(request.headers.get("x-forwarded-for") or "").split(",", 1)[0].strip()
+    )
     if forwarded:
         return forwarded
     if request.client and request.client.host:
@@ -329,21 +683,18 @@ def _request_ip(request: Request) -> str:
 def _resolve_public_site_id(conn, request: Request) -> int | None:
     host = _request_host(request)
     rows = conn.execute("select id, domain from sites order by id asc").fetchall()
-    if not rows:
-        return None
-    for row in rows:
-        domain = _normalize_public_host(row.get("domain"))
-        if domain and (host == domain or host.endswith(f".{domain}")):
-            return int(row["id"])
-    if host in {"localhost", "127.0.0.1", "testserver", "backend"} and len(rows) == 1:
-        return int(rows[0]["id"])
-    return None
+    row = select_matching_site_row(rows, host, allow_local_singleton_fallback=True)
+    return int(row["id"]) if row is not None else None
 
 
 def _prune_web_decoy_sessions() -> None:
     if len(WEB_DECOY_SESSIONS) <= WEB_DECOY_SESSION_LIMIT:
         return
-    ordered = sorted(WEB_DECOY_SESSIONS.items(), key=lambda item: item[1].get("last_seen") or "", reverse=True)
+    ordered = sorted(
+        WEB_DECOY_SESSIONS.items(),
+        key=lambda item: item[1].get("last_seen") or "",
+        reverse=True,
+    )
     WEB_DECOY_SESSIONS.clear()
     WEB_DECOY_SESSIONS.update(dict(ordered[:WEB_DECOY_SESSION_LIMIT]))
 
@@ -364,16 +715,34 @@ def _new_web_decoy_state(session_id: str) -> dict[str, Any]:
     }
 
 
+# Thread-safe session management - FIXED
+_session_lock = threading.Lock()
+
 def _web_decoy_state(request: Request) -> tuple[str, dict[str, Any], bool]:
+    """Thread-safe web decoy state management with collision detection - SECURITY FIX"""
     _prune_web_decoy_sessions()
-    session_id = str(request.cookies.get(WEB_DECOY_COOKIE) or "").strip()
-    is_new = session_id not in WEB_DECOY_SESSIONS
-    if is_new:
-        session_id = f"web-{uuid.uuid4().hex[:12]}"
-        WEB_DECOY_SESSIONS[session_id] = _new_web_decoy_state(session_id)
-    state = WEB_DECOY_SESSIONS[session_id]
-    state["last_seen"] = iso_now()
-    return session_id, state, is_new
+    
+    with _session_lock:
+        session_id = str(request.cookies.get(WEB_DECOY_COOKIE) or "").strip()
+        is_new = session_id not in WEB_DECOY_SESSIONS
+        
+        if is_new:
+            # Generate unique session with collision detection - SECURITY FIX
+            max_attempts = 10
+            for attempt in range(max_attempts):
+                new_session_id = f"web-{uuid.uuid4().hex[:12]}"
+                if new_session_id not in WEB_DECOY_SESSIONS:
+                    session_id = new_session_id
+                    break
+            else:
+                # Fallback with timestamp to ensure uniqueness
+                session_id = f"web-{uuid.uuid4().hex[:12]}-{int(datetime.utcnow().timestamp())}"
+            
+            WEB_DECOY_SESSIONS[session_id] = _new_web_decoy_state(session_id)
+        
+        state = WEB_DECOY_SESSIONS[session_id]
+        state["last_seen"] = iso_now()
+        return session_id, state, is_new
 
 
 def _set_web_decoy_cookie(response, session_id: str) -> None:
@@ -392,9 +761,13 @@ def _touch_web_decoy_state(state: dict[str, Any], path: str) -> None:
     if not visited or visited[-1] != path:
         visited.append(path)
     state["visited_paths"] = visited[-24:]
-    attempts = sum(int(value or 0) for value in dict(state.get("login_attempts") or {}).values())
+    attempts = sum(
+        int(value or 0) for value in dict(state.get("login_attempts") or {}).values()
+    )
     sql_count = len(list(state.get("sql_history") or []))
-    if sql_count >= 2 or any(bool(value) for value in dict(state.get("auth") or {}).values()):
+    if sql_count >= 2 or any(
+        bool(value) for value in dict(state.get("auth") or {}).values()
+    ):
         state["actor"] = "manual_operator"
     elif attempts >= 3:
         state["actor"] = "brute_forcer"
@@ -404,8 +777,12 @@ def _touch_web_decoy_state(state: dict[str, Any], path: str) -> None:
         state["actor"] = "scanner"
 
 
-def _decoy_layout(title: str, body: str, *, accent: str = "#0f6cbd", subtitle: str = "") -> str:
-    subtitle_html = f"<div class='decoy-subtitle'>{html.escape(subtitle)}</div>" if subtitle else ""
+def _decoy_layout(
+    title: str, body: str, *, accent: str = "#0f6cbd", subtitle: str = ""
+) -> str:
+    subtitle_html = (
+        f"<div class='decoy-subtitle'>{html.escape(subtitle)}</div>" if subtitle else ""
+    )
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -470,10 +847,14 @@ def _html_table(columns: list[str], rows: list[dict[str, Any]]) -> str:
     header = "".join(f"<th>{html.escape(column)}</th>" for column in columns)
     body_rows = []
     for row in rows:
-        cells = "".join(f"<td>{html.escape(str(row.get(column, '')))}</td>" for column in columns)
+        cells = "".join(
+            f"<td>{html.escape(str(row.get(column, '')))}</td>" for column in columns
+        )
         body_rows.append(f"<tr>{cells}</tr>")
     if not body_rows:
-        body_rows.append(f"<tr><td colspan='{len(columns)}' class='muted'>No rows.</td></tr>")
+        body_rows.append(
+            f"<tr><td colspan='{len(columns)}' class='muted'>No rows.</td></tr>"
+        )
     return f"<table><thead><tr>{header}</tr></thead><tbody>{''.join(body_rows)}</tbody></table>"
 
 
@@ -482,12 +863,14 @@ def _parse_request_form(raw_body: bytes) -> dict[str, str]:
     return {key: values[-1] if values else "" for key, values in parsed.items()}
 
 
-def _phpmyadmin_login_html(state: dict[str, Any], *, error: str = "", username: str = "") -> str:
+def _phpmyadmin_login_html(
+    state: dict[str, Any], *, error: str = "", username: str = ""
+) -> str:
     banner = f"<div class='banner error'>{html.escape(error)}</div>" if error else ""
     body = f"""
       <div class="row">
         <div class="card"><h3>Server</h3><div class="kpi">10.0.4.12</div><div class="muted">Primary DB node</div></div>
-        <div class="card"><h3>Session Profile</h3><div class="kpi">{html.escape(state.get('actor', 'scanner'))}</div><div class="muted">Adaptive decoy posture</div></div>
+        <div class="card"><h3>Session Profile</h3><div class="kpi">{html.escape(state.get("actor", "scanner"))}</div><div class="muted">Adaptive decoy posture</div></div>
       </div>
       {banner}
       <form method="post" action="/phpmyadmin/index.php">
@@ -498,7 +881,12 @@ def _phpmyadmin_login_html(state: dict[str, Any], *, error: str = "", username: 
       </form>
       <div class="muted" style="margin-top:14px">phpMyAdmin 5.2.1 on MariaDB 10.6. Login activity is monitored.</div>
     """
-    return _decoy_layout("phpMyAdmin", body, accent="#00618a", subtitle="Database administration interface")
+    return _decoy_layout(
+        "phpMyAdmin",
+        body,
+        accent="#00618a",
+        subtitle="Database administration interface",
+    )
 
 
 def _phpmyadmin_home_html(state: dict[str, Any], *, notice: str = "") -> str:
@@ -507,7 +895,9 @@ def _phpmyadmin_home_html(state: dict[str, Any], *, notice: str = "") -> str:
         f"<li><a href='/phpmyadmin/tables.php?db={html.escape(name)}'>{html.escape(name)}</a></li>"
         for name in WEB_DECOY_DATABASES
     )
-    notice_html = f"<div class='banner ok'>{html.escape(notice)}</div>" if notice else ""
+    notice_html = (
+        f"<div class='banner ok'>{html.escape(notice)}</div>" if notice else ""
+    )
     body = f"""
       <div class="nav">
         <a href="/phpmyadmin/index.php">Home</a>
@@ -520,13 +910,18 @@ def _phpmyadmin_home_html(state: dict[str, Any], *, notice: str = "") -> str:
       </div>
       {notice_html}
       <div class="row">
-        <div class="card"><h3>Authenticated User</h3><div class="kpi">{html.escape(state.get('usernames', {}).get('phpmyadmin', 'root'))}</div><div class="muted">Privilege: SUPER</div></div>
+        <div class="card"><h3>Authenticated User</h3><div class="kpi">{html.escape(state.get("usernames", {}).get("phpmyadmin", "root"))}</div><div class="muted">Privilege: SUPER</div></div>
         <div class="card"><h3>Current Database</h3><div class="kpi">{html.escape(current_db)}</div><div class="muted">2 schemas staged for review</div></div>
-        <div class="card"><h3>SQL Queries</h3><div class="kpi">{len(list(state.get('sql_history') or []))}</div><div class="muted">Recent decoy interactions</div></div>
+        <div class="card"><h3>SQL Queries</h3><div class="kpi">{len(list(state.get("sql_history") or []))}</div><div class="muted">Recent decoy interactions</div></div>
       </div>
       <div class="card"><h3>Schemas</h3><ul>{db_links}</ul></div>
     """
-    return _decoy_layout("phpMyAdmin", body, accent="#00618a", subtitle="Server: 10.0.4.12  |  MariaDB 10.6")
+    return _decoy_layout(
+        "phpMyAdmin",
+        body,
+        accent="#00618a",
+        subtitle="Server: 10.0.4.12  |  MariaDB 10.6",
+    )
 
 
 def _normalize_identifier(value: str) -> str:
@@ -535,14 +930,96 @@ def _normalize_identifier(value: str) -> str:
 
 def _table_columns(database: str, table: str) -> list[str]:
     table_state = dict(WEB_DECOY_DATABASES.get(database, {}).get(table, {}))
-    return [str(item.get("name")) for item in list(table_state.get("columns") or []) if item.get("name")]
+    return [
+        str(item.get("name"))
+        for item in list(table_state.get("columns") or [])
+        if item.get("name")
+    ]
 
 
-def _fake_sql_result(state: dict[str, Any], query: str) -> dict[str, Any]:
+# Security constants for SQL validation - SECURITY FIX
+MAX_SQL_QUERY_LENGTH = 2000
+
+def _normalize_sql_query(query: str) -> str:
+    """Normalize SQL query to prevent Unicode bypasses - SECURITY FIX"""
+    if not query:
+        return ""
+    
+    # Normalize Unicode to prevent bypasses
+    import unicodedata
+    normalized = unicodedata.normalize('NFKC', query)
+    # Remove dangerous Unicode characters
+    cleaned = ''.join(char for char in normalized if ord(char) < 127)
+    return cleaned.strip()
+
+def _validate_sql_query(query: str) -> tuple[bool, str]:
+    """Validate SQL query for injection attempts - SECURITY FIX"""
+    if not query:
+        return False, "Empty query"
+    
+    if len(query) > MAX_SQL_QUERY_LENGTH:
+        return False, f"Query too long (max {MAX_SQL_QUERY_LENGTH} characters)"
+    
+    normalized = _normalize_sql_query(query)
+    lowered = normalized.lower()
+    
+    # Enhanced pattern matching for SQL injection - SECURITY FIX
+    dangerous_patterns = [
+        r'\b(drop\s+table|delete\s+from|truncate\s+table|alter\s+table|update\s+.*set|insert\s+into|grant\s+.*on|create\s+user)\b',
+        r'\b(union\s+select\b)',
+        r'\b(into\s+outfile|load_file|dumpfile)\b',
+        r'\b(exec\s*\(|xp_cmdshell|sp_executesql)\b',
+        r'\b(waitfor\s+delay|benchmark\s*\(|sleep\s*\()\b',
+    ]
+    
+    for pattern in dangerous_patterns:
+        if re.search(pattern, lowered, re.IGNORECASE):
+            return False, f"Potentially dangerous SQL pattern detected"
+    
+    return True, "Query appears safe"
+
+def _fake_sql_result(state: dict[str, Any], query: str, source_ip: str | None = None) -> dict[str, Any]:
+    """Enhanced SQL result function with comprehensive validation - SECURITY FIX"""
+    # Validate SQL query first - SECURITY FIX
+    is_valid, validation_msg = _validate_sql_query(query)
+    if not is_valid:
+        # Log SQL injection attempt - SECURITY AUDIT
+        log_sql_injection_attempt(
+            source_ip=source_ip or "unknown",
+            query=query,
+            pattern_detected=validation_msg,
+        )
+        return {
+            "status": "blocked",
+            "summary": f"SQL validation failed: {validation_msg}",
+            "columns": [],
+            "rows": [],
+            "severity": "high",
+            "score": 90,
+            "mitre_tactic": "Execution",
+            "mitre_technique": "T1059",
+            "policy_strategy": "aggressive_containment",
+            "policy_risk_score": 94,
+        }
+    
     normalized = query.strip().rstrip(";")
     lowered = normalized.lower()
-    destructive = ("drop ", "delete ", "truncate ", "alter ", "update ", "insert ", "grant ", "create user", "outfile")
-    if any(token in lowered for token in destructive):
+    
+    # Enhanced destructive pattern detection - SECURITY FIX
+    destructive_patterns = [
+        r'\b(drop\s+table|delete\s+from|truncate\s+table|alter\s+table|update\s+.*set|insert\s+into|grant\s+.*on|create\s+user)\b',
+        r'\b(into\s+outfile|load_file|dumpfile)\b',
+        r'\b(exec\s*\(|xp_cmdshell|sp_executesql)\b',
+        r'\b(waitfor\s+delay|benchmark\s*\(|sleep\s*\()\b',
+    ]
+    
+    is_destructive = False
+    for pattern in destructive_patterns:
+        if re.search(pattern, lowered, re.IGNORECASE):
+            is_destructive = True
+            break
+    
+    if is_destructive:
         return {
             "status": "blocked",
             "summary": "ERROR 1142 (42000): administrative statement blocked by deception policy",
@@ -599,7 +1076,9 @@ def _fake_sql_result(state: dict[str, Any], query: str) -> dict[str, Any]:
         }
     show_tables = re.match(r"show\s+tables(?:\s+from\s+([a-zA-Z0-9_`]+))?$", lowered)
     if show_tables:
-        database = _normalize_identifier(show_tables.group(1) or str(state.get("selected_db") or "operations"))
+        database = _normalize_identifier(
+            show_tables.group(1) or str(state.get("selected_db") or "operations")
+        )
         tables = sorted(WEB_DECOY_DATABASES.get(database, {}).keys())
         rows = [{f"Tables_in_{database}": table} for table in tables]
         return {
@@ -614,15 +1093,29 @@ def _fake_sql_result(state: dict[str, Any], query: str) -> dict[str, Any]:
             "policy_strategy": "progressive_disclosure",
             "policy_risk_score": 60,
         }
-    describe_match = re.match(r"(describe|desc|show\s+columns\s+from)\s+([a-zA-Z0-9_`]+)", lowered)
+    describe_match = re.match(
+        r"(describe|desc|show\s+columns\s+from)\s+([a-zA-Z0-9_`]+)", lowered
+    )
     if describe_match:
         table = _normalize_identifier(describe_match.group(2))
         database = str(state.get("selected_db") or "operations")
-        columns = list(WEB_DECOY_DATABASES.get(database, {}).get(table, {}).get("columns") or [])
-        rows = [{"Field": item["name"], "Type": item["type"], "Key": item["key"], "Null": "YES"} for item in columns]
+        columns = list(
+            WEB_DECOY_DATABASES.get(database, {}).get(table, {}).get("columns") or []
+        )
+        rows = [
+            {
+                "Field": item["name"],
+                "Type": item["type"],
+                "Key": item["key"],
+                "Null": "YES",
+            }
+            for item in columns
+        ]
         return {
             "status": "ok" if rows else "error",
-            "summary": f"Structure for {table}." if rows else f"Table '{table}' not found.",
+            "summary": f"Structure for {table}."
+            if rows
+            else f"Table '{table}' not found.",
             "columns": ["Field", "Type", "Key", "Null"] if rows else [],
             "rows": rows,
             "severity": "medium",
@@ -712,16 +1205,20 @@ def _fake_sql_result(state: dict[str, Any], query: str) -> dict[str, Any]:
     }
 
 
-def _phpmyadmin_sql_html(state: dict[str, Any], *, query: str = "", result: dict[str, Any] | None = None) -> str:
+def _phpmyadmin_sql_html(
+    state: dict[str, Any], *, query: str = "", result: dict[str, Any] | None = None
+) -> str:
     result_html = ""
     if result is not None:
         banner_class = "ok" if result["status"] == "ok" else "error"
-        table_html = _html_table(result["columns"], result["rows"]) if result["columns"] else ""
+        table_html = (
+            _html_table(result["columns"], result["rows"]) if result["columns"] else ""
+        )
         result_html = f"<div class='banner {banner_class}'>{html.escape(result['summary'])}</div>{table_html}"
     body = f"""
       <div class="nav">
         <a href="/phpmyadmin/index.php">Home</a>
-        <a href="/phpmyadmin/tables.php?db={html.escape(str(state.get('selected_db') or 'operations'))}">Tables</a>
+        <a href="/phpmyadmin/tables.php?db={html.escape(str(state.get("selected_db") or "operations"))}">Tables</a>
         <a href="/phpmyadmin/sessions.php">Sessions</a>
       </div>
       <form method="post" action="/phpmyadmin/sql.php">
@@ -730,15 +1227,22 @@ def _phpmyadmin_sql_html(state: dict[str, Any], *, query: str = "", result: dict
       </form>
       {result_html}
     """
-    return _decoy_layout("phpMyAdmin SQL Console", body, accent="#00618a", subtitle=f"Database: {state.get('selected_db') or 'operations'}")
+    return _decoy_layout(
+        "phpMyAdmin SQL Console",
+        body,
+        accent="#00618a",
+        subtitle=f"Database: {state.get('selected_db') or 'operations'}",
+    )
 
 
-def _wordpress_login_html(state: dict[str, Any], *, error: str = "", username: str = "") -> str:
+def _wordpress_login_html(
+    state: dict[str, Any], *, error: str = "", username: str = ""
+) -> str:
     banner = f"<div class='banner error'>{html.escape(error)}</div>" if error else ""
     body = f"""
       <div class="row">
         <div class="card"><h3>Site</h3><div class="kpi">Citizen Portal</div><div class="muted">WordPress 6.5.2</div></div>
-        <div class="card"><h3>Behavior</h3><div class="kpi">{html.escape(state.get('actor', 'scanner'))}</div><div class="muted">Adaptive web decoy</div></div>
+        <div class="card"><h3>Behavior</h3><div class="kpi">{html.escape(state.get("actor", "scanner"))}</div><div class="muted">Adaptive web decoy</div></div>
       </div>
       {banner}
       <form method="post" action="/wp-login.php">
@@ -760,19 +1264,23 @@ def _wordpress_admin_html(state: dict[str, Any]) -> str:
       </div>
       <div class="row">
         <div class="card"><h3>Pending Updates</h3><div class="kpi">3</div><div class="muted">Core, Akismet, Contact Form 7</div></div>
-        <div class="card"><h3>Authenticated User</h3><div class="kpi">{html.escape(state.get('usernames', {}).get('wordpress', 'administrator'))}</div><div class="muted">Role: Administrator</div></div>
+        <div class="card"><h3>Authenticated User</h3><div class="kpi">{html.escape(state.get("usernames", {}).get("wordpress", "administrator"))}</div><div class="muted">Role: Administrator</div></div>
       </div>
       <div class="card"><h3>Operational Notes</h3><ul><li>Citizen portal theme cache pending flush.</li><li>XML-RPC calls throttled after repeated failures.</li><li>Backup export retained on internal volume.</li></ul></div>
     """
-    return _decoy_layout("WordPress Dashboard", body, accent="#3858e9", subtitle="Administration")
+    return _decoy_layout(
+        "WordPress Dashboard", body, accent="#3858e9", subtitle="Administration"
+    )
 
 
-def _admin_login_html(state: dict[str, Any], *, error: str = "", username: str = "") -> str:
+def _admin_login_html(
+    state: dict[str, Any], *, error: str = "", username: str = ""
+) -> str:
     banner = f"<div class='banner error'>{html.escape(error)}</div>" if error else ""
     body = f"""
       <div class="row">
         <div class="card"><h3>Portal</h3><div class="kpi">Secure Operations</div><div class="muted">Access restricted to SOC staff</div></div>
-        <div class="card"><h3>Observer Model</h3><div class="kpi">{html.escape(state.get('actor', 'scanner'))}</div><div class="muted">Real-time deception telemetry</div></div>
+        <div class="card"><h3>Observer Model</h3><div class="kpi">{html.escape(state.get("actor", "scanner"))}</div><div class="muted">Real-time deception telemetry</div></div>
       </div>
       {banner}
       <form method="post" action="/admin/login">
@@ -781,7 +1289,12 @@ def _admin_login_html(state: dict[str, Any], *, error: str = "", username: str =
         <button type="submit">Access Portal</button>
       </form>
     """
-    return _decoy_layout("Secure Operations Portal", body, accent="#8b1e3f", subtitle="Administrative access")
+    return _decoy_layout(
+        "Secure Operations Portal",
+        body,
+        accent="#8b1e3f",
+        subtitle="Administrative access",
+    )
 
 
 def _admin_portal_html(state: dict[str, Any]) -> str:
@@ -792,12 +1305,17 @@ def _admin_portal_html(state: dict[str, Any]) -> str:
         <a href="/phpmyadmin/intrusion.php">Intrusion Review</a>
       </div>
       <div class="row">
-        <div class="card"><h3>Operator</h3><div class="kpi">{html.escape(state.get('usernames', {}).get('admin', 'opsadmin'))}</div><div class="muted">Privilege: Incident commander</div></div>
+        <div class="card"><h3>Operator</h3><div class="kpi">{html.escape(state.get("usernames", {}).get("admin", "opsadmin"))}</div><div class="muted">Privilege: Incident commander</div></div>
         <div class="card"><h3>Cluster Health</h3><div class="kpi">89%</div><div class="muted">2 degraded alerts</div></div>
       </div>
       <div class="card"><h3>Pending Tasks</h3><ul><li>Rotate shared admin token after payroll import.</li><li>Review high-risk canary trigger from edge gateway.</li><li>Reconcile MariaDB replica drift on db-gateway-02.</li></ul></div>
     """
-    return _decoy_layout("Secure Operations Portal", body, accent="#8b1e3f", subtitle="Operational dashboard")
+    return _decoy_layout(
+        "Secure Operations Portal",
+        body,
+        accent="#8b1e3f",
+        subtitle="Operational dashboard",
+    )
 
 
 def _public_decoy_event(
@@ -897,12 +1415,28 @@ def _normalize_analytics_properties(value: Any) -> dict[str, Any]:
     return result
 
 
-def _build_analytics_record(payload: dict[str, Any], request: Request) -> dict[str, Any]:
-    event_name = _normalize_analytics_event_name(_analytics_payload_value(payload, "event_name", "name"))
-    page_path = _normalize_analytics_page_path(_analytics_payload_value(payload, "page_path", "pagePath"))
-    session_id = _clean_analytics_text(_analytics_payload_value(payload, "session_id", "sessionId"), max_len=120)
-    source = _clean_analytics_text(_analytics_payload_value(payload, "source"), max_len=64) or "frontend"
-    category = _clean_analytics_text(_analytics_payload_value(payload, "event_category", "category"), max_len=64) or "frontend"
+def _build_analytics_record(
+    payload: dict[str, Any], request: Request
+) -> dict[str, Any]:
+    event_name = _normalize_analytics_event_name(
+        _analytics_payload_value(payload, "event_name", "name")
+    )
+    page_path = _normalize_analytics_page_path(
+        _analytics_payload_value(payload, "page_path", "pagePath")
+    )
+    session_id = _clean_analytics_text(
+        _analytics_payload_value(payload, "session_id", "sessionId"), max_len=120
+    )
+    source = (
+        _clean_analytics_text(_analytics_payload_value(payload, "source"), max_len=64)
+        or "frontend"
+    )
+    category = (
+        _clean_analytics_text(
+            _analytics_payload_value(payload, "event_category", "category"), max_len=64
+        )
+        or "frontend"
+    )
     occurred_at_ms = _analytics_payload_value(payload, "occurred_at_ms", "occurredAtMs")
     try:
         occurred_at_ms = int(occurred_at_ms) if occurred_at_ms is not None else None
@@ -918,10 +1452,16 @@ def _build_analytics_record(payload: dict[str, Any], request: Request) -> dict[s
         "properties": _normalize_analytics_properties(payload.get("properties")),
         "host": _request_host(request),
         "source_ip": _request_ip(request),
-        "user_agent": _clean_analytics_text(request.headers.get("user-agent", ""), max_len=500),
-        "referer": _clean_analytics_text(request.headers.get("referer", ""), max_len=500),
+        "user_agent": _clean_analytics_text(
+            request.headers.get("user-agent", ""), max_len=500
+        ),
+        "referer": _clean_analytics_text(
+            request.headers.get("referer", ""), max_len=500
+        ),
         "origin": _clean_analytics_text(request.headers.get("origin", ""), max_len=255),
-        "accept_language": _clean_analytics_text(request.headers.get("accept-language", ""), max_len=120),
+        "accept_language": _clean_analytics_text(
+            request.headers.get("accept-language", ""), max_len=120
+        ),
     }
 
 
@@ -959,7 +1499,9 @@ def _analytics_event_profile(event_name: str) -> dict[str, Any]:
     }
 
 
-def _promote_analytics_event(request: Request, site_id: int | None, record: dict[str, Any], created_at: str) -> dict[str, Any] | None:
+def _promote_analytics_event(
+    request: Request, site_id: int | None, record: dict[str, Any], created_at: str
+) -> dict[str, Any] | None:
     if site_id is None:
         return None
     profile = _analytics_event_profile(str(record.get("event_name") or "unknown"))
@@ -988,25 +1530,35 @@ def _promote_analytics_event(request: Request, site_id: int | None, record: dict
     )
 
 
-def _decoy_html_response(content: str, session_id: str, *, status_code: int = 200) -> HTMLResponse:
+def _decoy_html_response(
+    content: str, session_id: str, *, status_code: int = 200
+) -> HTMLResponse:
     response = HTMLResponse(content=content, status_code=status_code)
     _set_web_decoy_cookie(response, session_id)
     return response
 
 
-def _decoy_text_response(content: str, session_id: str, *, media_type: str, status_code: int = 200) -> PlainTextResponse:
-    response = PlainTextResponse(content=content, status_code=status_code, media_type=media_type)
+def _decoy_text_response(
+    content: str, session_id: str, *, media_type: str, status_code: int = 200
+) -> PlainTextResponse:
+    response = PlainTextResponse(
+        content=content, status_code=status_code, media_type=media_type
+    )
     _set_web_decoy_cookie(response, session_id)
     return response
 
 
-def _decoy_json_response(payload: Any, session_id: str, *, status_code: int = 200) -> JSONResponse:
+def _decoy_json_response(
+    payload: Any, session_id: str, *, status_code: int = 200
+) -> JSONResponse:
     response = JSONResponse(content=payload, status_code=status_code)
     _set_web_decoy_cookie(response, session_id)
     return response
 
 
-def _decoy_redirect_response(location: str, session_id: str, *, status_code: int = 303) -> RedirectResponse:
+def _decoy_redirect_response(
+    location: str, session_id: str, *, status_code: int = 303
+) -> RedirectResponse:
     response = RedirectResponse(url=location, status_code=status_code)
     _set_web_decoy_cookie(response, session_id)
     return response
@@ -1035,7 +1587,11 @@ def _serve_public_lure_file(request: Request, path: str):
         url_path=path,
         attacker_type=str(state.get("actor") or "scanner"),
     )
-    return _decoy_text_response(str(file_config["body"]), session_id, media_type=str(file_config["content_type"]))
+    return _decoy_text_response(
+        str(file_config["body"]),
+        session_id,
+        media_type=str(file_config["content_type"]),
+    )
 
 
 def _terminal_sessions(conn, user_id: int) -> dict[str, dict[str, Any]]:
@@ -1043,8 +1599,14 @@ def _terminal_sessions(conn, user_id: int) -> dict[str, dict[str, Any]]:
     return sessions if isinstance(sessions, dict) else {}
 
 
-def _save_terminal_sessions(conn, user_id: int, sessions: dict[str, dict[str, Any]]) -> None:
-    ordered = sorted(sessions.items(), key=lambda item: item[1].get("last_updated") or "", reverse=True)
+def _save_terminal_sessions(
+    conn, user_id: int, sessions: dict[str, dict[str, Any]]
+) -> None:
+    ordered = sorted(
+        sessions.items(),
+        key=lambda item: item[1].get("last_updated") or "",
+        reverse=True,
+    )
     trimmed = dict(ordered[:12])
     _save_setting(conn, "terminal_sessions", trimmed, user_id=user_id)
 
@@ -1092,12 +1654,20 @@ def _terminal_home(state: dict[str, Any]) -> str:
 def _terminal_prompt(state: dict[str, Any]) -> str:
     cwd = str(state.get("cwd") or _terminal_home(state))
     home = _terminal_home(state)
-    display = "~" if cwd == home else cwd.replace(f"{home}/", "~/", 1) if cwd.startswith(f"{home}/") else cwd
+    display = (
+        "~"
+        if cwd == home
+        else cwd.replace(f"{home}/", "~/", 1)
+        if cwd.startswith(f"{home}/")
+        else cwd
+    )
     return f"{state.get('username', 'admin')}@{state.get('hostname', 'honeypot')}:{display}$"
 
 
 def _terminal_session_state(session_id: str) -> dict[str, Any]:
-    host = DEFAULT_TERMINAL_HOSTS[int(stable_hash(session_id, 2), 16) % len(DEFAULT_TERMINAL_HOSTS)]
+    host = DEFAULT_TERMINAL_HOSTS[
+        int(stable_hash(session_id, 2), 16) % len(DEFAULT_TERMINAL_HOSTS)
+    ]
     files = dict(DEFAULT_TERMINAL_FILES)
     files["/etc/hostname"] = f"{host}\n"
     return {
@@ -1113,7 +1683,9 @@ def _terminal_session_state(session_id: str) -> dict[str, Any]:
     }
 
 
-def _load_terminal_state(conn, user_id: int, requested_session_id: str | None) -> tuple[str, dict[str, Any], dict[str, dict[str, Any]]]:
+def _load_terminal_state(
+    conn, user_id: int, requested_session_id: str | None
+) -> tuple[str, dict[str, Any], dict[str, dict[str, Any]]]:
     sessions = _terminal_sessions(conn, user_id)
     session_id = requested_session_id or f"term-{uuid.uuid4().hex[:10]}"
     state = sessions.get(session_id)
@@ -1137,7 +1709,9 @@ def _terminal_normalize_path(state: dict[str, Any], raw_path: str | None) -> str
     elif candidate.startswith("~/"):
         candidate = posixpath.join(_terminal_home(state), candidate[2:])
     elif not candidate.startswith("/"):
-        candidate = posixpath.join(str(state.get("cwd") or _terminal_home(state)), candidate)
+        candidate = posixpath.join(
+            str(state.get("cwd") or _terminal_home(state)), candidate
+        )
     normalized = posixpath.normpath(candidate)
     return normalized if normalized.startswith("/") else f"/{normalized}"
 
@@ -1150,7 +1724,9 @@ def _terminal_file_exists(state: dict[str, Any], path: str) -> bool:
     return path in dict(state.get("files") or {})
 
 
-def _terminal_list_directory(state: dict[str, Any], path: str, *, show_hidden: bool = False) -> list[tuple[str, str]]:
+def _terminal_list_directory(
+    state: dict[str, Any], path: str, *, show_hidden: bool = False
+) -> list[tuple[str, str]]:
     directories = set(state.get("directories") or [])
     files = dict(state.get("files") or {})
     if path not in directories:
@@ -1160,13 +1736,13 @@ def _terminal_list_directory(state: dict[str, Any], path: str, *, show_hidden: b
     for directory in directories:
         if directory == path or not directory.startswith(prefix):
             continue
-        child = directory[len(prefix):].split("/", 1)[0]
+        child = directory[len(prefix) :].split("/", 1)[0]
         if child:
             items[child] = "dir"
     for file_path in files:
         if not file_path.startswith(prefix):
             continue
-        child = file_path[len(prefix):].split("/", 1)[0]
+        child = file_path[len(prefix) :].split("/", 1)[0]
         if child and child not in items:
             items[child] = "file"
     entries = sorted(items.items())
@@ -1175,7 +1751,9 @@ def _terminal_list_directory(state: dict[str, Any], path: str, *, show_hidden: b
     return entries
 
 
-def _terminal_add_directory(state: dict[str, Any], path: str, *, parents: bool = False) -> bool:
+def _terminal_add_directory(
+    state: dict[str, Any], path: str, *, parents: bool = False
+) -> bool:
     directories = set(state.get("directories") or [])
     if path in directories:
         state["directories"] = sorted(directories)
@@ -1201,7 +1779,9 @@ def _terminal_add_directory(state: dict[str, Any], path: str, *, parents: bool =
     return True
 
 
-def _terminal_write_file(state: dict[str, Any], path: str, content: str, *, append: bool = False) -> bool:
+def _terminal_write_file(
+    state: dict[str, Any], path: str, content: str, *, append: bool = False
+) -> bool:
     parent = posixpath.dirname(path.rstrip("/")) or "/"
     if not _terminal_directory_exists(state, parent):
         return False
@@ -1221,8 +1801,14 @@ def _terminal_remove_path(state: dict[str, Any], path: str) -> bool:
         removed = True
     elif path in directories and path not in {"/", _terminal_home(state)}:
         prefix = f"{path.rstrip('/')}/"
-        files = {key: value for key, value in files.items() if not key.startswith(prefix)}
-        directories = {directory for directory in directories if directory != path and not directory.startswith(prefix)}
+        files = {
+            key: value for key, value in files.items() if not key.startswith(prefix)
+        }
+        directories = {
+            directory
+            for directory in directories
+            if directory != path and not directory.startswith(prefix)
+        }
         removed = True
     state["files"] = files
     state["directories"] = sorted(directories)
@@ -1278,9 +1864,22 @@ def _terminal_assessment(cmd: str, output: str, status: str) -> dict[str, Any]:
     policy_strategy = "observe"
     risk = 28
     thought = "Low-noise command sequence suggests environmental validation."
-    explanation = "Command stayed within routine discovery boundaries and was safely emulated."
+    explanation = (
+        "Command stayed within routine discovery boundaries and was safely emulated."
+    )
 
-    if any(token in normalized for token in ["/etc/passwd", "/etc/shadow", ".env", "id_rsa", "payroll", "mysql", "sudo"]):
+    if any(
+        token in normalized
+        for token in [
+            "/etc/passwd",
+            "/etc/shadow",
+            ".env",
+            "id_rsa",
+            "payroll",
+            "mysql",
+            "sudo",
+        ]
+    ):
         severity = "high"
         score = 86
         intent = "Credential discovery"
@@ -1288,10 +1887,15 @@ def _terminal_assessment(cmd: str, output: str, status: str) -> dict[str, Any]:
         technique = "T1552"
         policy_strategy = "credential_sinkhole"
         risk = 84
-        vulnerabilities.append({"type": "Sensitive file enumeration", "severity": "High", "vector": cmd})
+        vulnerabilities.append(
+            {"type": "Sensitive file enumeration", "severity": "High", "vector": cmd}
+        )
         thought = "Command sequence pivoted from reconnaissance into credential-oriented discovery."
         explanation = "The shell trap detected attempts to access high-value secrets and switched to containment posture."
-    elif any(token in normalized for token in ["curl", "wget", "netstat", "ss ", "ps ", "find ", "cat "]):
+    elif any(
+        token in normalized
+        for token in ["curl", "wget", "netstat", "ss ", "ps ", "find ", "cat "]
+    ):
         severity = "medium"
         score = 61
         intent = "Service and asset discovery"
@@ -1300,8 +1904,12 @@ def _terminal_assessment(cmd: str, output: str, status: str) -> dict[str, Any]:
         policy_strategy = "progressive_disclosure"
         risk = 58
         thought = "Attacker is mapping reachable services and local artifacts before privilege escalation."
-        explanation = "The command expands host visibility without directly modifying the system."
-    elif any(token in normalized for token in ["mkdir", "touch", "echo ", "rm ", "cd "]):
+        explanation = (
+            "The command expands host visibility without directly modifying the system."
+        )
+    elif any(
+        token in normalized for token in ["mkdir", "touch", "echo ", "rm ", "cd "]
+    ):
         severity = "medium"
         score = 47
         intent = "Interactive environment shaping"
@@ -1336,21 +1944,68 @@ def _terminal_assessment(cmd: str, output: str, status: str) -> dict[str, Any]:
     }
 
 
-def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, Any]:
+# Security constants for input validation - SECURITY FIX
+MAX_COMMAND_LENGTH = 1000
+MAX_ARGS_COUNT = 100
+MAX_ARG_LENGTH = 200
+
+def _validate_terminal_command(cmd: str) -> tuple[bool, str]:
+    """Validate terminal command for security and bounds checking - SECURITY FIX"""
+    if not cmd:
+        return False, "Empty command"
+    
+    if len(cmd) > MAX_COMMAND_LENGTH:
+        return False, f"Command too long (max {MAX_COMMAND_LENGTH} characters)"
+    
+    args = cmd.split()
+    if len(args) > MAX_ARGS_COUNT:
+        return False, f"Too many arguments (max {MAX_ARGS_COUNT})"
+    
+    for arg in args:
+        if len(arg) > MAX_ARG_LENGTH:
+            return False, f"Argument too long (max {MAX_ARG_LENGTH} characters)"
+    
+    return True, "Valid command"
+
+def _execute_terminal_command(state: dict[str, Any], command: str, source_ip: str | None = None) -> dict[str, Any]:
+    """Execute terminal command with comprehensive security validation - SECURITY FIX"""
     stripped = command.strip()
     if not stripped:
         return {"output": "", "status": "ok"}
+    
+    # Validate command before execution - SECURITY FIX
+    is_valid, error_msg = _validate_terminal_command(stripped)
+    if not is_valid:
+        # Log command validation failure - SECURITY AUDIT
+        log_command_validation_failure(
+            source_ip=source_ip or "unknown",
+            command=stripped,
+            reason=error_msg,
+        )
+        return {
+            "output": f"bash: {error_msg}",
+            "status": "error",
+            "blocked": True,
+            "reason": "Command validation failed"
+        }
 
     redirect_match = re.match(r"^echo\s+(.+?)\s*(>>?)\s*(\S+)\s*$", stripped)
     if redirect_match:
         raw_value, operator, target = redirect_match.groups()
         content = raw_value.strip()
-        if (content.startswith('"') and content.endswith('"')) or (content.startswith("'") and content.endswith("'")):
+        if (content.startswith('"') and content.endswith('"')) or (
+            content.startswith("'") and content.endswith("'")
+        ):
             content = content[1:-1]
         path = _terminal_normalize_path(state, target)
-        success = _terminal_write_file(state, path, f"{content}\n", append=operator == ">>")
+        success = _terminal_write_file(
+            state, path, f"{content}\n", append=operator == ">>"
+        )
         if not success:
-            return {"output": f"bash: {target}: No such file or directory", "status": "error"}
+            return {
+                "output": f"bash: {target}: No such file or directory",
+                "status": "error",
+            }
         return {"output": "", "status": "ok"}
 
     try:
@@ -1371,10 +2026,16 @@ def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, 
     if binary == "hostname":
         return {"output": str(state.get("hostname") or "honeypot"), "status": "ok"}
     if binary == "id":
-        return {"output": "uid=1000(admin) gid=1000(admin) groups=1000(admin),27(sudo),33(www-data)", "status": "ok"}
+        return {
+            "output": "uid=1000(admin) gid=1000(admin) groups=1000(admin),27(sudo),33(www-data)",
+            "status": "ok",
+        }
     if binary == "uname":
         if "-a" in args:
-            return {"output": f"Linux {state.get('hostname')} 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux", "status": "ok"}
+            return {
+                "output": f"Linux {state.get('hostname')} 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux",
+                "status": "ok",
+            }
         return {"output": "Linux", "status": "ok"}
     if binary == "env":
         return {"output": _terminal_env(state), "status": "ok"}
@@ -1384,16 +2045,27 @@ def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, 
         return {"output": _terminal_network_table(), "status": "ok"}
     if binary == "history":
         history = state.get("history") or []
-        output = "\n".join(f"{index + 1:>4}  {entry}" for index, entry in enumerate(history)) if history else ""
+        output = (
+            "\n".join(f"{index + 1:>4}  {entry}" for index, entry in enumerate(history))
+            if history
+            else ""
+        )
         return {"output": output, "status": "ok"}
     if binary == "cd":
-        destination = _terminal_normalize_path(state, args[0] if args else _terminal_home(state))
+        destination = _terminal_normalize_path(
+            state, args[0] if args else _terminal_home(state)
+        )
         if not _terminal_directory_exists(state, destination):
-            return {"output": f"bash: cd: {args[0] if args else destination}: No such file or directory", "status": "error"}
+            return {
+                "output": f"bash: cd: {args[0] if args else destination}: No such file or directory",
+                "status": "error",
+            }
         state["cwd"] = destination
         return {"output": "", "status": "ok"}
     if binary == "ls":
-        show_hidden = any(flag in {"-a", "-la", "-al"} for flag in args if flag.startswith("-"))
+        show_hidden = any(
+            flag in {"-a", "-la", "-al"} for flag in args if flag.startswith("-")
+        )
         long_view = any("l" in flag for flag in args if flag.startswith("-"))
         target_arg = next((item for item in args if not item.startswith("-")), cwd)
         target = _terminal_normalize_path(state, target_arg)
@@ -1401,7 +2073,10 @@ def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, 
             name = posixpath.basename(target)
             return {"output": name, "status": "ok"}
         if not _terminal_directory_exists(state, target):
-            return {"output": f"ls: cannot access '{target_arg}': No such file or directory", "status": "error"}
+            return {
+                "output": f"ls: cannot access '{target_arg}': No such file or directory",
+                "status": "error",
+            }
         entries = _terminal_list_directory(state, target, show_hidden=show_hidden)
         if long_view:
             lines = []
@@ -1415,20 +2090,31 @@ def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, 
             return {"output": "cat: missing file operand", "status": "error"}
         path = _terminal_normalize_path(state, args[0])
         if path == "/etc/shadow":
-            return {"output": "cat: /etc/shadow: Permission denied", "status": "blocked"}
+            return {
+                "output": "cat: /etc/shadow: Permission denied",
+                "status": "blocked",
+            }
         if _terminal_directory_exists(state, path):
             return {"output": f"cat: {args[0]}: Is a directory", "status": "error"}
         files = dict(state.get("files") or {})
         if path not in files:
-            return {"output": f"cat: {args[0]}: No such file or directory", "status": "error"}
+            return {
+                "output": f"cat: {args[0]}: No such file or directory",
+                "status": "error",
+            }
         return {"output": str(files[path]), "status": "ok"}
     if binary == "touch":
         if not args:
             return {"output": "touch: missing file operand", "status": "error"}
         path = _terminal_normalize_path(state, args[0])
-        success = _terminal_write_file(state, path, str(dict(state.get("files") or {}).get(path, "")))
+        success = _terminal_write_file(
+            state, path, str(dict(state.get("files") or {}).get(path, ""))
+        )
         if not success:
-            return {"output": f"touch: cannot touch '{args[0]}': No such file or directory", "status": "error"}
+            return {
+                "output": f"touch: cannot touch '{args[0]}': No such file or directory",
+                "status": "error",
+            }
         return {"output": "", "status": "ok"}
     if binary == "mkdir":
         if not args:
@@ -1438,29 +2124,56 @@ def _execute_terminal_command(state: dict[str, Any], command: str) -> dict[str, 
         path = _terminal_normalize_path(state, target_arg)
         success = _terminal_add_directory(state, path, parents=parents)
         if not success:
-            return {"output": f"mkdir: cannot create directory '{target_arg}': No such file or directory", "status": "error"}
+            return {
+                "output": f"mkdir: cannot create directory '{target_arg}': No such file or directory",
+                "status": "error",
+            }
         return {"output": "", "status": "ok"}
     if binary == "rm":
         if not args:
             return {"output": "rm: missing operand", "status": "error"}
-        recursive = any(flag == "-r" or flag == "-rf" for flag in args if flag.startswith("-"))
+        recursive = any(
+            flag == "-r" or flag == "-rf" for flag in args if flag.startswith("-")
+        )
         target_arg = next((item for item in args if not item.startswith("-")), "")
         path = _terminal_normalize_path(state, target_arg)
         if path.startswith("/etc") or path.startswith("/var/www/html/.env"):
-            return {"output": f"rm: cannot remove '{target_arg}': Permission denied", "status": "blocked"}
+            return {
+                "output": f"rm: cannot remove '{target_arg}': Permission denied",
+                "status": "blocked",
+            }
         if _terminal_directory_exists(state, path) and not recursive:
-            return {"output": f"rm: cannot remove '{target_arg}': Is a directory", "status": "error"}
+            return {
+                "output": f"rm: cannot remove '{target_arg}': Is a directory",
+                "status": "error",
+            }
         if not _terminal_remove_path(state, path):
-            return {"output": f"rm: cannot remove '{target_arg}': No such file or directory", "status": "error"}
+            return {
+                "output": f"rm: cannot remove '{target_arg}': No such file or directory",
+                "status": "error",
+            }
         return {"output": "", "status": "ok"}
     if binary == "curl":
         target = args[-1] if args else "http://127.0.0.1/"
-        body = "<html><title>Secure Operations Portal</title><body>login-required=true</body></html>" if "admin" in target or "127.0.0.1" in target else "curl: (7) Failed to connect"
-        return {"output": body, "status": "ok" if body.startswith("<html>") else "error"}
+        body = (
+            "<html><title>Secure Operations Portal</title><body>login-required=true</body></html>"
+            if "admin" in target or "127.0.0.1" in target
+            else "curl: (7) Failed to connect"
+        )
+        return {
+            "output": body,
+            "status": "ok" if body.startswith("<html>") else "error",
+        }
     if binary == "sudo":
-        return {"output": f"Sorry, user {state.get('username', 'admin')} may not run sudo on {state.get('hostname', 'honeypot')}.", "status": "blocked"}
+        return {
+            "output": f"Sorry, user {state.get('username', 'admin')} may not run sudo on {state.get('hostname', 'honeypot')}.",
+            "status": "blocked",
+        }
     if binary == "mysql":
-        return {"output": "ERROR 1045 (28000): Access denied for user 'reporting'@'localhost' (using password: YES)", "status": "blocked"}
+        return {
+            "output": "ERROR 1045 (28000): Access denied for user 'reporting'@'localhost' (using password: YES)",
+            "status": "blocked",
+        }
 
     return {"output": f"bash: {binary}: command not found", "status": "error"}
 
@@ -1476,7 +2189,9 @@ def _run_terminal_real_exec(session_id: str, cmd: str) -> dict[str, Any] | None:
         method="POST",
     )
     try:
-        with urllib.request.urlopen(request, timeout=max(2, TERMINAL_EXEC_TIMEOUT_SEC + 1)) as response:
+        with urllib.request.urlopen(
+            request, timeout=max(2, TERMINAL_EXEC_TIMEOUT_SEC + 1)
+        ) as response:
             raw = response.read().decode("utf-8")
     except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError):
         return None
@@ -1514,12 +2229,20 @@ def _terminal_sandbox_health() -> dict[str, Any]:
             "status": "disabled",
             "fallback": "emulated",
         }
-    request = urllib.request.Request(f"{TERMINAL_SANDBOX_URL.rstrip('/')}/health", method="GET")
+    request = urllib.request.Request(
+        f"{TERMINAL_SANDBOX_URL.rstrip('/')}/health", method="GET"
+    )
     try:
         with urllib.request.urlopen(request, timeout=2) as response:
             raw = response.read().decode("utf-8")
         payload = json.loads(raw)
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        TimeoutError,
+        OSError,
+        json.JSONDecodeError,
+    ):
         return {
             "enabled": True,
             "mode": "hybrid",
@@ -1566,7 +2289,13 @@ def _ssh_listener_health() -> dict[str, Any]:
         with urllib.request.urlopen(request, timeout=2) as response:
             raw = response.read().decode("utf-8")
         payload = json.loads(raw)
-    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, OSError, json.JSONDecodeError):
+    except (
+        urllib.error.HTTPError,
+        urllib.error.URLError,
+        TimeoutError,
+        OSError,
+        json.JSONDecodeError,
+    ):
         return {
             "enabled": True,
             "healthy": False,
@@ -1595,29 +2324,169 @@ def _ssh_listener_health() -> dict[str, Any]:
 
 
 def _site_ids_for_user(conn, user_id: int) -> list[int]:
-    rows = conn.execute("select id from sites where user_id = ? order by id asc", (user_id,)).fetchall()
+    rows = conn.execute(
+        "select id from sites where user_id = ? order by id asc", (user_id,)
+    ).fetchall()
     return [int(row["id"]) for row in rows]
 
 
 def _default_site_id_for_user(conn, user_id: int) -> int | None:
-    row = conn.execute("select id from sites where user_id = ? order by id desc limit 1", (user_id,)).fetchone()
+    row = conn.execute(
+        "select id from sites where user_id = ? order by id desc limit 1", (user_id,)
+    ).fetchone()
     return int(row["id"]) if row else None
 
 
 def _site_owner_id(conn, site_id: int | None) -> int | None:
     if site_id is None:
         return None
-    row = conn.execute("select user_id from sites where id = ? limit 1", (site_id,)).fetchone()
+    row = conn.execute(
+        "select user_id from sites where id = ? limit 1", (site_id,)
+    ).fetchone()
     if not row or row["user_id"] is None:
         return None
     return int(row["user_id"])
 
 
-def _site_scope_clause(site_ids: list[int], *, column: str = "site_id") -> tuple[str, tuple[Any, ...]]:
+def _site_scope_clause(
+    site_ids: list[int], *, column: str = "site_id"
+) -> tuple[str, tuple[Any, ...]]:
     if not site_ids:
         return "1 = 0", ()
     placeholders = ", ".join("?" for _ in site_ids)
     return f"{column} in ({placeholders})", tuple(site_ids)
+
+
+def _sample_incident_rows(
+    *,
+    limit: int,
+    order: str = "desc",
+    offset: int = 0,
+    session_id: str | None = None,
+    ip: str | None = None,
+) -> list[dict[str, Any]]:
+    now = utc_now()
+    rows: list[dict[str, Any]] = []
+    for index, template in enumerate(SAMPLE_INCIDENT_TEMPLATES):
+        created_at = (now - timedelta(minutes=int(template["minutes_ago"]))).isoformat()
+        row = normalize_event(
+            {
+                "id": 900000 + index + 1,
+                "site_id": 0,
+                "session_id": template["session_id"],
+                "event_type": template["event_type"],
+                "severity": template["severity"],
+                "score": template["score"],
+                "ip": template["ip"],
+                "geo": template["geo"],
+                "url_path": template["url_path"],
+                "http_method": template["http_method"],
+                "cmd": template["cmd"],
+                "attacker_type": template["attacker_type"],
+                "reputation": template["reputation"],
+                "mitre_tactic": template["mitre_tactic"],
+                "mitre_technique": template["mitre_technique"],
+                "policy_strategy": template["policy_strategy"],
+                "policy_risk_score": template["policy_risk_score"],
+                "captured_data": dict(template.get("captured_data") or {}),
+                "created_at": created_at,
+                "demo_mode": True,
+                "sample_incident": True,
+            }
+        )
+        rows.append(row)
+    if session_id is not None:
+        rows = [row for row in rows if row.get("session_id") == session_id]
+    if ip is not None:
+        rows = [row for row in rows if row.get("ip") == ip]
+    rows.sort(
+        key=lambda item: str(item.get("created_at") or ""), reverse=order != "asc"
+    )
+    if offset:
+        rows = rows[offset:]
+    return rows[:limit]
+
+
+def _event_summary_from_rows(
+    rows: list[dict[str, Any]], *, blocked: int = 0
+) -> dict[str, Any]:
+    feed = [normalize_event(row) for row in rows]
+    trap_distribution: dict[str, int] = {}
+    mitre_distribution: dict[str, int] = {}
+    live_sessions = set()
+    unique_ips = set()
+    for row in feed:
+        target = row.get("url_path") or row.get("event_type") or "unknown"
+        trap_distribution[target] = trap_distribution.get(target, 0) + 1
+        tactic = row.get("mitre_tactic") or "Reconnaissance"
+        mitre_distribution[tactic] = mitre_distribution.get(tactic, 0) + 1
+        if row.get("session_id"):
+            live_sessions.add(row["session_id"])
+        if row.get("ip"):
+            unique_ips.add(row["ip"])
+    return {
+        "summary": {
+            "total": len(feed),
+            "critical": sum(1 for row in feed if row.get("severity") == "high"),
+            "blocked": blocked,
+            "live_sessions": len(live_sessions),
+            "unique_ips": len(unique_ips),
+        },
+        "feed": feed,
+        "trap_distribution": trap_distribution,
+        "mitre_distribution": mitre_distribution,
+    }
+
+
+def _session_items_from_rows(
+    rows: list[dict[str, Any]], *, limit: int
+) -> list[dict[str, Any]]:
+    sessions: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        session_key = str(row.get("session_id") or "")
+        if not session_key:
+            continue
+        existing = sessions.setdefault(
+            session_key,
+            {
+                "session_id": session_key,
+                "severity_rank": 0,
+                "event_count": 0,
+                "max_score": 0,
+                "last_seen": row.get("created_at"),
+            },
+        )
+        existing["event_count"] += 1
+        existing["max_score"] = max(
+            float(existing["max_score"]), float(row.get("score") or 0)
+        )
+        existing["last_seen"] = max(
+            str(existing.get("last_seen") or ""), str(row.get("created_at") or "")
+        )
+        severity_rank = (
+            3
+            if row.get("severity") == "high"
+            else 2
+            if row.get("severity") == "medium"
+            else 1
+        )
+        existing["severity_rank"] = max(int(existing["severity_rank"]), severity_rank)
+    items = []
+    for row in sorted(
+        sessions.values(), key=lambda item: str(item["last_seen"]), reverse=True
+    )[:limit]:
+        rank = int(row["severity_rank"])
+        severity = "high" if rank == 3 else "medium" if rank == 2 else "low"
+        items.append(
+            {
+                "session_id": row["session_id"],
+                "severity": severity,
+                "event_count": row["event_count"],
+                "max_score": row["max_score"],
+                "last_seen": row["last_seen"],
+            }
+        )
+    return items
 
 
 def _scoped_event_rows(
@@ -1629,6 +2498,7 @@ def _scoped_event_rows(
     offset: int = 0,
     session_id: str | None = None,
     ip: str | None = None,
+    allow_demo_fallback: bool = True,
 ) -> list[dict[str, Any]]:
     clause, site_params = _site_scope_clause(site_ids)
     filters = [clause]
@@ -1644,31 +2514,61 @@ def _scoped_event_rows(
     if offset:
         query += " offset ?"
         params.append(offset)
-    return [normalize_event(row) for row in conn.execute(query, tuple(params)).fetchall()]
+    rows = [
+        normalize_event(row) for row in conn.execute(query, tuple(params)).fetchall()
+    ]
+    if rows or not allow_demo_fallback or site_ids:
+        return rows
+    return _sample_incident_rows(
+        limit=limit, order=order, offset=offset, session_id=session_id, ip=ip
+    )
 
 
-def _scoped_event_count(conn, site_ids: list[int], *, ip: str | None = None) -> int:
+def _scoped_event_count(
+    conn,
+    site_ids: list[int],
+    *,
+    ip: str | None = None,
+    allow_demo_fallback: bool = True,
+) -> int:
     clause, site_params = _site_scope_clause(site_ids)
     filters = [clause]
     params: list[Any] = list(site_params)
     if ip is not None:
         filters.append("ip = ?")
         params.append(ip)
-    row = conn.execute(f"select count(*) as count from events where {' and '.join(filters)}", tuple(params)).fetchone()
-    return int(row["count"] or 0)
+    row = conn.execute(
+        f"select count(*) as count from events where {' and '.join(filters)}",
+        tuple(params),
+    ).fetchone()
+    count = int(row["count"] or 0)
+    if count or not allow_demo_fallback or site_ids:
+        return count
+    return len(_sample_incident_rows(limit=len(SAMPLE_INCIDENT_TEMPLATES), ip=ip))
 
 
-def _scoped_session_rows(conn, site_ids: list[int], session_id: str) -> list[dict[str, Any]]:
-    return _scoped_event_rows(conn, site_ids, limit=500, order="asc", session_id=session_id)
+def _scoped_session_rows(
+    conn, site_ids: list[int], session_id: str
+) -> list[dict[str, Any]]:
+    return _scoped_event_rows(
+        conn, site_ids, limit=500, order="asc", session_id=session_id
+    )
 
 
 def _blocked_ip_count(conn, user_id: int) -> int:
-    row = conn.execute("select count(*) as count from blocked_ips where user_id = ?", (user_id,)).fetchone()
+    row = conn.execute(
+        "select count(*) as count from blocked_ips where user_id = ?", (user_id,)
+    ).fetchone()
     return int(row["count"] or 0)
 
 
 def _blocked_ip_lookup(conn, user_id: int) -> set[str]:
-    return {row["ip"] for row in conn.execute("select ip from blocked_ips where user_id = ?", (user_id,)).fetchall()}
+    return {
+        row["ip"]
+        for row in conn.execute(
+            "select ip from blocked_ips where user_id = ?", (user_id,)
+        ).fetchall()
+    }
 
 
 def _blocked_ip_rows(conn, user_id: int) -> list[dict[str, Any]]:
@@ -1718,7 +2618,9 @@ def _edge_reason_comment(value: Any) -> str:
     return text[:160]
 
 
-def _render_edge_block_export(entries: list[dict[str, Any]], export_format: str) -> tuple[str, str]:
+def _render_edge_block_export(
+    entries: list[dict[str, Any]], export_format: str
+) -> tuple[str, str]:
     normalized = str(export_format or "").strip().lower()
     generated_at = iso_now()
     if normalized == "plain":
@@ -1726,7 +2628,7 @@ def _render_edge_block_export(entries: list[dict[str, Any]], export_format: str)
         return body, "text/plain; charset=utf-8"
     if normalized == "nginx":
         lines = [
-            "# CyberSentinel edge block export",
+            "# CyberSentil edge block export",
             f"# generated_at: {generated_at}",
             f"# total_blocked_ips: {len(entries)}",
         ]
@@ -1734,10 +2636,15 @@ def _render_edge_block_export(entries: list[dict[str, Any]], export_format: str)
             reason = _edge_reason_comment(item.get("reason"))
             created_at = str(item.get("created_at") or "")
             if reason or created_at:
-                lines.append(f"# {item['ip']} | reason={reason or 'manual'} | created_at={created_at or 'n/a'}")
+                lines.append(
+                    f"# {item['ip']} | reason={reason or 'manual'} | created_at={created_at or 'n/a'}"
+                )
             lines.append(f"deny {item['ip']};")
         return "\n".join(lines).rstrip() + "\n", "text/plain; charset=utf-8"
-    raise HTTPException(status_code=400, detail=f"Unsupported export format. Use one of: {', '.join(sorted(EDGE_BLOCK_EXPORT_FORMATS))}.")
+    raise HTTPException(
+        status_code=400,
+        detail=f"Unsupported export format. Use one of: {', '.join(sorted(EDGE_BLOCK_EXPORT_FORMATS))}.",
+    )
 
 
 def _canary_counts(conn, user_id: int) -> dict[str, int]:
@@ -1828,7 +2735,9 @@ def _profile_for_rows(rows: list[dict[str, Any]]) -> str:
     if not rows:
         return "defensive"
     critical = sum(1 for row in rows if row["severity"] == "high")
-    avg_risk = sum(float(row.get("policy_risk_score") or row.get("score") or 0) for row in rows) / max(len(rows), 1)
+    avg_risk = sum(
+        float(row.get("policy_risk_score") or row.get("score") or 0) for row in rows
+    ) / max(len(rows), 1)
     if critical >= 3 or avg_risk >= 78:
         return "aggressive"
     if critical >= 1 or avg_risk >= 45 or len(rows) >= 6:
@@ -1871,7 +2780,12 @@ def _correlate_campaigns(
         if not ip or ip == "unknown":
             continue
         captured = row.get("captured_data") or {}
-        surface = str(captured.get("surface") or row.get("url_path") or row.get("event_type") or "unknown")
+        surface = str(
+            captured.get("surface")
+            or row.get("url_path")
+            or row.get("event_type")
+            or "unknown"
+        )
         event_type = str(row.get("event_type") or "unknown")
         timestamp = _parse_event_time(row.get("created_at"))
         item = grouped.setdefault(
@@ -1906,18 +2820,31 @@ def _correlate_campaigns(
             item["credential_attempts"] += 1
         if bool(captured.get("accepted")):
             item["accepted_credentials"] += 1
-        if row.get("cmd") or event_type in {"credential_attempt", "sql_query", "xmlrpc_call", "shell_command", "ssh_auth", "ssh_command"}:
+        if row.get("cmd") or event_type in {
+            "credential_attempt",
+            "sql_query",
+            "xmlrpc_call",
+            "shell_command",
+            "ssh_auth",
+            "ssh_command",
+        }:
             item["interactive_events"] += 1
         if row.get("session_id"):
             item["sessions"].add(row["session_id"])
             item["session_id"] = item["session_id"] or row.get("session_id")
         item["surfaces"].add(surface)
-        item["surface_counts"][surface] = int(item["surface_counts"].get(surface, 0)) + 1
-        item["event_types"][event_type] = int(item["event_types"].get(event_type, 0)) + 1
+        item["surface_counts"][surface] = (
+            int(item["surface_counts"].get(surface, 0)) + 1
+        )
+        item["event_types"][event_type] = (
+            int(item["event_types"].get(event_type, 0)) + 1
+        )
         tactic = str(row.get("mitre_tactic") or "Reconnaissance")
         item["tactic_counts"][tactic] = int(item["tactic_counts"].get(tactic, 0)) + 1
         attacker_type = str(row.get("attacker_type") or "unknown")
-        item["attacker_types"][attacker_type] = int(item["attacker_types"].get(attacker_type, 0)) + 1
+        item["attacker_types"][attacker_type] = (
+            int(item["attacker_types"].get(attacker_type, 0)) + 1
+        )
         if timestamp is not None:
             if item["first_seen"] is None or timestamp < item["first_seen"]:
                 item["first_seen"] = timestamp
@@ -1938,7 +2865,9 @@ def _correlate_campaigns(
         surface_count = len(item["surfaces"])
         session_count = len(item["sessions"])
         blocked = item["ip"] in blocked_lookup
-        if item["accepted_credentials"] >= 1 or (item["interactive_events"] >= 4 and item["max_score"] >= 82):
+        if item["accepted_credentials"] >= 1 or (
+            item["interactive_events"] >= 4 and item["max_score"] >= 82
+        ):
             campaign_type = "interactive_intrusion"
         elif item["credential_attempts"] >= 3 and surface_count >= 2:
             campaign_type = "credential_spray"
@@ -1960,10 +2889,22 @@ def _correlate_campaigns(
                 + (10 if blocked else 0)
             ),
         )
-        severity = "high" if item["high_risk_events"] >= 1 or item["max_score"] >= 80 else "medium" if item["event_count"] >= 2 else "low"
-        primary_surface = max(item["surface_counts"].items(), key=lambda current: (current[1], current[0]))[0]
-        primary_tactic = max(item["tactic_counts"].items(), key=lambda current: (current[1], current[0]))[0]
-        primary_type = max(item["attacker_types"].items(), key=lambda current: (current[1], current[0]))[0]
+        severity = (
+            "high"
+            if item["high_risk_events"] >= 1 or item["max_score"] >= 80
+            else "medium"
+            if item["event_count"] >= 2
+            else "low"
+        )
+        primary_surface = max(
+            item["surface_counts"].items(), key=lambda current: (current[1], current[0])
+        )[0]
+        primary_tactic = max(
+            item["tactic_counts"].items(), key=lambda current: (current[1], current[0])
+        )[0]
+        primary_type = max(
+            item["attacker_types"].items(), key=lambda current: (current[1], current[0])
+        )[0]
         first_seen = item["first_seen_raw"] or ""
         last_seen = item["last_seen_raw"] or ""
         duration = (
@@ -1973,7 +2914,10 @@ def _correlate_campaigns(
         )
         if blocked:
             recommended_action = "monitor_block"
-        elif campaign_type in {"interactive_intrusion", "credential_spray"} and confidence >= 78:
+        elif (
+            campaign_type in {"interactive_intrusion", "credential_spray"}
+            and confidence >= 78
+        ):
             recommended_action = "block_and_sinkhole"
         elif campaign_type == "multi_surface_recon":
             recommended_action = "escalate_decoys"
@@ -2027,13 +2971,18 @@ def _correlate_campaigns(
 
 
 def _block_ip_exists(conn, user_id: int, ip: str) -> bool:
-    return conn.execute(
-        "select 1 from blocked_ips where user_id = ? and ip = ? limit 1",
-        (user_id, ip),
-    ).fetchone() is not None
+    return (
+        conn.execute(
+            "select 1 from blocked_ips where user_id = ? and ip = ? limit 1",
+            (user_id, ip),
+        ).fetchone()
+        is not None
+    )
 
 
-def _insert_blocked_ip(conn, *, user_id: int, ip: str, reason: str, created_at: str | None = None) -> bool:
+def _insert_blocked_ip(
+    conn, *, user_id: int, ip: str, reason: str, created_at: str | None = None
+) -> bool:
     normalized_ip = ip.strip()
     if not normalized_ip:
         return False
@@ -2054,7 +3003,10 @@ def _event_supports_auto_response(row: dict[str, Any]) -> bool:
     captured = row.get("captured_data") or {}
     if bool(captured.get("simulated")):
         return False
-    if bool(captured.get("terminal")) and str(captured.get("source") or "") != "protocol-decoy":
+    if (
+        bool(captured.get("terminal"))
+        and str(captured.get("source") or "") != "protocol-decoy"
+    ):
         return False
     return True
 
@@ -2072,7 +3024,9 @@ def _maybe_apply_auto_response(conn, row: dict[str, Any]) -> dict[str, Any] | No
     if not site_ids:
         return None
     blocked_lookup = _blocked_ip_lookup(conn, user_id)
-    recent_rows = _scoped_event_rows(conn, site_ids, limit=AUTO_RESPONSE_EVENT_LIMIT, ip=ip)
+    recent_rows = _scoped_event_rows(
+        conn, site_ids, limit=AUTO_RESPONSE_EVENT_LIMIT, ip=ip
+    )
     campaigns = _correlate_campaigns(recent_rows, blocked_lookup, limit=1)
     if not campaigns:
         return None
@@ -2090,7 +3044,9 @@ def _maybe_apply_auto_response(conn, row: dict[str, Any]) -> dict[str, Any] | No
             "blocked": ip in blocked_lookup,
         }
     reason = f"{AUTO_RESPONSE_REASON_PREFIX}{campaign['campaign_type']}"
-    blocked = _insert_blocked_ip(conn, user_id=user_id, ip=ip, reason=reason, created_at=iso_now())
+    blocked = _insert_blocked_ip(
+        conn, user_id=user_id, ip=ip, reason=reason, created_at=iso_now()
+    )
     return {
         "enabled": True,
         "action": "block_and_sinkhole",
@@ -2101,7 +3057,9 @@ def _maybe_apply_auto_response(conn, row: dict[str, Any]) -> dict[str, Any] | No
     }
 
 
-def _build_posture(rows: list[dict[str, Any]], active_profile: str, protocols: dict[str, bool]) -> dict[str, Any]:
+def _build_posture(
+    rows: list[dict[str, Any]], active_profile: str, protocols: dict[str, bool]
+) -> dict[str, Any]:
     total = len(rows)
     critical = sum(1 for row in rows if row["severity"] == "high")
     unique_targets = len({row.get("url_path") or row.get("event_type") for row in rows})
@@ -2119,8 +3077,14 @@ def _build_posture(rows: list[dict[str, Any]], active_profile: str, protocols: d
     }
 
 
-def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | None = None) -> dict[str, Any]:
-    persisted_modules = _merge_runtime_modules(_json_setting(conn, "protocol_runtime_modules", DEFAULT_RUNTIME_MODULES, user_id=user_id))
+def _build_runtime_state(
+    conn, rows: list[dict[str, Any]], *, user_id: int | None = None
+) -> dict[str, Any]:
+    persisted_modules = _merge_runtime_modules(
+        _json_setting(
+            conn, "protocol_runtime_modules", DEFAULT_RUNTIME_MODULES, user_id=user_id
+        )
+    )
     metrics: dict[str, dict[str, Any]] = {}
     alerts: list[dict[str, Any]] = []
     blocked_lookup = _blocked_ip_lookup(conn, user_id) if user_id is not None else set()
@@ -2129,10 +3093,20 @@ def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | Non
     ssh_listener = _ssh_listener_health()
     for name, module in persisted_modules.items():
         module_rows = [row for row in rows if _module_for_event(row) == name]
-        active_sessions = len({row["session_id"] for row in module_rows if row.get("session_id")})
+        active_sessions = len(
+            {row["session_id"] for row in module_rows if row.get("session_id")}
+        )
         severity_count = sum(1 for row in module_rows if row["severity"] == "high")
-        p95_latency = min(1800, 30 + len(module_rows) * 12 + severity_count * 35 + (5 if module["enabled"] else 0))
-        errors_total = sum(1 for row in module_rows if float(row.get("score") or 0) >= 85)
+        p95_latency = min(
+            1800,
+            30
+            + len(module_rows) * 12
+            + severity_count * 35
+            + (5 if module["enabled"] else 0),
+        )
+        errors_total = sum(
+            1 for row in module_rows if float(row.get("score") or 0) >= 85
+        )
         healthy = True if not module["enabled"] else errors_total < 4
         running = bool(module["enabled"]) and healthy
         if name == "ssh":
@@ -2142,7 +3116,9 @@ def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | Non
                 running = False
         metrics[name] = {
             "events_total": len(module_rows),
-            "active_sessions": ssh_listener.get("active_sessions", active_sessions) if name == "ssh" else active_sessions,
+            "active_sessions": ssh_listener.get("active_sessions", active_sessions)
+            if name == "ssh"
+            else active_sessions,
             "p95_latency_ms": p95_latency,
             "errors_total": errors_total,
         }
@@ -2150,7 +3126,9 @@ def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | Non
             {
                 "healthy": healthy,
                 "running": running,
-                "active_sessions": ssh_listener.get("active_sessions", active_sessions) if name == "ssh" else active_sessions,
+                "active_sessions": ssh_listener.get("active_sessions", active_sessions)
+                if name == "ssh"
+                else active_sessions,
                 "last_updated": now.isoformat(),
             }
         )
@@ -2176,7 +3154,11 @@ def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | Non
         "registered": len(persisted_modules),
         "enabled": sum(1 for module in persisted_modules.values() if module["enabled"]),
         "running": sum(1 for module in persisted_modules.values() if module["running"]),
-        "unhealthy": [name for name, module in persisted_modules.items() if module["enabled"] and not module["healthy"]],
+        "unhealthy": [
+            name
+            for name, module in persisted_modules.items()
+            if module["enabled"] and not module["healthy"]
+        ],
     }
     if terminal_exec["enabled"] and not terminal_exec["healthy"]:
         alerts.append(
@@ -2188,7 +3170,10 @@ def _build_runtime_state(conn, rows: list[dict[str, Any]], *, user_id: int | Non
             }
         )
     for campaign in _correlate_campaigns(rows, blocked_lookup, limit=3):
-        if campaign["confidence"] < 78 and campaign["campaign_type"] not in {"credential_spray", "interactive_intrusion"}:
+        if campaign["confidence"] < 78 and campaign["campaign_type"] not in {
+            "credential_spray",
+            "interactive_intrusion",
+        }:
             continue
         alerts.append(
             {
@@ -2235,13 +3220,18 @@ def _transcript_entries_from_rows(rows: list[dict[str, Any]]) -> list[dict[str, 
                 "status": str(captured.get("status") or "ok"),
                 "prompt": str(captured.get("prompt") or ""),
                 "cwd": str(captured.get("cwd") or ""),
-                "execution_mode": str(captured.get("execution_mode") or ("real" if captured.get("sandboxed") else "emulated")),
+                "execution_mode": str(
+                    captured.get("execution_mode")
+                    or ("real" if captured.get("sandboxed") else "emulated")
+                ),
             }
         )
     return entries
 
 
-def _terminal_transcript_artifacts(conn, user_id: int, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _terminal_transcript_artifacts(
+    conn, user_id: int, rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
     session_meta = _session_meta(rows)
     artifacts: list[dict[str, Any]] = []
     for session_id, state in _terminal_sessions(conn, user_id).items():
@@ -2265,7 +3255,9 @@ def _terminal_transcript_artifacts(conn, user_id: int, rows: list[dict[str, Any]
             }
         )
     for session_id, session_rows in {
-        row.get("session_id"): [entry for entry in rows if entry.get("session_id") == row.get("session_id")]
+        row.get("session_id"): [
+            entry for entry in rows if entry.get("session_id") == row.get("session_id")
+        ]
         for row in rows
         if row.get("session_id")
     }.items():
@@ -2295,7 +3287,13 @@ def _terminal_transcript_artifacts(conn, user_id: int, rows: list[dict[str, Any]
 
 
 def _session_rows(conn, session_id: str) -> list[dict[str, Any]]:
-    return [normalize_event(row) for row in conn.execute("select * from events where session_id = ? order by datetime(created_at) asc", (session_id,)).fetchall()]
+    return [
+        normalize_event(row)
+        for row in conn.execute(
+            "select * from events where session_id = ? order by datetime(created_at) asc",
+            (session_id,),
+        ).fetchall()
+    ]
 
 
 def _save_runtime_state(
@@ -2310,11 +3308,18 @@ def _save_runtime_state(
     if active_profile is not None:
         _save_setting(conn, "active_profile", active_profile, user_id=user_id)
     if protocols is not None:
-        _save_setting(conn, "deception_protocols", _merge_protocols(protocols), user_id=user_id)
+        _save_setting(
+            conn, "deception_protocols", _merge_protocols(protocols), user_id=user_id
+        )
     if auto_mode is not None:
         _save_setting(conn, "auto_mode", bool(auto_mode), user_id=user_id)
     if runtime_modules is not None:
-        _save_setting(conn, "protocol_runtime_modules", _merge_runtime_modules(runtime_modules), user_id=user_id)
+        _save_setting(
+            conn,
+            "protocol_runtime_modules",
+            _merge_runtime_modules(runtime_modules),
+            user_id=user_id,
+        )
 
 
 def _serialize_canary(row: dict[str, Any]) -> dict[str, Any]:
@@ -2335,7 +3340,9 @@ def _serialize_canary(row: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _readiness_check(key: str, ok: bool, summary: str, *, level: str = "required") -> dict[str, Any]:
+def _readiness_check(
+    key: str, ok: bool, summary: str, *, level: str = "required"
+) -> dict[str, Any]:
     return {
         "key": key,
         "status": "pass" if ok else ("warn" if level == "recommended" else "fail"),
@@ -2346,45 +3353,72 @@ def _readiness_check(key: str, ok: bool, summary: str, *, level: str = "required
 
 def _build_ops_readiness(conn, user: dict[str, Any]) -> dict[str, Any]:
     site_ids = _site_ids_for_user(conn, int(user["id"]))
-    summary = build_summary(conn, site_ids=site_ids, blocked_user_id=int(user["id"]))["summary"]
+    summary = build_summary(conn, site_ids=site_ids, blocked_user_id=int(user["id"]))[
+        "summary"
+    ]
     sites_total = len(site_ids)
-    leads_total = conn.execute("select count(*) as count from leads where user_id = ?", (int(user["id"]),)).fetchone()["count"]
+    leads_total = conn.execute(
+        "select count(*) as count from leads where user_id = ?", (int(user["id"]),)
+    ).fetchone()["count"]
     canary_counts = _canary_counts(conn, int(user["id"]))
-    latest_event_rows = _scoped_event_rows(conn, site_ids, limit=1)
+    latest_event_rows = _scoped_event_rows(
+        conn, site_ids, limit=1, allow_demo_fallback=False
+    )
     latest_event = latest_event_rows[0] if latest_event_rows else None
 
     public_host = urlparse(PUBLIC_BASE_URL).hostname or ""
-    public_url_ready = bool(PUBLIC_BASE_URL) and not is_placeholder_secret(PUBLIC_BASE_URL)
-    trusted_hosts_ready = bool(TRUSTED_HOSTS) and (not public_host or trusted_host_matches(public_host, TRUSTED_HOSTS))
-    google_ready = bool(GOOGLE_CLIENT_ID) and not is_placeholder_secret(GOOGLE_CLIENT_ID)
-    lead_notifications_enabled = str(os.getenv("LEAD_NOTIFICATION_ENABLED", "true")).strip().lower() in {"1", "true", "yes", "on"}
-    lead_notification_ready = bool(os.getenv("LEAD_NOTIFICATION_EMAIL_TO", "").strip() or os.getenv("LEAD_SLACK_WEBHOOK_URL", "").strip())
+    public_url_ready = bool(PUBLIC_BASE_URL) and not is_placeholder_secret(
+        PUBLIC_BASE_URL
+    )
+    trusted_hosts_ready = bool(TRUSTED_HOSTS) and (
+        not public_host or trusted_host_matches(public_host, TRUSTED_HOSTS)
+    )
+    google_ready = bool(GOOGLE_CLIENT_ID) and not is_placeholder_secret(
+        GOOGLE_CLIENT_ID
+    )
+    lead_notifications_enabled = str(
+        os.getenv("LEAD_NOTIFICATION_ENABLED", "true")
+    ).strip().lower() in {"1", "true", "yes", "on"}
+    lead_notification_ready = bool(
+        os.getenv("LEAD_NOTIFICATION_EMAIL_TO", "").strip()
+        or os.getenv("LEAD_SLACK_WEBHOOK_URL", "").strip()
+    )
 
     checks = [
         _readiness_check(
             "database_backend",
             DATABASE_BACKEND == "postgresql" if APP_ENV == "production" else True,
-            "Production should run on PostgreSQL." if APP_ENV == "production" else "Development runtime can use SQLite or PostgreSQL.",
+            "Production should run on PostgreSQL."
+            if APP_ENV == "production"
+            else "Development runtime can use SQLite or PostgreSQL.",
         ),
         _readiness_check(
             "public_base_url",
             public_url_ready if APP_ENV == "production" else True,
-            "Public HTTPS URL configured for operators and integrations." if APP_ENV == "production" else "Set PUBLIC_BASE_URL before launch.",
+            "Public HTTPS URL configured for operators and integrations."
+            if APP_ENV == "production"
+            else "Set PUBLIC_BASE_URL before launch.",
         ),
         _readiness_check(
             "trusted_hosts",
             trusted_hosts_ready if APP_ENV == "production" else True,
-            "Trusted hosts cover the public hostname." if APP_ENV == "production" else "Trusted hosts can be locked before production.",
+            "Trusted hosts cover the public hostname."
+            if APP_ENV == "production"
+            else "Trusted hosts can be locked before production.",
         ),
         _readiness_check(
             "https_redirect",
             FORCE_HTTPS_REDIRECT if APP_ENV == "production" else True,
-            "HTTPS redirect is active." if APP_ENV == "production" else "HTTPS redirect is mainly required for production.",
+            "HTTPS redirect is active."
+            if APP_ENV == "production"
+            else "HTTPS redirect is mainly required for production.",
         ),
         _readiness_check(
             "demo_seed_disabled",
             not ENABLE_DEMO_SEED if APP_ENV == "production" else True,
-            "Demo seed is disabled for a production launch." if APP_ENV == "production" else "Demo seed can stay on for local previews.",
+            "Demo seed is disabled for a production launch."
+            if APP_ENV == "production"
+            else "Demo seed can stay on for local previews.",
         ),
         _readiness_check(
             "signup_policy",
@@ -2425,7 +3459,9 @@ def _build_ops_readiness(conn, user: dict[str, Any]) -> dict[str, Any]:
     ]
 
     failures = [item for item in checks if item["status"] == "fail"]
-    recommendations = [item["summary"] for item in checks if item["status"] in {"fail", "warn"}]
+    recommendations = [
+        item["summary"] for item in checks if item["status"] in {"fail", "warn"}
+    ]
     return {
         "status": "ready" if not failures else "attention",
         "deployment": {
@@ -2484,7 +3520,9 @@ def _public_demo_feed(limit: int) -> list[dict[str, Any]]:
     return feed
 
 
-def _public_demo_snapshot(conn, *, limit: int = 8, hours: int = 24, include_training: bool = False) -> dict[str, Any]:
+def _public_demo_snapshot(
+    conn, *, limit: int = 8, hours: int = 24, include_training: bool = False
+) -> dict[str, Any]:
     feed = _public_demo_feed(limit)
     runtime = _build_runtime_state(conn, [], user_id=None)
     target_counts: dict[str, int] = {}
@@ -2506,7 +3544,13 @@ def _public_demo_snapshot(conn, *, limit: int = 8, hours: int = 24, include_trai
     low_events = sum(1 for item in feed if item["severity"] == "low")
     avg_score = round(sum(float(item["score"]) for item in feed) / max(len(feed), 1), 1)
     dominant_behavior = max(behaviors, key=behaviors.get) if behaviors else "observe"
-    threat_score = min(99, 18 + critical_events * 11 + medium_events * 5 + len(runtime["summary"]["unhealthy"]) * 4)
+    threat_score = min(
+        99,
+        18
+        + critical_events * 11
+        + medium_events * 5
+        + len(runtime["summary"]["unhealthy"]) * 4,
+    )
     top_target = max(target_counts, key=target_counts.get) if target_counts else "none"
     risk_level = "high" if critical_events else ("medium" if medium_events else "low")
     return {
@@ -2518,9 +3562,12 @@ def _public_demo_snapshot(conn, *, limit: int = 8, hours: int = 24, include_trai
             "low_events": low_events,
             "blocked_ips": 0,
             "unique_ips": len(source_counts),
-            "unique_sessions": len({item["session_id"] for item in feed if item.get("session_id")}),
+            "unique_sessions": len(
+                {item["session_id"] for item in feed if item.get("session_id")}
+            ),
             "live_sessions": 0,
-            "active_decoys": len(DEFAULT_HONEYTOKEN_PATHS) + runtime["summary"]["enabled"],
+            "active_decoys": len(DEFAULT_HONEYTOKEN_PATHS)
+            + runtime["summary"]["enabled"],
             "threat_score": threat_score,
             "top_target": top_target,
             "risk_level": risk_level,
@@ -2528,11 +3575,25 @@ def _public_demo_snapshot(conn, *, limit: int = 8, hours: int = 24, include_trai
         },
         "feed": feed,
         "timeline": [
-            {"hour": hour, "events": int(values["events"]), "avg_score": round(values["score_total"] / max(values["events"], 1), 1)}
+            {
+                "hour": hour,
+                "events": int(values["events"]),
+                "avg_score": round(values["score_total"] / max(values["events"], 1), 1),
+            }
             for hour, values in sorted(timeline.items(), reverse=True)[:6]
         ],
-        "top_targets": [{"path": path, "hits": hits, "avg_score": 70} for path, hits in sorted(target_counts.items(), key=lambda item: (-item[1], item[0]))[:5]],
-        "top_source_ips": [{"ip": ip, "events": hits} for ip, hits in sorted(source_counts.items(), key=lambda item: (-item[1], item[0]))[:5]],
+        "top_targets": [
+            {"path": path, "hits": hits, "avg_score": 70}
+            for path, hits in sorted(
+                target_counts.items(), key=lambda item: (-item[1], item[0])
+            )[:5]
+        ],
+        "top_source_ips": [
+            {"ip": ip, "events": hits}
+            for ip, hits in sorted(
+                source_counts.items(), key=lambda item: (-item[1], item[0])
+            )[:5]
+        ],
         "insights": {
             "dominant_behavior": dominant_behavior.replace("_", " "),
             "recommended_action": "Public snapshot is demo-safe. Use the operator dashboard for real tenant telemetry and active incident review.",
@@ -2544,11 +3605,28 @@ def _public_demo_snapshot(conn, *, limit: int = 8, hours: int = 24, include_trai
     }
 
 
-def _health_payload(conn, rows: list[dict[str, Any]], *, user_id: int | None, scope: str) -> dict[str, Any]:
+def _health_payload(
+    conn, rows: list[dict[str, Any]], *, user_id: int | None, scope: str
+) -> dict[str, Any]:
     system = _system_snapshot(conn, rows, user_id=user_id)
     runtime = _build_runtime_state(conn, rows, user_id=user_id)
-    active_sessions = len({row["session_id"] for row in rows if row.get("session_id")}) if scope == "tenant" else 0
-    avg_risk = round(sum(float(row.get("policy_risk_score") or row.get("score") or 0) for row in rows) / max(len(rows), 1), 1) if scope == "tenant" else 0.0
+    active_sessions = (
+        len({row["session_id"] for row in rows if row.get("session_id")})
+        if scope == "tenant"
+        else 0
+    )
+    avg_risk = (
+        round(
+            sum(
+                float(row.get("policy_risk_score") or row.get("score") or 0)
+                for row in rows
+            )
+            / max(len(rows), 1),
+            1,
+        )
+        if scope == "tenant"
+        else 0.0
+    )
     trust_penalty = len(runtime["summary"]["unhealthy"]) * 18
     if scope == "tenant":
         trust_penalty += sum(1 for row in rows if row["severity"] == "high") * 4
@@ -2558,7 +3636,10 @@ def _health_payload(conn, rows: list[dict[str, Any]], *, user_id: int | None, sc
         "resources": {"cpu": system["cpu"], "memory": system["memory"]},
         "metrics": {"active_sessions": active_sessions, "avg_risk_score": avg_risk},
         "neural_hive": {"latency_ms": system["latency"]},
-        "integrity": {"trust_index": trust_index, "siem_sync": "100%" if not runtime["summary"]["unhealthy"] else "degraded"},
+        "integrity": {
+            "trust_index": trust_index,
+            "siem_sync": "100%" if not runtime["summary"]["unhealthy"] else "degraded",
+        },
     }
     if scope != "tenant":
         payload["metrics"]["runtime_modules"] = runtime["summary"]["enabled"]
@@ -2566,28 +3647,62 @@ def _health_payload(conn, rows: list[dict[str, Any]], *, user_id: int | None, sc
     return payload
 
 
-def _system_snapshot(conn, rows: list[dict[str, Any]], *, user_id: int | None = None) -> dict[str, Any]:
+def _system_snapshot(
+    conn, rows: list[dict[str, Any]], *, user_id: int | None = None
+) -> dict[str, Any]:
     runtime = _build_runtime_state(conn, rows, user_id=user_id)
     enabled_modules = runtime["summary"]["enabled"]
     total_events = len(rows)
     critical_hits = sum(1 for row in rows if row["severity"] == "high")
     cpu = min(95, 12 + enabled_modules * 11 + total_events * 2 + critical_hits * 8)
-    memory = min(92, 18 + enabled_modules * 9 + len({row.get('session_id') for row in rows if row.get('session_id')}) * 6)
+    memory = min(
+        92,
+        18
+        + enabled_modules * 9
+        + len({row.get("session_id") for row in rows if row.get("session_id")}) * 6,
+    )
     latency = min(1800, max(24, 35 + total_events * 7 + critical_hits * 15))
     uptime = _format_duration(utc_now() - ROUTER_STARTED_AT)
     components = [
-        {"name": "API Gateway", "status": "online", "load": f"{cpu}%", "icon": "activity"},
-        {"name": "Telemetry DB", "status": "online", "load": f"{memory}%", "icon": "database"},
-        {"name": "Threat Feed", "status": "online", "load": f"{latency}ms", "icon": "wifi"},
+        {
+            "name": "API Gateway",
+            "status": "online",
+            "load": f"{cpu}%",
+            "icon": "activity",
+        },
+        {
+            "name": "Telemetry DB",
+            "status": "online",
+            "load": f"{memory}%",
+            "icon": "database",
+        },
+        {
+            "name": "Threat Feed",
+            "status": "online",
+            "load": f"{latency}ms",
+            "icon": "wifi",
+        },
         {"name": "AI Advisor", "status": "online", "load": "local", "icon": "brain"},
     ]
     notifications = []
     if critical_hits:
-        notifications.append({"msg": f"{critical_hits} high-risk events require review.", "severity": "high"})
+        notifications.append(
+            {
+                "msg": f"{critical_hits} high-risk events require review.",
+                "severity": "high",
+            }
+        )
     if runtime["summary"]["unhealthy"]:
-        notifications.append({"msg": f"Runtime modules degraded: {', '.join(runtime['summary']['unhealthy'])}.", "severity": "medium"})
+        notifications.append(
+            {
+                "msg": f"Runtime modules degraded: {', '.join(runtime['summary']['unhealthy'])}.",
+                "severity": "medium",
+            }
+        )
     if not notifications:
-        notifications.append({"msg": "Telemetry pipeline healthy and synchronized.", "severity": "low"})
+        notifications.append(
+            {"msg": "Telemetry pipeline healthy and synchronized.", "severity": "low"}
+        )
     return {
         "cpu": cpu,
         "memory": memory,
@@ -2600,22 +3715,39 @@ def _system_snapshot(conn, rows: list[dict[str, Any]], *, user_id: int | None = 
     }
 
 
-def _deception_status_payload(conn, rows: list[dict[str, Any]], *, user_id: int) -> dict[str, Any]:
-    active_profile = str(_json_setting(conn, "active_profile", "balanced", user_id=user_id) or "balanced")
+def _deception_status_payload(
+    conn, rows: list[dict[str, Any]], *, user_id: int
+) -> dict[str, Any]:
+    active_profile = str(
+        _json_setting(conn, "active_profile", "balanced", user_id=user_id) or "balanced"
+    )
     if active_profile not in PROFILE_PROTOCOLS:
         active_profile = "balanced"
     auto_mode = bool(_json_setting(conn, "auto_mode", False, user_id=user_id))
     protocols = _merge_protocols(
-        _json_setting(conn, "deception_protocols", PROFILE_PROTOCOLS.get(active_profile, DEFAULT_DECEPTION_PROTOCOLS), user_id=user_id)
+        _json_setting(
+            conn,
+            "deception_protocols",
+            PROFILE_PROTOCOLS.get(active_profile, DEFAULT_DECEPTION_PROTOCOLS),
+            user_id=user_id,
+        )
     )
     posture = _build_posture(rows, active_profile, protocols)
     blocked_count = _blocked_ip_count(conn, user_id)
     canary_count = _canary_counts(conn, user_id)["total"]
     http_hits = sum(1 for row in rows if _module_for_event(row) == "http")
-    shell_sessions = len({row["session_id"] for row in rows if _module_for_event(row) == "ssh" and row.get("session_id")})
+    shell_sessions = len(
+        {
+            row["session_id"]
+            for row in rows
+            if _module_for_event(row) == "ssh" and row.get("session_id")
+        }
+    )
     tactic_counts = {"Recon": 0, "Access": 0, "Interact": 0, "Contain": 0}
     for row in rows:
-        phase = TACTIC_TO_PHASE.get(row.get("mitre_tactic") or "Reconnaissance", "Interact")
+        phase = TACTIC_TO_PHASE.get(
+            row.get("mitre_tactic") or "Reconnaissance", "Interact"
+        )
         tactic_counts[phase] += 1
     escalation_matrix = [
         {"phase": phase, "count": count, "active": count > 0}
@@ -2625,7 +3757,10 @@ def _deception_status_payload(conn, rows: list[dict[str, Any]], *, user_id: int)
         "auto_mode": auto_mode,
         "active_profile": active_profile,
         "profiles_loaded": len(PROFILE_PROTOCOLS),
-        "deployed_decoys": len({row.get("url_path") for row in rows if row.get("url_path")}) + canary_count,
+        "deployed_decoys": len(
+            {row.get("url_path") for row in rows if row.get("url_path")}
+        )
+        + canary_count,
         "status": "armed" if any(protocols.values()) else "standby",
         "protocols": protocols,
         "posture": posture,
@@ -2635,7 +3770,14 @@ def _deception_status_payload(conn, rows: list[dict[str, Any]], *, user_id: int)
             "http_trap_hits": http_hits,
             "shell_sessions": shell_sessions,
             "blocked_ips": blocked_count,
-            "breadcrumb_score": min(10, max(1, len({row.get('ip') for row in rows if row.get('ip')}) // 2 + canary_count)),
+            "breadcrumb_score": min(
+                10,
+                max(
+                    1,
+                    len({row.get("ip") for row in rows if row.get("ip")}) // 2
+                    + canary_count,
+                ),
+            ),
         },
         "escalation_matrix": escalation_matrix,
     }
@@ -2657,7 +3799,9 @@ def _protocol_event_assessment(payload: InternalProtocolEventPayload) -> dict[st
             "score": 84 if accepted else 52,
             "mitre_tactic": "Initial Access" if accepted else "Credential Access",
             "mitre_technique": "T1078" if accepted else "T1110",
-            "policy_strategy": "credential_sinkhole" if accepted else "progressive_disclosure",
+            "policy_strategy": "credential_sinkhole"
+            if accepted
+            else "progressive_disclosure",
             "policy_risk_score": 82 if accepted else 48,
             "intent": "Valid account abuse" if accepted else "Credential probing",
             "thought": "SSH credential interaction matched known attacker access patterns.",
@@ -2669,7 +3813,9 @@ def _protocol_event_assessment(payload: InternalProtocolEventPayload) -> dict[st
         "event_type": event_type or f"{protocol}_event",
         "severity": payload.severity or "low",
         "score": float(payload.score or 25),
-        "mitre_tactic": "Command and Control" if protocol == "ssh" else "Reconnaissance",
+        "mitre_tactic": "Command and Control"
+        if protocol == "ssh"
+        else "Reconnaissance",
         "mitre_technique": "T1090" if protocol == "ssh" else "T1595",
         "policy_strategy": "observe",
         "policy_risk_score": float(payload.score or 25),
@@ -2703,7 +3849,19 @@ def store_event(
     created_at: str | None = None,
 ) -> dict[str, Any]:
     created_at_value = created_at or iso_now()
-    session_value = session_id or f"sess-{uuid.uuid4().hex[:10]}"
+    session_value = clean_event_text(session_id, max_len=80) or f"sess-{uuid.uuid4().hex[:10]}"
+    event_type_value = clean_event_text(event_type, max_len=80, collapse_spaces=True) or "unknown"
+    severity_value = clean_event_text(severity, max_len=16, collapse_spaces=True) or "low"
+    ip_value = clean_event_text(ip, max_len=64)
+    geo_value = clean_event_text(geo, max_len=80)
+    url_path_value = clean_event_text(url_path, max_len=255) or None
+    http_method_value = clean_event_text(http_method, max_len=16, collapse_spaces=True).upper() or None
+    cmd_value = clean_event_text(cmd, max_len=512) or None
+    attacker_type_value = clean_event_text(attacker_type, max_len=64, collapse_spaces=True) or "unknown"
+    mitre_tactic_value = clean_event_text(mitre_tactic, max_len=64, collapse_spaces=True) or "Unknown"
+    mitre_technique_value = clean_event_text(mitre_technique, max_len=32, collapse_spaces=True) or "unknown"
+    policy_strategy_value = clean_event_text(policy_strategy, max_len=64, collapse_spaces=True) or "observe"
+    captured_data_value = sanitize_captured_data(captured_data if captured_data is not None else {})
     with db() as conn:
         cur = conn.execute(
             """
@@ -2716,25 +3874,27 @@ def store_event(
             (
                 site_id,
                 session_value,
-                event_type,
-                severity,
+                event_type_value,
+                severity_value,
                 score,
-                ip,
-                geo,
-                url_path,
-                http_method,
-                cmd,
-                attacker_type,
+                ip_value,
+                geo_value,
+                url_path_value,
+                http_method_value,
+                cmd_value,
+                attacker_type_value,
                 reputation,
-                mitre_tactic,
-                mitre_technique,
-                policy_strategy,
+                mitre_tactic_value,
+                mitre_technique_value,
+                policy_strategy_value,
                 policy_risk_score,
-                json.dumps(captured_data or {}),
+                json.dumps(captured_data_value),
                 created_at_value,
             ),
         )
-        row = conn.execute("select * from events where id = ?", (cur.lastrowid,)).fetchone()
+        row = conn.execute(
+            "select * from events where id = ?", (cur.lastrowid,)
+        ).fetchone()
         event = normalize_event(row)
         auto_response = _maybe_apply_auto_response(conn, event)
         if auto_response is not None:
@@ -2791,7 +3951,9 @@ def public_robots_txt(request: Request):
         attacker_type=str(state.get("actor") or "scanner"),
     )
     body = "User-agent: *\nDisallow: /admin\nDisallow: /phpmyadmin/\nDisallow: /wp-admin/\n"
-    return _decoy_text_response(body, session_id, media_type="text/plain; charset=utf-8")
+    return _decoy_text_response(
+        body, session_id, media_type="text/plain; charset=utf-8"
+    )
 
 
 @router.get("/server-status", response_class=PlainTextResponse)
@@ -2823,7 +3985,9 @@ def public_server_status(request: Request):
             "Scoreboard: __W___K____....",
         ]
     )
-    return _decoy_text_response(body, session_id, media_type="text/plain; charset=utf-8")
+    return _decoy_text_response(
+        body, session_id, media_type="text/plain; charset=utf-8"
+    )
 
 
 @router.get("/actuator/health", response_class=JSONResponse)
@@ -2846,8 +4010,14 @@ def public_actuator_health(request: Request):
     payload = {
         "status": "UP",
         "components": {
-            "db": {"status": "UP", "details": {"database": "PostgreSQL", "validationQuery": "isValid()"}},
-            "diskSpace": {"status": "UP", "details": {"total": 51539607552, "free": 19327352832}},
+            "db": {
+                "status": "UP",
+                "details": {"database": "PostgreSQL", "validationQuery": "isValid()"},
+            },
+            "diskSpace": {
+                "status": "UP",
+                "details": {"total": 51539607552, "free": 19327352832},
+            },
             "ping": {"status": "UP"},
         },
     }
@@ -2938,7 +4108,11 @@ def public_phpmyadmin_index(request: Request):
         },
         attacker_type=str(state.get("actor") or "scanner"),
     )
-    content = _phpmyadmin_home_html(state) if state.get("auth", {}).get("phpmyadmin") else _phpmyadmin_login_html(state)
+    content = (
+        _phpmyadmin_home_html(state)
+        if state.get("auth", {}).get("phpmyadmin")
+        else _phpmyadmin_login_html(state)
+    )
     return _decoy_html_response(content, session_id)
 
 
@@ -2952,7 +4126,11 @@ async def public_phpmyadmin_login(request: Request):
     state.setdefault("login_attempts", {})["phpmyadmin"] = attempts
     state.setdefault("usernames", {})["phpmyadmin"] = username or "root"
     normalized = _normalize_identifier(username)
-    accepted = bool(username) and len(password) >= 6 and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 3)
+    accepted = (
+        bool(username)
+        and len(password) >= 6
+        and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 3)
+    )
     state.setdefault("auth", {})["phpmyadmin"] = accepted
     _touch_web_decoy_state(state, request.url.path)
     _public_decoy_event(
@@ -2978,7 +4156,12 @@ async def public_phpmyadmin_login(request: Request):
     )
     if accepted:
         return _decoy_redirect_response("/phpmyadmin/index.php", session_id)
-    return _decoy_html_response(_phpmyadmin_login_html(state, error="Access denied for supplied credentials.", username=username), session_id)
+    return _decoy_html_response(
+        _phpmyadmin_login_html(
+            state, error="Access denied for supplied credentials.", username=username
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/sql.php", response_class=HTMLResponse)
@@ -3020,7 +4203,12 @@ async def public_phpmyadmin_sql_submit(request: Request):
             mitre_technique="T1059",
             policy_strategy="observe",
             policy_risk_score=77,
-            captured_data={"surface": "phpmyadmin-sql", "query": query, "authenticated": False, "actor": state.get("actor")},
+            captured_data={
+                "surface": "phpmyadmin-sql",
+                "query": query,
+                "authenticated": False,
+                "actor": state.get("actor"),
+            },
             attacker_type=str(state.get("actor") or "scanner"),
         )
         return _decoy_redirect_response("/phpmyadmin/index.php", session_id)
@@ -3059,13 +4247,17 @@ async def public_phpmyadmin_sql_submit(request: Request):
         },
         attacker_type=str(state.get("actor") or "scanner"),
     )
-    return _decoy_html_response(_phpmyadmin_sql_html(state, query=query, result=result), session_id)
+    return _decoy_html_response(
+        _phpmyadmin_sql_html(state, query=query, result=result), session_id
+    )
 
 
 @router.get("/phpmyadmin/tables.php", response_class=HTMLResponse)
 def public_phpmyadmin_tables(request: Request):
     session_id, state, _ = _web_decoy_state(request)
-    database = _normalize_identifier(request.query_params.get("db") or str(state.get("selected_db") or "operations"))
+    database = _normalize_identifier(
+        request.query_params.get("db") or str(state.get("selected_db") or "operations")
+    )
     if database not in WEB_DECOY_DATABASES:
         database = "operations"
     state["selected_db"] = database
@@ -3080,7 +4272,11 @@ def public_phpmyadmin_tables(request: Request):
         mitre_technique="T1087",
         policy_strategy="progressive_disclosure",
         policy_risk_score=60,
-        captured_data={"surface": "phpmyadmin-tables", "database": database, "actor": state.get("actor")},
+        captured_data={
+            "surface": "phpmyadmin-tables",
+            "database": database,
+            "actor": state.get("actor"),
+        },
         attacker_type=str(state.get("actor") or "scanner"),
     )
     if not state.get("auth", {}).get("phpmyadmin"):
@@ -3088,7 +4284,14 @@ def public_phpmyadmin_tables(request: Request):
     rows = [
         {
             "Table": table_name,
-            "Rows": len(list((WEB_DECOY_DATABASES.get(database, {}).get(table_name, {}) or {}).get("rows") or [])),
+            "Rows": len(
+                list(
+                    (
+                        WEB_DECOY_DATABASES.get(database, {}).get(table_name, {}) or {}
+                    ).get("rows")
+                    or []
+                )
+            ),
             "Inspect": f"/phpmyadmin/table.php?db={database}&table={table_name}",
         }
         for table_name in sorted(WEB_DECOY_DATABASES.get(database, {}).keys())
@@ -3102,13 +4305,20 @@ def public_phpmyadmin_tables(request: Request):
       <div class="banner ok">Browsing schema: {html.escape(database)}</div>
       {_html_table(["Table", "Rows", "Inspect"], rows)}
     """
-    return _decoy_html_response(_decoy_layout("phpMyAdmin Tables", body, accent="#00618a", subtitle=f"Schema: {database}"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "phpMyAdmin Tables", body, accent="#00618a", subtitle=f"Schema: {database}"
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/table.php", response_class=HTMLResponse)
 def public_phpmyadmin_table(request: Request):
     session_id, state, _ = _web_decoy_state(request)
-    database = _normalize_identifier(request.query_params.get("db") or str(state.get("selected_db") or "operations"))
+    database = _normalize_identifier(
+        request.query_params.get("db") or str(state.get("selected_db") or "operations")
+    )
     table = _normalize_identifier(request.query_params.get("table") or "")
     if database not in WEB_DECOY_DATABASES:
         database = "operations"
@@ -3127,7 +4337,12 @@ def public_phpmyadmin_table(request: Request):
         mitre_technique="T1005",
         policy_strategy="progressive_disclosure",
         policy_risk_score=68,
-        captured_data={"surface": "phpmyadmin-table", "database": database, "table": table, "actor": state.get("actor")},
+        captured_data={
+            "surface": "phpmyadmin-table",
+            "database": database,
+            "table": table,
+            "actor": state.get("actor"),
+        },
         attacker_type=str(state.get("actor") or "scanner"),
     )
     if not state.get("auth", {}).get("phpmyadmin"):
@@ -3137,7 +4352,15 @@ def public_phpmyadmin_table(request: Request):
           <div class="banner error">Table '{html.escape(table)}' was not found in schema '{html.escape(database)}'.</div>
           <div class="nav"><a href="/phpmyadmin/tables.php?db={html.escape(database)}">Back to tables</a></div>
         """
-        return _decoy_html_response(_decoy_layout("phpMyAdmin Table", body, accent="#00618a", subtitle=f"Schema: {database}"), session_id)
+        return _decoy_html_response(
+            _decoy_layout(
+                "phpMyAdmin Table",
+                body,
+                accent="#00618a",
+                subtitle=f"Schema: {database}",
+            ),
+            session_id,
+        )
     body = f"""
       <div class="nav">
         <a href="/phpmyadmin/tables.php?db={html.escape(database)}">Tables</a>
@@ -3145,7 +4368,12 @@ def public_phpmyadmin_table(request: Request):
       </div>
       {_html_table(columns, rows)}
     """
-    return _decoy_html_response(_decoy_layout("phpMyAdmin Table", body, accent="#00618a", subtitle=f"{database}.{table}"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "phpMyAdmin Table", body, accent="#00618a", subtitle=f"{database}.{table}"
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/import-export.php", response_class=HTMLResponse)
@@ -3162,7 +4390,10 @@ def public_phpmyadmin_import_export(request: Request):
         mitre_technique="T1567",
         policy_strategy="observe",
         policy_risk_score=66,
-        captured_data={"surface": "phpmyadmin-import-export", "actor": state.get("actor")},
+        captured_data={
+            "surface": "phpmyadmin-import-export",
+            "actor": state.get("actor"),
+        },
         attacker_type=str(state.get("actor") or "scanner"),
     )
     if not state.get("auth", {}).get("phpmyadmin"):
@@ -3178,7 +4409,15 @@ def public_phpmyadmin_import_export(request: Request):
       </div>
       <pre>mysqldump --single-transaction operations audit_log > /srv/backups/audit_log.sql</pre>
     """
-    return _decoy_html_response(_decoy_layout("phpMyAdmin Import / Export", body, accent="#00618a", subtitle="Transfer workflows"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "phpMyAdmin Import / Export",
+            body,
+            accent="#00618a",
+            subtitle="Transfer workflows",
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/sessions.php", response_class=HTMLResponse)
@@ -3200,7 +4439,12 @@ def public_phpmyadmin_sessions(request: Request):
     )
     if not state.get("auth", {}).get("phpmyadmin"):
         return _decoy_redirect_response("/phpmyadmin/index.php", session_id)
-    rows = list((WEB_DECOY_DATABASES.get("operations", {}).get("sessions", {}) or {}).get("rows") or [])
+    rows = list(
+        (WEB_DECOY_DATABASES.get("operations", {}).get("sessions", {}) or {}).get(
+            "rows"
+        )
+        or []
+    )
     body = f"""
       <div class="nav">
         <a href="/phpmyadmin/index.php">Home</a>
@@ -3208,7 +4452,15 @@ def public_phpmyadmin_sessions(request: Request):
       </div>
       {_html_table(["session_id", "user_id", "ip_address", "last_seen"], rows)}
     """
-    return _decoy_html_response(_decoy_layout("phpMyAdmin Sessions", body, accent="#00618a", subtitle="Active MariaDB sessions"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "phpMyAdmin Sessions",
+            body,
+            accent="#00618a",
+            subtitle="Active MariaDB sessions",
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/intrusion.php", response_class=HTMLResponse)
@@ -3234,14 +4486,19 @@ def public_phpmyadmin_intrusion(request: Request):
     summary = last_sql_result.get("summary") or "No SQL statements replayed yet."
     body = f"""
       <div class="row">
-        <div class="card"><h3>Session Profile</h3><div class="kpi">{html.escape(str(state.get('actor') or 'scanner'))}</div><div class="muted">Adaptive assessment</div></div>
-        <div class="card"><h3>Visited Paths</h3><div class="kpi">{len(list(state.get('visited_paths') or []))}</div><div class="muted">Public decoy pages touched</div></div>
-        <div class="card"><h3>Login Attempts</h3><div class="kpi">{int(state.get('login_attempts', {}).get('phpmyadmin') or 0)}</div><div class="muted">Credential telemetry</div></div>
+        <div class="card"><h3>Session Profile</h3><div class="kpi">{html.escape(str(state.get("actor") or "scanner"))}</div><div class="muted">Adaptive assessment</div></div>
+        <div class="card"><h3>Visited Paths</h3><div class="kpi">{len(list(state.get("visited_paths") or []))}</div><div class="muted">Public decoy pages touched</div></div>
+        <div class="card"><h3>Login Attempts</h3><div class="kpi">{int(state.get("login_attempts", {}).get("phpmyadmin") or 0)}</div><div class="muted">Credential telemetry</div></div>
       </div>
       <div class="card"><h3>Last SQL Result</h3><div class="muted">{html.escape(str(summary))}</div></div>
-      <pre>{html.escape(json.dumps(list(state.get('sql_history') or []), indent=2))}</pre>
+      <pre>{html.escape(json.dumps(list(state.get("sql_history") or []), indent=2))}</pre>
     """
-    return _decoy_html_response(_decoy_layout("Intrusion Review", body, accent="#00618a", subtitle="Decoy session replay"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "Intrusion Review", body, accent="#00618a", subtitle="Decoy session replay"
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/alerts.php", response_class=HTMLResponse)
@@ -3264,9 +4521,21 @@ def public_phpmyadmin_alerts(request: Request):
     if not state.get("auth", {}).get("phpmyadmin"):
         return _decoy_redirect_response("/phpmyadmin/index.php", session_id)
     rows = [
-        {"alert": "Replica drift detected", "severity": "medium", "owner": "db-gateway-02"},
-        {"alert": "Credential spray observed", "severity": "high", "owner": _request_ip(request)},
-        {"alert": "Backup export pending review", "severity": "low", "owner": "svc_portal"},
+        {
+            "alert": "Replica drift detected",
+            "severity": "medium",
+            "owner": "db-gateway-02",
+        },
+        {
+            "alert": "Credential spray observed",
+            "severity": "high",
+            "owner": _request_ip(request),
+        },
+        {
+            "alert": "Backup export pending review",
+            "severity": "low",
+            "owner": "svc_portal",
+        },
     ]
     body = f"""
       <div class="nav">
@@ -3275,7 +4544,15 @@ def public_phpmyadmin_alerts(request: Request):
       </div>
       {_html_table(["alert", "severity", "owner"], rows)}
     """
-    return _decoy_html_response(_decoy_layout("phpMyAdmin Alerts", body, accent="#00618a", subtitle="Operational alert board"), session_id)
+    return _decoy_html_response(
+        _decoy_layout(
+            "phpMyAdmin Alerts",
+            body,
+            accent="#00618a",
+            subtitle="Operational alert board",
+        ),
+        session_id,
+    )
 
 
 @router.get("/phpmyadmin/{subpath:path}", response_class=HTMLResponse)
@@ -3292,10 +4569,20 @@ def public_phpmyadmin_catchall(subpath: str, request: Request):
         mitre_technique="T1595",
         policy_strategy="progressive_disclosure",
         policy_risk_score=60,
-        captured_data={"surface": "phpmyadmin-catchall", "path": subpath, "actor": state.get("actor")},
+        captured_data={
+            "surface": "phpmyadmin-catchall",
+            "path": subpath,
+            "actor": state.get("actor"),
+        },
         attacker_type=str(state.get("actor") or "scanner"),
     )
-    content = _phpmyadmin_home_html(state, notice=f"Resource /phpmyadmin/{subpath} opened in bounded mode.") if state.get("auth", {}).get("phpmyadmin") else _phpmyadmin_login_html(state)
+    content = (
+        _phpmyadmin_home_html(
+            state, notice=f"Resource /phpmyadmin/{subpath} opened in bounded mode."
+        )
+        if state.get("auth", {}).get("phpmyadmin")
+        else _phpmyadmin_login_html(state)
+    )
     return _decoy_html_response(content, session_id)
 
 
@@ -3330,8 +4617,14 @@ async def public_wp_login_submit(request: Request):
     attempts = int(state.get("login_attempts", {}).get("wordpress") or 0) + 1
     state.setdefault("login_attempts", {})["wordpress"] = attempts
     state.setdefault("usernames", {})["wordpress"] = username or "administrator"
-    normalized = _normalize_identifier(username.split("@", 1)[0] if "@" in username else username)
-    accepted = bool(username) and len(password) >= 6 and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 3)
+    normalized = _normalize_identifier(
+        username.split("@", 1)[0] if "@" in username else username
+    )
+    accepted = (
+        bool(username)
+        and len(password) >= 6
+        and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 3)
+    )
     state.setdefault("auth", {})["wordpress"] = accepted
     _touch_web_decoy_state(state, request.url.path)
     _public_decoy_event(
@@ -3357,7 +4650,12 @@ async def public_wp_login_submit(request: Request):
     )
     if accepted:
         return _decoy_redirect_response("/wp-admin/", session_id)
-    return _decoy_html_response(_wordpress_login_html(state, error="Unknown username or incorrect password.", username=username), session_id)
+    return _decoy_html_response(
+        _wordpress_login_html(
+            state, error="Unknown username or incorrect password.", username=username
+        ),
+        session_id,
+    )
 
 
 @router.get("/wp-admin", response_class=HTMLResponse)
@@ -3376,7 +4674,11 @@ def public_wp_admin(request: Request, subpath: str = ""):
         mitre_technique="T1087",
         policy_strategy="progressive_disclosure",
         policy_risk_score=64,
-        captured_data={"surface": "wordpress-admin", "path": subpath or "/", "actor": state.get("actor")},
+        captured_data={
+            "surface": "wordpress-admin",
+            "path": subpath or "/",
+            "actor": state.get("actor"),
+        },
         attacker_type=str(state.get("actor") or "scanner"),
     )
     if not state.get("auth", {}).get("wordpress"):
@@ -3418,7 +4720,11 @@ async def public_admin_login_submit(request: Request):
     state.setdefault("login_attempts", {})["admin"] = attempts
     state.setdefault("usernames", {})["admin"] = username or "opsadmin"
     normalized = _normalize_identifier(username)
-    accepted = bool(username) and len(password) >= 6 and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 2)
+    accepted = (
+        bool(username)
+        and len(password) >= 6
+        and (normalized in WEB_DECOY_ACCEPT_USERS or attempts >= 2)
+    )
     state.setdefault("auth", {})["admin"] = accepted
     _touch_web_decoy_state(state, request.url.path)
     _public_decoy_event(
@@ -3444,7 +4750,12 @@ async def public_admin_login_submit(request: Request):
     )
     if accepted:
         return _decoy_redirect_response("/admin/portal", session_id)
-    return _decoy_html_response(_admin_login_html(state, error="Administrative access denied.", username=username), session_id)
+    return _decoy_html_response(
+        _admin_login_html(
+            state, error="Administrative access denied.", username=username
+        ),
+        session_id,
+    )
 
 
 @router.get("/admin/portal", response_class=HTMLResponse)
@@ -3486,7 +4797,11 @@ def public_xmlrpc_probe(request: Request):
         captured_data={"surface": "xmlrpc", "actor": state.get("actor")},
         attacker_type=str(state.get("actor") or "scanner"),
     )
-    return _decoy_text_response("XML-RPC server accepts POST requests only.\n", session_id, media_type="text/plain; charset=utf-8")
+    return _decoy_text_response(
+        "XML-RPC server accepts POST requests only.\n",
+        session_id,
+        media_type="text/plain; charset=utf-8",
+    )
 
 
 @router.post("/xmlrpc.php", response_class=PlainTextResponse)
@@ -3495,7 +4810,9 @@ async def public_xmlrpc_call(request: Request):
     raw_body = (await request.body()).decode("utf-8", errors="ignore")
     match = re.search(r"<methodName>([^<]+)</methodName>", raw_body)
     method_name = match.group(1) if match else "unknown.method"
-    severity = "high" if method_name in {"system.multicall", "wp.getUsersBlogs"} else "medium"
+    severity = (
+        "high" if method_name in {"system.multicall", "wp.getUsersBlogs"} else "medium"
+    )
     score = 83 if severity == "high" else 66
     risk = 84 if severity == "high" else 64
     _touch_web_decoy_state(state, request.url.path)
@@ -3519,7 +4836,7 @@ async def public_xmlrpc_call(request: Request):
         attacker_type=str(state.get("actor") or "scanner"),
     )
     fault = (
-        "<?xml version=\"1.0\"?>"
+        '<?xml version="1.0"?>'
         "<methodResponse><fault><value><struct>"
         "<member><name>faultCode</name><value><int>403</int></value></member>"
         "<member><name>faultString</name><value><string>Authentication required.</string></value></member>"
@@ -3529,9 +4846,14 @@ async def public_xmlrpc_call(request: Request):
 
 
 @router.post("/internal/protocols/event")
-def protocol_event_ingest(payload: InternalProtocolEventPayload, x_protocol_secret: str | None = Header(default=None)) -> dict[str, Any]:
+def protocol_event_ingest(
+    payload: InternalProtocolEventPayload,
+    x_protocol_secret: str | None = Header(default=None),
+) -> dict[str, Any]:
     if not PROTOCOL_SHARED_SECRET:
-        raise HTTPException(status_code=503, detail="Internal protocol ingest is not configured.")
+        raise HTTPException(
+            status_code=503, detail="Internal protocol ingest is not configured."
+        )
     if x_protocol_secret != PROTOCOL_SHARED_SECRET:
         raise HTTPException(status_code=401, detail="Invalid protocol secret.")
 
@@ -3545,9 +4867,12 @@ def protocol_event_ingest(payload: InternalProtocolEventPayload, x_protocol_secr
         "status": payload.status or "ok",
         "username": payload.username,
         "accepted": payload.accepted,
-        "password_hash": stable_hash(payload.password or "", 16) if payload.password else None,
+        "password_hash": stable_hash(payload.password or "", 16)
+        if payload.password
+        else None,
         "password_length": len(payload.password or "") if payload.password else 0,
-        "execution_mode": payload.execution_mode or ("real" if payload.cmd else "emulated"),
+        "execution_mode": payload.execution_mode
+        or ("real" if payload.cmd else "emulated"),
         "source": str(payload.metadata.get("source") or "protocol-decoy"),
     }
     if payload.metadata:
@@ -3576,7 +4901,9 @@ def protocol_event_ingest(payload: InternalProtocolEventPayload, x_protocol_secr
 
 
 @router.post("/ingest")
-def ingest_event(payload: IngestRequest, x_api_key: str | None = Header(default=None)) -> dict[str, Any]:
+def ingest_event(
+    payload: IngestRequest, x_api_key: str | None = Header(default=None)
+) -> dict[str, Any]:
     if not x_api_key:
         raise HTTPException(status_code=401, detail="Missing API key.")
     api_key = x_api_key.strip()
@@ -3584,15 +4911,28 @@ def ingest_event(payload: IngestRequest, x_api_key: str | None = Header(default=
         raise HTTPException(status_code=401, detail="Missing API key.")
     with db() as conn:
         hashed_key = hash_api_key(api_key)
-        site = conn.execute("select * from sites where api_key = ?", (hashed_key,)).fetchone()
+        site = conn.execute(
+            "select * from sites where api_key = ?", (hashed_key,)
+        ).fetchone()
         if not site:
-            site = conn.execute("select * from sites where api_key = ?", (api_key,)).fetchone()
+            site = conn.execute(
+                "select * from sites where api_key = ?", (api_key,)
+            ).fetchone()
             if site:
-                conn.execute("update sites set api_key = ?, updated_at = ? where id = ?", (hashed_key, iso_now(), site["id"]))
+                conn.execute(
+                    "update sites set api_key = ?, updated_at = ? where id = ?",
+                    (hashed_key, iso_now(), site["id"]),
+                )
     if not site:
         raise HTTPException(status_code=401, detail="Invalid API key.")
-    score = payload.score if payload.score is not None else (85 if payload.url_path in ["/.env", "/phpmyadmin/"] else 48)
-    severity = payload.severity or ("high" if score >= 75 else "medium" if score >= 45 else "low")
+    score = (
+        payload.score
+        if payload.score is not None
+        else (85 if payload.url_path in ["/.env", "/phpmyadmin/"] else 48)
+    )
+    severity = payload.severity or (
+        "high" if score >= 75 else "medium" if score >= 45 else "low"
+    )
     event = store_event(
         site_id=site["id"],
         event_type=payload.event_type,
@@ -3617,11 +4957,20 @@ def ingest_event(payload: IngestRequest, x_api_key: str | None = Header(default=
 @router.get("/dashboard/stats")
 def dashboard_stats(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
+        site_ids = _site_ids_for_user(conn, int(user["id"]))
         summary = build_summary(
             conn,
-            site_ids=_site_ids_for_user(conn, int(user["id"])),
+            site_ids=site_ids,
             blocked_user_id=int(user["id"]),
         )
+        if not summary["feed"] and not site_ids:
+            summary = _event_summary_from_rows(
+                _sample_incident_rows(limit=min(12, len(SAMPLE_INCIDENT_TEMPLATES))),
+                blocked=int(summary["summary"]["blocked"]),
+            )
+            summary["demo_mode"] = True
+        else:
+            summary["demo_mode"] = False
         summary["feed"] = [frontend_event(row) for row in summary["feed"]]
         geo_distribution: dict[str, int] = {}
         for item in summary["feed"]:
@@ -3638,13 +4987,19 @@ def ops_readiness(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any
 
 
 @router.get("/public/telemetry/snapshot")
-def public_snapshot(limit: int = 8, hours: int = 24, include_training: bool = False) -> dict[str, Any]:
+def public_snapshot(
+    limit: int = 8, hours: int = 24, include_training: bool = False
+) -> dict[str, Any]:
     with db() as conn:
-        return _public_demo_snapshot(conn, limit=limit, hours=hours, include_training=include_training)
+        return _public_demo_snapshot(
+            conn, limit=limit, hours=hours, include_training=include_training
+        )
 
 
 @router.get("/intelligence/health")
-def intelligence_health(user: dict[str, Any] | None = Depends(optional_user)) -> dict[str, Any]:
+def intelligence_health(
+    user: dict[str, Any] | None = Depends(optional_user),
+) -> dict[str, Any]:
     with db() as conn:
         if user is None:
             return _health_payload(conn, [], user_id=None, scope="public_demo")
@@ -3654,15 +5009,27 @@ def intelligence_health(user: dict[str, Any] | None = Depends(optional_user)) ->
 
 
 @router.get("/intelligence/predict")
-def intelligence_predict(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def intelligence_predict(
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=60)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=60
+        )
     target_counts: dict[str, int] = {}
     for row in rows:
         target = row.get("url_path") or row.get("event_type") or "unknown"
         target_counts[target] = target_counts.get(target, 0) + 1
-    predicted_top_target = max(target_counts, key=target_counts.get) if target_counts else "/admin"
-    confidence = round(min(0.97, 0.35 + (target_counts.get(predicted_top_target, 0) / max(len(rows), 1))), 2)
+    predicted_top_target = (
+        max(target_counts, key=target_counts.get) if target_counts else "/admin"
+    )
+    confidence = round(
+        min(
+            0.97,
+            0.35 + (target_counts.get(predicted_top_target, 0) / max(len(rows), 1)),
+        ),
+        2,
+    )
     critical_recent = sum(1 for row in rows[:12] if row["severity"] == "high")
     next_wave_eta = max(8, 60 - min(45, critical_recent * 6 + len(rows) // 4))
     recommended_action = (
@@ -3681,7 +5048,9 @@ def intelligence_predict(user: dict[str, Any] = Depends(current_user)) -> dict[s
 @router.get("/deception/adaptive/metrics")
 def adaptive_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=30)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=30
+        )
     sessions: dict[str, dict[str, Any]] = {}
     strategies: dict[str, int] = {}
     total_risk = 0.0
@@ -3697,7 +5066,9 @@ def adaptive_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str, 
             },
         )
         sessions[sid]["interaction_steps"] += 1
-        sessions[sid]["policy_risk_score"] = max(float(sessions[sid]["policy_risk_score"]), float(row["policy_risk_score"]))
+        sessions[sid]["policy_risk_score"] = max(
+            float(sessions[sid]["policy_risk_score"]), float(row["policy_risk_score"])
+        )
         strategy = row["policy_strategy"] or "observe"
         strategies[strategy] = strategies.get(strategy, 0) + 1
         total_risk += float(row["policy_risk_score"])
@@ -3707,7 +5078,11 @@ def adaptive_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str, 
         "summary": {
             "total_sessions": len(session_values),
             "avg_policy_risk_score": round(total_risk / max(len(rows), 1), 1),
-            "avg_interaction_steps": round(sum(item["interaction_steps"] for item in session_values) / max(len(session_values), 1), 1),
+            "avg_interaction_steps": round(
+                sum(item["interaction_steps"] for item in session_values)
+                / max(len(session_values), 1),
+                1,
+            ),
         },
         "distribution": {"policy_strategy": strategies},
         "sessions": session_values,
@@ -3715,9 +5090,13 @@ def adaptive_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str, 
 
 
 @router.get("/deception/adaptive/intelligence")
-def adaptive_intelligence(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def adaptive_intelligence(
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=50)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=50
+        )
     countries: dict[str, dict[str, Any]] = {}
     paths: dict[str, int] = {}
     tactics: dict[tuple[str, str], int] = {}
@@ -3725,7 +5104,16 @@ def adaptive_intelligence(user: dict[str, Any] = Depends(current_user)) -> dict[
     strategies: dict[str, int] = {}
     for index, row in enumerate(rows[:12]):
         country = row["geo"] or "Unknown"
-        info = countries.setdefault(country, {"country": country, "events": 0, "critical_events": 0, "avg_score": 0, "risk_index": 0})
+        info = countries.setdefault(
+            country,
+            {
+                "country": country,
+                "events": 0,
+                "critical_events": 0,
+                "avg_score": 0,
+                "risk_index": 0,
+            },
+        )
         info["events"] += 1
         info["critical_events"] += 1 if row["severity"] == "high" else 0
         info["avg_score"] += row["score"]
@@ -3736,7 +5124,13 @@ def adaptive_intelligence(user: dict[str, Any] = Depends(current_user)) -> dict[
         tactics[key] = tactics.get(key, 0) + 1
         strategy = row["policy_strategy"] or "observe"
         strategies[strategy] = strategies.get(strategy, 0) + 1
-        series.append({"index": index, "risk_score": row["policy_risk_score"], "ts": row["created_at"]})
+        series.append(
+            {
+                "index": index,
+                "risk_score": row["policy_risk_score"],
+                "ts": row["created_at"],
+            }
+        )
     top_countries = []
     for item in countries.values():
         item["avg_score"] = round(item["avg_score"] / max(item["events"], 1), 1)
@@ -3747,25 +5141,40 @@ def adaptive_intelligence(user: dict[str, Any] = Depends(current_user)) -> dict[
         "window": {"event_count": len(rows), "hours": 24},
         "policy_summary": {
             "total_sessions": len({row["session_id"] for row in rows}),
-            "avg_policy_risk_score": round(sum(row["policy_risk_score"] for row in rows) / max(len(rows), 1), 1),
+            "avg_policy_risk_score": round(
+                sum(row["policy_risk_score"] for row in rows) / max(len(rows), 1), 1
+            ),
             "dominant_strategy": rows[0]["policy_strategy"] if rows else None,
             "strategy_distribution": strategies,
         },
         "top_countries": top_countries[:8],
-        "top_paths": [{"path": key, "hits": value} for key, value in list(paths.items())[:8]],
-        "tactic_matrix": [{"tactic": key[0], "severity": key[1], "events": value} for key, value in tactics.items()],
+        "top_paths": [
+            {"path": key, "hits": value} for key, value in list(paths.items())[:8]
+        ],
+        "tactic_matrix": [
+            {"tactic": key[0], "severity": key[1], "events": value}
+            for key, value in tactics.items()
+        ],
         "risk_series": series,
         "high_risk_sessions": [
-            {"session_id": row["session_id"], "policy_risk_score": row["policy_risk_score"], "policy_strategy": row["policy_strategy"]}
+            {
+                "session_id": row["session_id"],
+                "policy_risk_score": row["policy_risk_score"],
+                "policy_strategy": row["policy_strategy"],
+            }
             for row in rows[:5]
         ],
     }
 
 
 @router.get("/deception/adaptive/timeline/{session_id}")
-def adaptive_timeline(session_id: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def adaptive_timeline(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         raise HTTPException(status_code=404, detail="Session not found.")
     return {
@@ -3785,9 +5194,28 @@ def adaptive_timeline(session_id: str, user: dict[str, Any] = Depends(current_us
 
 
 @router.post("/soc/block-ip")
-def block_ip(payload: BlockIpPayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def block_ip(
+    payload: BlockIpPayload, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
-        _insert_blocked_ip(conn, user_id=int(user["id"]), ip=payload.ip, reason=payload.reason or "manual", created_at=iso_now())
+        _insert_blocked_ip(
+            conn,
+            user_id=int(user["id"]),
+            ip=payload.ip,
+            reason=payload.reason or "manual",
+            created_at=iso_now(),
+        )
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="soc.block_ip",
+            summary=f"Blocked IP {payload.ip}",
+            severity="high",
+            target_type="ip",
+            target_id=payload.ip,
+            metadata={"ip": payload.ip, "reason": payload.reason or "manual"},
+        )
     return {"status": "success", "message": f"IP {payload.ip} blocked."}
 
 
@@ -3801,10 +5229,12 @@ def export_blocked_ips(
         entries, invalid_entries = _edge_block_entries(conn, int(user["id"]))
     headers = {
         "Cache-Control": "no-store",
-        "X-CyberSentinel-Invalid-Entries": str(invalid_entries),
+        "X-CyberSentil-Invalid-Entries": str(invalid_entries),
     }
     if normalized_format == "cloudflare-json":
-        headers["Content-Disposition"] = 'attachment; filename="cybersentinel-blocked-ips.cloudflare.json"'
+        headers["Content-Disposition"] = (
+            'attachment; filename="cybersentinel-blocked-ips.cloudflare.json"'
+        )
         return JSONResponse(
             {
                 "format": "cloudflare-json",
@@ -3814,7 +5244,8 @@ def export_blocked_ips(
                 "items": [
                     {
                         "ip": item["ip"],
-                        "comment": _edge_reason_comment(item.get("reason")) or "CyberSentinel auto/manual block",
+                        "comment": _edge_reason_comment(item.get("reason"))
+                        or "CyberSentil auto/manual block",
                         "created_at": item.get("created_at") or "",
                     }
                     for item in entries
@@ -3824,33 +5255,62 @@ def export_blocked_ips(
         )
     content, media_type = _render_edge_block_export(entries, normalized_format)
     suffix = "conf" if normalized_format == "nginx" else "txt"
-    headers["Content-Disposition"] = f'attachment; filename="cybersentinel-blocked-ips.{suffix}"'
+    headers["Content-Disposition"] = (
+        f'attachment; filename="cybersentinel-blocked-ips.{suffix}"'
+    )
     return PlainTextResponse(content, media_type=media_type, headers=headers)
 
 
 @router.get("/deception/status")
 def deception_status(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
         return _deception_status_payload(conn, rows, user_id=int(user["id"]))
 
 
 @router.get("/deception/honeytokens")
 def honeytokens(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=200)
-    paths = {path: {"path": path, "hits": 0, "unique_attackers": set(), "severity": "low", "last_hit": None} for path in DEFAULT_HONEYTOKEN_PATHS}
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=200
+        )
+    paths = {
+        path: {
+            "path": path,
+            "hits": 0,
+            "unique_attackers": set(),
+            "severity": "low",
+            "last_hit": None,
+        }
+        for path in DEFAULT_HONEYTOKEN_PATHS
+    }
     for row in rows:
         path = row.get("url_path")
         if not path:
             continue
-        item = paths.setdefault(path, {"path": path, "hits": 0, "unique_attackers": set(), "severity": "low", "last_hit": None})
+        item = paths.setdefault(
+            path,
+            {
+                "path": path,
+                "hits": 0,
+                "unique_attackers": set(),
+                "severity": "low",
+                "last_hit": None,
+            },
+        )
         item["hits"] += 1
         if row.get("ip"):
             item["unique_attackers"].add(row["ip"])
-        if SEVERITY_RANK.get(row["severity"], 0) > SEVERITY_RANK.get(item["severity"], 0):
+        if SEVERITY_RANK.get(row["severity"], 0) > SEVERITY_RANK.get(
+            item["severity"], 0
+        ):
             item["severity"] = row["severity"]
-        item["last_hit"] = max(filter(None, [item["last_hit"], row["created_at"]]), default=row["created_at"])
+        item["last_hit"] = max(
+            filter(None, [item["last_hit"], row["created_at"]]),
+            default=row["created_at"],
+        )
     items = []
     for item in paths.values():
         items.append(
@@ -3863,7 +5323,9 @@ def honeytokens(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, 
                 "last_hit": item["last_hit"],
             }
         )
-    items.sort(key=lambda entry: (entry["hits"], entry["severity"] == "high"), reverse=True)
+    items.sort(
+        key=lambda entry: (entry["hits"], entry["severity"] == "high"), reverse=True
+    )
     return items[:12]
 
 
@@ -3872,65 +5334,160 @@ def canary_tokens(user: dict[str, Any] = Depends(current_user)) -> list[dict[str
     with db() as conn:
         rows = [
             dict(row)
-            for row in conn.execute("select * from canary_tokens where user_id = ? order by datetime(created_at) desc", (int(user["id"]),)).fetchall()
+            for row in conn.execute(
+                "select * from canary_tokens where user_id = ? order by datetime(created_at) desc",
+                (int(user["id"]),),
+            ).fetchall()
         ]
     return [_serialize_canary(row) for row in rows]
 
 
 @router.get("/deception/live-feed")
-def deception_live_feed(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def deception_live_feed(
+    user: dict[str, Any] = Depends(current_user),
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=15)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=15
+        )
     return [frontend_event(row) for row in rows]
 
 
 @router.post("/deception/deploy")
-def deception_deploy(payload: DeceptionDeployPayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def deception_deploy(
+    payload: DeceptionDeployPayload, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     requested_profile = str(payload.profile or "balanced").lower()
     if requested_profile not in PROFILE_PROTOCOLS:
         raise HTTPException(status_code=400, detail="Unknown deception profile.")
-    protocols = _merge_protocols(payload.protocols or PROFILE_PROTOCOLS[requested_profile])
+    protocols = _merge_protocols(
+        payload.protocols or PROFILE_PROTOCOLS[requested_profile]
+    )
     with db() as conn:
         site_ids = _site_ids_for_user(conn, int(user["id"]))
-        _save_runtime_state(conn, user_id=int(user["id"]), active_profile=requested_profile, protocols=protocols)
+        _save_runtime_state(
+            conn,
+            user_id=int(user["id"]),
+            active_profile=requested_profile,
+            protocols=protocols,
+        )
         rows = _scoped_event_rows(conn, site_ids, limit=120)
         posture = _build_posture(rows, requested_profile, protocols)
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="deception.deploy",
+            summary=f"Deployed deception profile {requested_profile}",
+            severity="high",
+            target_type="deception_profile",
+            target_id=requested_profile,
+            metadata={"profile": requested_profile, "protocols": protocols},
+        )
     return {
         "status": "success",
         "message": f"Deception profile {requested_profile} deployed.",
-        "result": {"profile": requested_profile, "protocols": protocols, "posture": posture},
+        "result": {
+            "profile": requested_profile,
+            "protocols": protocols,
+            "posture": posture,
+        },
     }
 
 
 @router.post("/deception/auto-mode")
-def deception_auto_mode(payload: AutoModePayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def deception_auto_mode(
+    payload: AutoModePayload, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
         site_ids = _site_ids_for_user(conn, int(user["id"]))
         rows = _scoped_event_rows(conn, site_ids, limit=120)
-        profile = _profile_for_rows(rows) if payload.enabled else str(_json_setting(conn, "active_profile", "balanced", user_id=int(user["id"])))
+        profile = (
+            _profile_for_rows(rows)
+            if payload.enabled
+            else str(
+                _json_setting(
+                    conn, "active_profile", "balanced", user_id=int(user["id"])
+                )
+            )
+        )
         protocols = (
             PROFILE_PROTOCOLS[profile]
             if payload.enabled
-            else _merge_protocols(_json_setting(conn, "deception_protocols", DEFAULT_DECEPTION_PROTOCOLS, user_id=int(user["id"])))
+            else _merge_protocols(
+                _json_setting(
+                    conn,
+                    "deception_protocols",
+                    DEFAULT_DECEPTION_PROTOCOLS,
+                    user_id=int(user["id"]),
+                )
+            )
         )
-        _save_runtime_state(conn, user_id=int(user["id"]), auto_mode=payload.enabled, active_profile=profile, protocols=protocols)
+        _save_runtime_state(
+            conn,
+            user_id=int(user["id"]),
+            auto_mode=payload.enabled,
+            active_profile=profile,
+            protocols=protocols,
+        )
         posture = _build_posture(rows, profile, protocols)
-    return {"status": "success", "auto_mode": payload.enabled, "result": {"profile": profile, "protocols": protocols, "posture": posture}}
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="deception.auto_mode",
+            summary=f"Set deception auto-mode to {'enabled' if payload.enabled else 'disabled'}",
+            severity="medium",
+            target_type="deception_runtime",
+            metadata={
+                "enabled": bool(payload.enabled),
+                "profile": profile,
+                "protocols": protocols,
+            },
+        )
+    return {
+        "status": "success",
+        "auto_mode": payload.enabled,
+        "result": {"profile": profile, "protocols": protocols, "posture": posture},
+    }
 
 
 @router.post("/deception/autotune")
 def deception_autotune(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
         profile = _profile_for_rows(rows)
         protocols = PROFILE_PROTOCOLS[profile]
-        _save_runtime_state(conn, user_id=int(user["id"]), active_profile=profile, protocols=protocols)
+        _save_runtime_state(
+            conn, user_id=int(user["id"]), active_profile=profile, protocols=protocols
+        )
         posture = _build_posture(rows, profile, protocols)
-    return {"status": "success", "message": "Auto-tune completed.", "profile": profile, "protocols": protocols, "posture": posture}
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="deception.autotune",
+            summary=f"Auto-tuned deception profile to {profile}",
+            severity="medium",
+            target_type="deception_profile",
+            target_id=profile,
+            metadata={"profile": profile, "protocols": protocols},
+        )
+    return {
+        "status": "success",
+        "message": "Auto-tune completed.",
+        "profile": profile,
+        "protocols": protocols,
+        "posture": posture,
+    }
 
 
 @router.post("/deception/canary-tokens/generate")
-def canary_generate(payload: CanaryTokenCreatePayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def canary_generate(
+    payload: CanaryTokenCreatePayload, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     token = secrets.token_urlsafe(8).replace("-", "").replace("_", "").lower()
     relative_path = f"/canary/{token}"
     now = iso_now()
@@ -3941,49 +5498,141 @@ def canary_generate(payload: CanaryTokenCreatePayload, user: dict[str, Any] = De
             insert into canary_tokens (user_id, site_id, token, label, token_type, relative_path, created_at, updated_at)
             values (?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (int(user["id"]), site_id, token, payload.label.strip(), payload.type.strip().upper() or "URL", relative_path, now, now),
+            (
+                int(user["id"]),
+                site_id,
+                token,
+                payload.label.strip(),
+                payload.type.strip().upper() or "URL",
+                relative_path,
+                now,
+                now,
+            ),
         )
-        row = conn.execute("select * from canary_tokens where id = ?", (cur.lastrowid,)).fetchone()
+        row = conn.execute(
+            "select * from canary_tokens where id = ?", (cur.lastrowid,)
+        ).fetchone()
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="deception.canary_generate",
+            summary=f"Generated canary token {payload.label.strip()}",
+            severity="medium",
+            target_type="canary_token",
+            target_id=cur.lastrowid,
+            metadata={
+                "label": payload.label.strip(),
+                "token_type": payload.type.strip().upper() or "URL",
+                "relative_path": relative_path,
+            },
+        )
     return _serialize_canary(dict(row))
 
 
 @router.post("/deception/protocols/toggle")
-def deception_protocol_toggle(payload: DeceptionProtocolTogglePayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def deception_protocol_toggle(
+    payload: DeceptionProtocolTogglePayload,
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
     if payload.protocol not in DEFAULT_DECEPTION_PROTOCOLS:
         raise HTTPException(status_code=404, detail="Unknown deception protocol.")
     with db() as conn:
-        protocols = _merge_protocols(_json_setting(conn, "deception_protocols", DEFAULT_DECEPTION_PROTOCOLS, user_id=int(user["id"])))
+        protocols = _merge_protocols(
+            _json_setting(
+                conn,
+                "deception_protocols",
+                DEFAULT_DECEPTION_PROTOCOLS,
+                user_id=int(user["id"]),
+            )
+        )
         protocols[payload.protocol] = bool(payload.active)
         _save_runtime_state(conn, user_id=int(user["id"]), protocols=protocols)
-    return {"status": "success", "protocol": payload.protocol, "active": protocols[payload.protocol], "protocols": protocols}
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="deception.protocol_toggle",
+            summary=f"Set deception protocol {payload.protocol} to {'enabled' if protocols[payload.protocol] else 'disabled'}",
+            severity="medium",
+            target_type="deception_protocol",
+            target_id=payload.protocol,
+            metadata={
+                "protocol": payload.protocol,
+                "active": protocols[payload.protocol],
+            },
+        )
+    return {
+        "status": "success",
+        "protocol": payload.protocol,
+        "active": protocols[payload.protocol],
+        "protocols": protocols,
+    }
 
 
 @router.post("/protocols/{module_name}/toggle")
-def runtime_module_toggle(module_name: str, payload: RuntimeModuleTogglePayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def runtime_module_toggle(
+    module_name: str,
+    payload: RuntimeModuleTogglePayload,
+    user: dict[str, Any] = Depends(current_user),
+) -> dict[str, Any]:
     with db() as conn:
         site_ids = _site_ids_for_user(conn, int(user["id"]))
-        modules = _merge_runtime_modules(_json_setting(conn, "protocol_runtime_modules", DEFAULT_RUNTIME_MODULES, user_id=int(user["id"])))
+        modules = _merge_runtime_modules(
+            _json_setting(
+                conn,
+                "protocol_runtime_modules",
+                DEFAULT_RUNTIME_MODULES,
+                user_id=int(user["id"]),
+            )
+        )
         if module_name not in modules:
             raise HTTPException(status_code=404, detail="Unknown runtime module.")
         modules[module_name]["enabled"] = bool(payload.enabled)
         _save_runtime_state(conn, user_id=int(user["id"]), runtime_modules=modules)
         rows = _scoped_event_rows(conn, site_ids, limit=120)
         runtime = _build_runtime_state(conn, rows, user_id=int(user["id"]))
-    return {"status": "success", "module": runtime["modules"][module_name], "summary": runtime["summary"]}
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="protocol.runtime_module_toggle",
+            summary=f"Set runtime module {module_name} to {'enabled' if modules[module_name]['enabled'] else 'disabled'}",
+            severity="medium",
+            target_type="runtime_module",
+            target_id=module_name,
+            metadata={
+                "module": module_name,
+                "enabled": modules[module_name]["enabled"],
+            },
+        )
+    return {
+        "status": "success",
+        "module": runtime["modules"][module_name],
+        "summary": runtime["summary"],
+    }
 
 
 @router.get("/protocols/status")
 def protocols_status(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
         runtime = _build_runtime_state(conn, rows, user_id=int(user["id"]))
-    return {"summary": runtime["summary"], "modules": runtime["modules"], "persistence": runtime["persistence"]}
+    return {
+        "summary": runtime["summary"],
+        "modules": runtime["modules"],
+        "persistence": runtime["persistence"],
+    }
 
 
 @router.get("/protocols/metrics")
 def protocols_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=200)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=200
+        )
         runtime = _build_runtime_state(conn, rows, user_id=int(user["id"]))
     return {"metrics": runtime["metrics"]}
 
@@ -3991,7 +5640,9 @@ def protocols_metrics(user: dict[str, Any] = Depends(current_user)) -> dict[str,
 @router.get("/protocols/alerts")
 def protocols_alerts(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=200)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=200
+        )
         runtime = _build_runtime_state(conn, rows, user_id=int(user["id"]))
     return {"alerts": runtime["alerts"]}
 
@@ -3999,14 +5650,20 @@ def protocols_alerts(user: dict[str, Any] = Depends(current_user)) -> dict[str, 
 @router.get("/system/status")
 def system_status(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
         return _system_snapshot(conn, rows, user_id=int(user["id"]))
 
 
 @router.get("/attacker/profiles")
-def attacker_profiles(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def attacker_profiles(
+    user: dict[str, Any] = Depends(current_user),
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
     profiles = []
     campaigns = _correlate_campaigns(rows, limit=6)
     for index, item in enumerate(campaigns, start=1):
@@ -4020,7 +5677,9 @@ def attacker_profiles(user: dict[str, Any] = Depends(current_user)) -> list[dict
                 + int(item["interactive_events"]) * 5
             ),
         )
-        alias_prefix = "BOT" if item["attacker_type"] in {"bot", "scanner", "crawler"} else "ACTOR"
+        alias_prefix = (
+            "BOT" if item["attacker_type"] in {"bot", "scanner", "crawler"} else "ACTOR"
+        )
         profiles.append(
             {
                 "session_id": item["session_id"],
@@ -4032,8 +5691,14 @@ def attacker_profiles(user: dict[str, Any] = Depends(current_user)) -> list[dict
                 "intent": item["primary_tactic"],
                 "event_count": item["event_count"],
                 "duration": item["duration"],
-                "complexity": "High" if skill_score >= 75 else "Medium" if skill_score >= 40 else "Low",
-                "dna": stable_hash(f"{item['ip']}|{item['session_id'] or index}")[:8].upper(),
+                "complexity": "High"
+                if skill_score >= 75
+                else "Medium"
+                if skill_score >= 40
+                else "Low",
+                "dna": stable_hash(f"{item['ip']}|{item['session_id'] or index}")[
+                    :8
+                ].upper(),
                 "geo": item["geo"],
                 "last_seen": item["last_seen"],
                 "campaign": item["label"],
@@ -4048,7 +5713,9 @@ def attacker_profiles(user: dict[str, Any] = Depends(current_user)) -> list[dict
 @router.get("/mapping/mitre")
 def mitre_mapping(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
     grouped: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
         tactic = row.get("mitre_tactic") or "Reconnaissance"
@@ -4064,18 +5731,14 @@ def mitre_mapping(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any
     return grouped
 
 
-@router.get("/audit/logs")
-def audit_logs(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
-    with db() as conn:
-        event_rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=100)
-        blocked_rows = conn.execute(
-            "select ip, reason, created_at from blocked_ips where user_id = ? order by datetime(created_at) desc limit 20",
-            (int(user["id"]),),
-        ).fetchall()
-    logs = [frontend_event(row) for row in event_rows]
+def _build_audit_log_items(
+    event_rows, blocked_rows, operator_rows
+) -> list[dict[str, Any]]:
+    logs = [{**frontend_event(row), "source": "incident"} for row in event_rows]
     for row in blocked_rows:
         logs.append(
             {
+                "source": "response",
                 "ts": row["created_at"],
                 "timestamp": row["created_at"],
                 "timestamp_utc": row["created_at"],
@@ -4086,15 +5749,153 @@ def audit_logs(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, A
                 "severity": "high",
             }
         )
-    logs.sort(key=lambda item: item.get("ts") or item.get("timestamp") or "", reverse=True)
-    return logs[:100]
+    logs.extend(operator_action_log_entry(dict(row)) for row in operator_rows)
+    return logs
+
+
+def _matches_audit_log_filters(
+    log: dict[str, Any], *, search: str, severity: str, source: str
+) -> bool:
+    normalized_source = str(source or "all").strip().lower() or "all"
+    if (
+        normalized_source != "all"
+        and str(log.get("source") or "").strip().lower() != normalized_source
+    ):
+        return False
+
+    normalized_severity = str(severity or "all").strip().lower() or "all"
+    if (
+        normalized_severity != "all"
+        and str(log.get("severity") or "").strip().lower() != normalized_severity
+    ):
+        return False
+
+    query = str(search or "").strip().lower()
+    if not query:
+        return True
+
+    haystacks = [
+        log.get("cmd"),
+        log.get("ip"),
+        log.get("deception_mode"),
+        log.get("source"),
+        log.get("action"),
+        log.get("actor_username"),
+        log.get("target_type"),
+        log.get("target_id"),
+        log.get("session_id"),
+        log.get("event_type"),
+    ]
+    return any(query in str(value or "").lower() for value in haystacks)
+
+
+def _serialize_audit_logs_csv(logs: list[dict[str, Any]]) -> str:
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(
+        [
+            "timestamp_utc",
+            "source",
+            "severity",
+            "risk_score",
+            "ip",
+            "action_command",
+            "deception_mode",
+            "actor_username",
+            "action",
+            "target_type",
+            "target_id",
+            "session_id",
+        ]
+    )
+    for item in logs:
+        writer.writerow(
+            [
+                item.get("timestamp_utc")
+                or item.get("timestamp")
+                or item.get("ts")
+                or "",
+                item.get("source") or "",
+                item.get("severity") or "",
+                item.get("risk_score") or "",
+                item.get("ip") or "",
+                item.get("cmd") or "",
+                item.get("deception_mode") or "",
+                item.get("actor_username") or "",
+                item.get("action") or "",
+                item.get("target_type") or "",
+                item.get("target_id") or "",
+                item.get("session_id") or "",
+            ]
+        )
+    return buffer.getvalue()
+
+
+@router.get("/audit/logs")
+def audit_logs(
+    search: str = Query(default=""),
+    severity: str = Query(default="all"),
+    source: str = Query(default="all"),
+    limit: int = Query(default=100, ge=1, le=500),
+    export_format: str = Query(default="json", alias="format"),
+    user: dict[str, Any] = Depends(current_user),
+):
+    normalized_source = str(source or "all").strip().lower() or "all"
+    if normalized_source not in AUDIT_LOG_SOURCES:
+        raise HTTPException(status_code=400, detail="Invalid audit log source filter.")
+
+    normalized_format = str(export_format or "json").strip().lower() or "json"
+    if normalized_format not in {"json", "csv"}:
+        raise HTTPException(status_code=400, detail="Invalid audit log export format.")
+
+    raw_limit = min(max(limit * 4, 120), 1000)
+    with db() as conn:
+        event_rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=raw_limit
+        )
+        blocked_rows = conn.execute(
+            "select ip, reason, created_at from blocked_ips where user_id = ? order by datetime(created_at) desc limit ?",
+            (int(user["id"]), raw_limit),
+        ).fetchall()
+        operator_rows = conn.execute(
+            "select * from operator_actions where user_id = ? order by datetime(created_at) desc limit ?",
+            (int(user["id"]), raw_limit),
+        ).fetchall()
+    logs = _build_audit_log_items(event_rows, blocked_rows, operator_rows)
+    logs.sort(
+        key=lambda item: item.get("ts") or item.get("timestamp") or "", reverse=True
+    )
+    filtered_logs = [
+        log
+        for log in logs
+        if _matches_audit_log_filters(
+            log, search=search, severity=severity, source=normalized_source
+        )
+    ][:limit]
+
+    if normalized_format == "csv":
+        csv_content = _serialize_audit_logs_csv(filtered_logs)
+        headers = {
+            "Content-Disposition": 'attachment; filename="cybersentinel-audit-logs.csv"'
+        }
+        return StreamingResponse(
+            iter([csv_content]), media_type="text/csv", headers=headers
+        )
+
+    return filtered_logs
 
 
 @router.get("/forensics/artifacts")
-def forensics_artifacts(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def forensics_artifacts(
+    user: dict[str, Any] = Depends(current_user),
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=12)
-        transcript_artifacts = _terminal_transcript_artifacts(conn, int(user["id"]), rows)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=12
+        )
+        transcript_artifacts = _terminal_transcript_artifacts(
+            conn, int(user["id"]), rows
+        )
     event_artifacts = [
         {
             "name": f"artifact_{row['id']}.json",
@@ -4113,16 +5914,23 @@ def forensics_artifacts(user: dict[str, Any] = Depends(current_user)) -> list[di
         for row in rows
     ]
     combined = transcript_artifacts + event_artifacts
-    combined.sort(key=lambda item: item.get("last_seen") or item.get("first_seen") or "", reverse=True)
+    combined.sort(
+        key=lambda item: item.get("last_seen") or item.get("first_seen") or "",
+        reverse=True,
+    )
     return combined[:12]
 
 
 @router.get("/forensics/transcript/{session_id}")
-def forensics_transcript(session_id: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def forensics_transcript(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
         state = _terminal_sessions(conn, int(user["id"])).get(session_id) or {}
         entries = _terminal_transcript_entries(state)
-        session_rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        session_rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not entries:
         entries = _transcript_entries_from_rows(session_rows)
     if not entries:
@@ -4132,7 +5940,9 @@ def forensics_transcript(session_id: str, user: dict[str, Any] = Depends(current
         "summary": {
             "commands": len(entries),
             "blocked": sum(1 for entry in entries if entry.get("status") == "blocked"),
-            "execution_modes": sorted({entry.get("execution_mode") or "emulated" for entry in entries}),
+            "execution_modes": sorted(
+                {entry.get("execution_mode") or "emulated" for entry in entries}
+            ),
             "first_seen": entries[0]["ts"],
             "last_seen": entries[-1]["ts"],
             "hash": _transcript_hash(entries),
@@ -4143,46 +5953,80 @@ def forensics_transcript(session_id: str, user: dict[str, Any] = Depends(current
 
 
 @router.get("/forensics/behavior/{session_id}")
-def forensics_behavior(session_id: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def forensics_behavior(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         raise HTTPException(status_code=404, detail="Session not found.")
     score = round(sum(float(row["score"]) for row in rows) / max(len(rows), 1))
     cmd_count = sum(1 for row in rows if row.get("cmd"))
-    recon_count = sum(1 for row in rows if (row.get("mitre_tactic") or "").lower() == "reconnaissance")
-    credential_count = sum(1 for row in rows if (row.get("mitre_tactic") or "").lower() == "credential access")
+    recon_count = sum(
+        1 for row in rows if (row.get("mitre_tactic") or "").lower() == "reconnaissance"
+    )
+    credential_count = sum(
+        1
+        for row in rows
+        if (row.get("mitre_tactic") or "").lower() == "credential access"
+    )
     bot_probability = min(95, 20 + recon_count * 12 + max(0, len(rows) - cmd_count) * 5)
     return {
         "session_id": session_id,
-        "behavior": "Credential-focused probing" if credential_count else "Reconnaissance and environment discovery",
+        "behavior": "Credential-focused probing"
+        if credential_count
+        else "Reconnaissance and environment discovery",
         "bot_probability": bot_probability,
         "human_likelihood": max(5, 100 - bot_probability),
         "skill_level": "Intermediate" if score < 75 else "Advanced",
-        "exploit_chain_depth": max(1, len({row.get('mitre_tactic') for row in rows if row.get('mitre_tactic')})),
+        "exploit_chain_depth": max(
+            1, len({row.get("mitre_tactic") for row in rows if row.get("mitre_tactic")})
+        ),
     }
 
 
 @router.get("/soc/playbooks/{session_id}")
-def soc_playbook(session_id: str, user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def soc_playbook(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         return []
-    focus = "Rotate exposed secrets" if any((row.get("mitre_tactic") or "").lower() == "credential access" for row in rows) else "Harden exposed routes"
+    focus = (
+        "Rotate exposed secrets"
+        if any(
+            (row.get("mitre_tactic") or "").lower() == "credential access"
+            for row in rows
+        )
+        else "Harden exposed routes"
+    )
     return [
         {
             "session_id": session_id,
             "title": "Adaptive Incident Response",
-            "steps": ["Validate source IP", "Preserve telemetry", focus, "Monitor repeat offender activity"],
+            "steps": [
+                "Validate source IP",
+                "Preserve telemetry",
+                focus,
+                "Monitor repeat offender activity",
+            ],
         }
     ]
 
 
 @router.get("/forensics/narrative/{session_id}")
-def forensics_narrative(session_id: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def forensics_narrative(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         raise HTTPException(status_code=404, detail="Session not found.")
     first = rows[0]
@@ -4199,9 +6043,13 @@ def forensics_narrative(session_id: str, user: dict[str, Any] = Depends(current_
 
 
 @router.get("/forensics/timeline/{session_id}")
-def forensics_timeline(session_id: str, user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def forensics_timeline(
+    session_id: str, user: dict[str, Any] = Depends(current_user)
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         raise HTTPException(status_code=404, detail="Session not found.")
     return [
@@ -4215,31 +6063,68 @@ def forensics_timeline(session_id: str, user: dict[str, Any] = Depends(current_u
 
 
 @router.post("/forensics/final-report")
-def final_report(payload: dict[str, Any], _: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def final_report(
+    payload: dict[str, Any], user: dict[str, Any] = Depends(final_report_rate_limit)
+) -> dict[str, Any]:
     ip = payload.get("ip", "unknown")
     session_id = payload.get("session_id", "n/a")
+    generated_at = iso_now()
+    report_id = f"report-{secrets.token_hex(4)}"
+    report = (
+        f"Threat summary for {ip}\n"
+        f"Session: {session_id}\n"
+        "Observed credential-focused reconnaissance with adaptive deception containment.\n"
+        "Recommended action: preserve logs, rotate exposed secrets, continue monitoring repeat IP activity."
+    )
+    integrity_payload = {
+        "report_id": report_id,
+        "ip": ip,
+        "session_id": session_id,
+        "generated_at": generated_at,
+        "report_sha256": sha256_hex(report),
+    }
+    integrity_signature = sign_integrity_payload(integrity_payload)
+    with db() as conn:
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="forensics.final_report",
+            summary=f"Generated final report {report_id} for session {session_id}",
+            severity="medium",
+            target_type="forensics_report",
+            target_id=report_id,
+            metadata={"ip": ip, "session_id": session_id},
+        )
     return {
         "status": "success",
-        "report_id": f"report-{secrets.token_hex(4)}",
-        "integrity_code": stable_hash(f"{ip}|{session_id}|report"),
-        "report": (
-            f"Threat summary for {ip}\n"
-            f"Session: {session_id}\n"
-            "Observed credential-focused reconnaissance with adaptive deception containment.\n"
-            "Recommended action: preserve logs, rotate exposed secrets, continue monitoring repeat IP activity."
+        "report_id": report_id,
+        "generated_at": generated_at,
+        "integrity_algorithm": "hmac-sha256",
+        "integrity_code": integrity_fingerprint(
+            integrity_signature, integrity_payload["report_sha256"]
         ),
+        "integrity_signature": integrity_signature,
+        "integrity_payload": integrity_payload,
+        "report": report,
     }
 
 
 @router.post("/simulator/inject")
-def simulator_inject(payload: SimulatorPayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def simulator_inject(
+    payload: SimulatorPayload, user: dict[str, Any] = Depends(simulator_rate_limit)
+) -> dict[str, Any]:
     with db() as conn:
         site_id = _default_site_id_for_user(conn, int(user["id"]))
     event = store_event(
         site_id=site_id,
         event_type=payload.event_type,
         severity=payload.severity,
-        score=84 if payload.severity == "high" else 62 if payload.severity == "medium" else 30,
+        score=84
+        if payload.severity == "high"
+        else 62
+        if payload.severity == "medium"
+        else 30,
         ip=payload.ip,
         geo="Lab",
         url_path=payload.url_path,
@@ -4257,7 +6142,10 @@ def simulator_inject(payload: SimulatorPayload, user: dict[str, Any] = Depends(c
 
 
 @router.post("/terminal/cmd")
-def terminal_cmd(payload: TerminalCommandPayload, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def terminal_cmd(
+    payload: TerminalCommandPayload,
+    user: dict[str, Any] = Depends(terminal_cmd_rate_limit),
+) -> dict[str, Any]:
     cmd = payload.cmd.strip()
     requested_session_id = payload.session_id or f"term-{uuid.uuid4().hex[:10]}"
     real_result = _run_terminal_real_exec(requested_session_id, cmd)
@@ -4265,11 +6153,17 @@ def terminal_cmd(payload: TerminalCommandPayload, user: dict[str, Any] = Depends
 
     with db() as conn:
         site_id = _default_site_id_for_user(conn, int(user["id"]))
-        session_id, state, sessions = _load_terminal_state(conn, int(user["id"]), requested_session_id)
+        session_id, state, sessions = _load_terminal_state(
+            conn, int(user["id"]), requested_session_id
+        )
         if real_result is not None:
             session_id = str(real_result["session_id"])
             if session_id != requested_session_id:
-                state = sessions.get(session_id) if isinstance(sessions.get(session_id), dict) else _terminal_session_state(session_id)
+                state = (
+                    sessions.get(session_id)
+                    if isinstance(sessions.get(session_id), dict)
+                    else _terminal_session_state(session_id)
+                )
             result = {"output": real_result["output"], "status": real_result["status"]}
             prompt = str(real_result["prompt"])
             cwd = str(real_result["cwd"])
@@ -4333,8 +6227,12 @@ def terminal_cmd(payload: TerminalCommandPayload, user: dict[str, Any] = Depends
         "ai_metadata": {
             "confidence": int(event["score"]) if event else int(assessment["score"]),
             "intent": assessment["intent"],
-            "mitre_tactic": event["mitre_tactic"] if event else assessment["mitre_tactic"],
-            "mitre_technique": event["mitre_technique"] if event else assessment["mitre_technique"],
+            "mitre_tactic": event["mitre_tactic"]
+            if event
+            else assessment["mitre_tactic"],
+            "mitre_technique": event["mitre_technique"]
+            if event
+            else assessment["mitre_technique"],
             "stage": "interactive",
             "mode": execution_mode,
             "entropy": assessment["entropy"],
@@ -4346,7 +6244,9 @@ def terminal_cmd(payload: TerminalCommandPayload, user: dict[str, Any] = Depends
 
 
 @router.post("/ai/expert-advisor")
-def ai_expert_advisor(payload: AdvisorPayload, _: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def ai_expert_advisor(
+    payload: AdvisorPayload, _: dict[str, Any] = Depends(ai_advisor_rate_limit)
+) -> dict[str, Any]:
     query = payload.query.strip().lower()
     if query == "status":
         answer = "Platform healthy. Telemetry ingestion is active, adaptive decoys are armed, and analyst dashboard data is available."
@@ -4363,23 +6263,45 @@ def ai_expert_advisor(payload: AdvisorPayload, _: dict[str, Any] = Depends(curre
 
 
 @router.post("/intel/url-scan")
-def url_scan(payload: UrlScanPayload, _: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
-    score = 82 if any(token in payload.url.lower() for token in ["login", "admin", "phpmyadmin"]) else 26
+def url_scan(
+    payload: UrlScanPayload, _: dict[str, Any] = Depends(url_scan_rate_limit)
+) -> dict[str, Any]:
+    score = (
+        82
+        if any(
+            token in payload.url.lower() for token in ["login", "admin", "phpmyadmin"]
+        )
+        else 26
+    )
     return {
         "url": payload.url,
         "risk_score": score,
         "classification": "suspicious" if score >= 70 else "low-risk",
-        "indicators": ["exposed credential surface", "admin portal fingerprint"] if score >= 70 else ["no immediate high-risk pattern"],
+        "indicators": ["exposed credential surface", "admin portal fingerprint"]
+        if score >= 70
+        else ["no immediate high-risk pattern"],
     }
 
 
 @router.get("/intelligence/reputation/{search_ip}")
-def reputation(search_ip: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def reputation(
+    search_ip: str, user: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
     with db() as conn:
         site_ids = _site_ids_for_user(conn, int(user["id"]))
         platform_history_count = _scoped_event_count(conn, site_ids, ip=search_ip)
-        blocked = conn.execute("select 1 from blocked_ips where user_id = ? and ip = ? limit 1", (int(user["id"]), search_ip)).fetchone() is not None
-        campaigns = _correlate_campaigns(_scoped_event_rows(conn, site_ids, limit=200, ip=search_ip), {search_ip} if blocked else set(), limit=1)
+        blocked = (
+            conn.execute(
+                "select 1 from blocked_ips where user_id = ? and ip = ? limit 1",
+                (int(user["id"]), search_ip),
+            ).fetchone()
+            is not None
+        )
+        campaigns = _correlate_campaigns(
+            _scoped_event_rows(conn, site_ids, limit=200, ip=search_ip),
+            {search_ip} if blocked else set(),
+            limit=1,
+        )
     campaign = campaigns[0] if campaigns else None
     score = min(
         99,
@@ -4409,9 +6331,13 @@ def reputation(search_ip: str, user: dict[str, Any] = Depends(current_user)) -> 
 
 
 @router.get("/intelligence/iocs")
-def intelligence_iocs(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
+def intelligence_iocs(
+    user: dict[str, Any] = Depends(current_user),
+) -> list[dict[str, Any]]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=120)
+        rows = _scoped_event_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), limit=120
+        )
     iocs: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for row in rows:
@@ -4434,24 +6360,38 @@ def intelligence_iocs(user: dict[str, Any] = Depends(current_user)) -> list[dict
 
 
 @router.get("/admin/telemetry/summary")
-def admin_telemetry_summary(hours: int = 24, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+def admin_telemetry_summary(
+    hours: int = 24, user: dict[str, Any] = Depends(current_admin_user)
+) -> dict[str, Any]:
     with db() as conn:
         user_id = int(user["id"])
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, user_id), limit=100)
+        site_ids = _site_ids_for_user(conn, user_id)
+        rows = _scoped_event_rows(conn, site_ids, limit=100)
         blocked_lookup = _blocked_ip_lookup(conn, user_id)
         blocked_rows = conn.execute(
             "select ip, reason, created_at from blocked_ips where user_id = ? order by datetime(created_at) desc",
             (user_id,),
         ).fetchall()
         auto_mode = bool(_json_setting(conn, "auto_mode", False, user_id=user_id))
+    demo_mode = bool(
+        not site_ids and rows and any(bool(row.get("demo_mode")) for row in rows)
+    )
     campaigns = _correlate_campaigns(rows, blocked_lookup, limit=5)
-    auto_response_rows = [row for row in blocked_rows if str(row["reason"] or "").startswith(AUTO_RESPONSE_REASON_PREFIX)]
+    auto_response_rows = [
+        row
+        for row in blocked_rows
+        if str(row["reason"] or "").startswith(AUTO_RESPONSE_REASON_PREFIX)
+    ]
     totals = {
         "events": len(rows),
         "unique_ips": len({row["ip"] for row in rows if row.get("ip")}),
-        "unique_sessions": len({row["session_id"] for row in rows if row.get("session_id")}),
+        "unique_sessions": len(
+            {row["session_id"] for row in rows if row.get("session_id")}
+        ),
         "high_risk_events": sum(1 for row in rows if row["severity"] == "high"),
-        "avg_score": round(sum(float(row["score"]) for row in rows) / max(len(rows), 1), 1),
+        "avg_score": round(
+            sum(float(row["score"]) for row in rows) / max(len(rows), 1), 1
+        ),
     }
     type_counts: dict[str, int] = {}
     behavior_counts: dict[str, int] = {}
@@ -4467,9 +6407,16 @@ def admin_telemetry_summary(hours: int = 24, user: dict[str, Any] = Depends(curr
         if row.get("ip"):
             ip_counts[row["ip"]] = ip_counts.get(row["ip"], 0) + 1
     top_ips = []
-    for ip, count in sorted(ip_counts.items(), key=lambda item: item[1], reverse=True)[:5]:
+    for ip, count in sorted(ip_counts.items(), key=lambda item: item[1], reverse=True)[
+        :5
+    ]:
         top_ips.append({"ip": ip, "count": count, "blocked": ip in blocked_lookup})
-    if campaigns:
+    if demo_mode:
+        ai_summary = (
+            "Sample incident mode is active for this workspace. Review the seeded route touches, analyst summary, "
+            "and session timeline before moving into a live pilot."
+        )
+    elif campaigns:
         lead_campaign = campaigns[0]
         ai_summary = (
             f"Telemetry indicates {lead_campaign['label'].lower()} from {lead_campaign['ip']} "
@@ -4479,26 +6426,48 @@ def admin_telemetry_summary(hours: int = 24, user: dict[str, Any] = Depends(curr
         ai_summary = "Telemetry indicates repeated recon across decoy surfaces with selective escalation into credential-focused probes."
     return {
         "totals": totals,
-        "top_event_types": [{"event_type": key, "count": value} for key, value in sorted(type_counts.items(), key=lambda item: item[1], reverse=True)[:5]],
-        "behavior_breakdown": [{"behavior": key, "count": value} for key, value in sorted(behavior_counts.items(), key=lambda item: item[1], reverse=True)[:5]],
-        "top_decoys": [{"decoy": key, "count": value} for key, value in sorted(decoy_counts.items(), key=lambda item: item[1], reverse=True)[:6]],
+        "top_event_types": [
+            {"event_type": key, "count": value}
+            for key, value in sorted(
+                type_counts.items(), key=lambda item: item[1], reverse=True
+            )[:5]
+        ],
+        "behavior_breakdown": [
+            {"behavior": key, "count": value}
+            for key, value in sorted(
+                behavior_counts.items(), key=lambda item: item[1], reverse=True
+            )[:5]
+        ],
+        "top_decoys": [
+            {"decoy": key, "count": value}
+            for key, value in sorted(
+                decoy_counts.items(), key=lambda item: item[1], reverse=True
+            )[:6]
+        ],
         "top_source_ips": top_ips,
         "top_campaigns": campaigns,
         "response_posture": {
             "active_blocks": len(blocked_lookup),
-            "repeat_offenders": sum(1 for campaign in campaigns if int(campaign["event_count"]) >= 2),
+            "repeat_offenders": sum(
+                1 for campaign in campaigns if int(campaign["event_count"]) >= 2
+            ),
             "repeat_threshold": 2,
             "window_minutes": hours * 60,
             "auto_block_enabled": auto_mode,
             "auto_responses": len(auto_response_rows),
-            "last_auto_response": auto_response_rows[0]["created_at"] if auto_response_rows else None,
+            "last_auto_response": auto_response_rows[0]["created_at"]
+            if auto_response_rows
+            else None,
         },
         "ai_summary": ai_summary,
+        "demo_mode": demo_mode,
     }
 
 
 @router.get("/admin/telemetry/sessions")
-def admin_telemetry_sessions(hours: int = 24, limit: int = 20, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+def admin_telemetry_sessions(
+    hours: int = 24, limit: int = 20, user: dict[str, Any] = Depends(current_admin_user)
+) -> dict[str, Any]:
     with db() as conn:
         site_ids = _site_ids_for_user(conn, int(user["id"]))
         clause, params = _site_scope_clause(site_ids)
@@ -4516,46 +6485,74 @@ def admin_telemetry_sessions(hours: int = 24, limit: int = 20, user: dict[str, A
             """,
             (*params, limit),
         ).fetchall()
-    items = []
-    for row in rows:
-        rank = row["severity_rank"]
-        severity = "high" if rank == 3 else "medium" if rank == 2 else "low"
-        items.append({
-            "session_id": row["session_id"],
-            "severity": severity,
-            "event_count": row["event_count"],
-            "max_score": row["max_score"],
-            "last_seen": row["last_seen"],
-        })
-    return {"hours": hours, "items": items}
+        demo_mode = False
+        if rows:
+            items = []
+            for row in rows:
+                rank = row["severity_rank"]
+                severity = "high" if rank == 3 else "medium" if rank == 2 else "low"
+                items.append(
+                    {
+                        "session_id": row["session_id"],
+                        "severity": severity,
+                        "event_count": row["event_count"],
+                        "max_score": row["max_score"],
+                        "last_seen": row["last_seen"],
+                    }
+                )
+        elif not site_ids:
+            items = _session_items_from_rows(
+                _sample_incident_rows(limit=len(SAMPLE_INCIDENT_TEMPLATES)),
+                limit=limit,
+            )
+            demo_mode = True
+        else:
+            items = []
+    return {"hours": hours, "items": items, "demo_mode": demo_mode}
 
 
 @router.get("/admin/telemetry/events")
-def admin_telemetry_events(hours: int = 24, limit: int = 30, offset: int = 0, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+def admin_telemetry_events(
+    hours: int = 24,
+    limit: int = 30,
+    offset: int = 0,
+    user: dict[str, Any] = Depends(current_admin_user),
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=limit, offset=offset)
+        site_ids = _site_ids_for_user(conn, int(user["id"]))
+        rows = _scoped_event_rows(conn, site_ids, limit=limit, offset=offset)
+    demo_mode = bool(
+        not site_ids and rows and any(bool(row.get("demo_mode")) for row in rows)
+    )
     items = []
     for row in rows:
         item = normalize_event(row)
-        items.append({
-            "id": item["id"],
-            "event_type": item["event_type"],
-            "behavior": item["policy_strategy"] or "observe",
-            "ip": item["ip"],
-            "score": item["score"],
-            "decoy": item["url_path"] or item["event_type"],
-            "severity": item["severity"],
-            "timestamp": item["created_at"],
-        })
-    return {"hours": hours, "items": items}
+        items.append(
+            {
+                "id": item["id"],
+                "event_type": item["event_type"],
+                "behavior": item["policy_strategy"] or "observe",
+                "ip": item["ip"],
+                "score": item["score"],
+                "decoy": item["url_path"] or item["event_type"],
+                "severity": item["severity"],
+                "timestamp": item["created_at"],
+            }
+        )
+    return {"hours": hours, "items": items, "demo_mode": demo_mode}
 
 
 @router.get("/admin/telemetry/sessions/{session_id}/timeline")
-def admin_telemetry_session_timeline(session_id: str, user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+def admin_telemetry_session_timeline(
+    session_id: str, user: dict[str, Any] = Depends(current_admin_user)
+) -> dict[str, Any]:
     with db() as conn:
-        rows = _scoped_session_rows(conn, _site_ids_for_user(conn, int(user["id"])), session_id)
+        rows = _scoped_session_rows(
+            conn, _site_ids_for_user(conn, int(user["id"])), session_id
+        )
     if not rows:
         raise HTTPException(status_code=404, detail="Session not found.")
+    demo_mode = any(bool(row.get("demo_mode")) for row in rows)
     return {
         "items": [
             {
@@ -4572,6 +6569,7 @@ def admin_telemetry_session_timeline(session_id: str, user: dict[str, Any] = Dep
             for index, row in enumerate(rows)
         ],
         "summary": f"{len(rows)} events reconstructed for session {session_id}.",
+        "demo_mode": demo_mode,
     }
 
 
@@ -4591,21 +6589,36 @@ def analytics_event(payload: dict[str, Any], request: Request) -> dict[str, Any]
             ),
         )
     promoted = _promote_analytics_event(request, site_id, record, created_at)
-    return {"status": "ok", "event_name": record["event_name"], "site_matched": site_id is not None, "promoted": promoted is not None}
+    return {
+        "status": "ok",
+        "event_name": record["event_name"],
+        "site_matched": site_id is not None,
+        "promoted": promoted is not None,
+    }
 
 
 @router.websocket("/ws/incidents")
 async def ws_incidents(websocket: WebSocket) -> None:
-    user = current_websocket_user(websocket)
     await websocket.accept()
+    try:
+        user = await current_websocket_user(websocket)
+    except WebSocketException as exc:
+        with suppress(Exception):
+            await websocket.close(code=exc.code, reason=exc.reason)
+        return
     try:
         while True:
             with db() as conn:
-                rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=1)
+                rows = _scoped_event_rows(
+                    conn, _site_ids_for_user(conn, int(user["id"])), limit=1
+                )
                 row = rows[0] if rows else None
-            payload = frontend_event(row) if row else {"type": "keepalive", "ts": iso_now()}
+            payload = (
+                frontend_event(row) if row else {"type": "keepalive", "ts": iso_now()}
+            )
             await websocket.send_json(payload)
-            await asyncio.sleep(10)
+            if await _websocket_wait_for_disconnect(websocket, timeout_seconds=10):
+                return
     except WebSocketDisconnect:
         return
     except Exception:
@@ -4614,17 +6627,45 @@ async def ws_incidents(websocket: WebSocket) -> None:
             await websocket.close()
 
 
+async def _websocket_wait_for_disconnect(websocket: WebSocket, timeout_seconds: float) -> bool:
+    try:
+        message = await asyncio.wait_for(websocket.receive(), timeout=timeout_seconds)
+    except asyncio.TimeoutError:
+        return False
+    except WebSocketDisconnect:
+        return True
+    except RuntimeError:
+        # Starlette raises RuntimeError when the close frame has already been processed.
+        return True
+    return str(message.get("type") or "") == "websocket.disconnect"
+
+
 @router.websocket("/ws/system")
 async def ws_system(websocket: WebSocket) -> None:
-    user = current_websocket_user(websocket)
     await websocket.accept()
+    try:
+        user = await current_websocket_user(websocket)
+    except WebSocketException as exc:
+        with suppress(Exception):
+            await websocket.close(code=exc.code, reason=exc.reason)
+        return
     try:
         while True:
             with db() as conn:
-                rows = _scoped_event_rows(conn, _site_ids_for_user(conn, int(user["id"])), limit=80)
+                rows = _scoped_event_rows(
+                    conn, _site_ids_for_user(conn, int(user["id"])), limit=80
+                )
                 system = _system_snapshot(conn, rows, user_id=int(user["id"]))
-            await websocket.send_json({"cpu": system["cpu"], "memory": system["memory"], "latency": system["latency"], "ts": iso_now()})
-            await asyncio.sleep(10)
+            await websocket.send_json(
+                {
+                    "cpu": system["cpu"],
+                    "memory": system["memory"],
+                    "latency": system["latency"],
+                    "ts": iso_now(),
+                }
+            )
+            if await _websocket_wait_for_disconnect(websocket, timeout_seconds=10):
+                return
     except WebSocketDisconnect:
         return
     except Exception:
@@ -4636,7 +6677,9 @@ async def ws_system(websocket: WebSocket) -> None:
 @router.get("/canary/{token}", response_class=PlainTextResponse)
 def trigger_canary(token: str, request: Request) -> str:
     with db() as conn:
-        row = conn.execute("select * from canary_tokens where token = ?", (token,)).fetchone()
+        row = conn.execute(
+            "select * from canary_tokens where token = ?", (token,)
+        ).fetchone()
         if not row:
             raise HTTPException(status_code=404, detail="Canary token not found.")
         now = iso_now()
@@ -4668,17 +6711,28 @@ def trigger_canary(token: str, request: Request) -> str:
 
 @router.get("/research/experiments/latest")
 @router.get("/research/experiments/{run_id}")
-def research_runs(run_id: str | None = None, _: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
-    return {"run_id": run_id or "latest", "status": "complete", "winner": "variant_b", "confidence": 0.74}
+def research_runs(
+    run_id: str | None = None, _: dict[str, Any] = Depends(current_user)
+) -> dict[str, Any]:
+    return {
+        "run_id": run_id or "latest",
+        "status": "complete",
+        "winner": "variant_b",
+        "confidence": 0.74,
+    }
 
 
 @router.post("/research/experiments/run")
-def research_run(_: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+def research_run(
+    _: dict[str, Any] = Depends(research_run_rate_limit),
+) -> dict[str, Any]:
     return {"run_id": f"exp-{secrets.token_hex(4)}", "status": "started"}
 
 
 @router.get("/deception/profiles")
-def deception_profiles(_: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+def deception_profiles(
+    _: dict[str, Any] = Depends(current_admin_user),
+) -> dict[str, Any]:
     return {
         "profiles": [
             {"id": "defensive", "label": "Defensive"},
