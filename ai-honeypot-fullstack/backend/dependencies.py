@@ -13,6 +13,7 @@ from fastapi import (
 )
 
 from core.config import AUTH_COOKIE_NAME, CSRF_TRUSTED_ORIGINS
+from core.csrf import get_csrf_token_from_request, validate_csrf_token
 from core.database import fetch_user_by_id
 from core.request_security import (
     enforce_trusted_origin,
@@ -166,3 +167,40 @@ async def current_websocket_user(websocket: WebSocket) -> dict[str, Any]:
             code=status.WS_1008_POLICY_VIOLATION, reason=exc.detail
         ) from exc
     return user
+
+
+def require_csrf(request: Request, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    """Dependency that validates CSRF token for state-changing requests"""
+    # Get session ID from user (using user ID as session identifier)
+    session_id = str(user.get("id") or "")
+    
+    # Get CSRF token from request
+    token = get_csrf_token_from_request(request)
+    
+    if not token:
+        raise HTTPException(
+            status_code=403,
+            detail="CSRF token missing. Include X-CSRF-Token header or csrf_token in request body."
+        )
+    
+    # Validate CSRF token
+    if not validate_csrf_token(token, session_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or expired CSRF token. Please refresh the page and try again."
+        )
+    
+    return user
+
+
+def require_csrf_optional(request: Request) -> None:
+    """Optional CSRF validation - validates token if present but doesn't require it"""
+    # For public endpoints that may have CSRF protection but don't require it
+    token = get_csrf_token_from_request(request)
+    if token:
+        # If token is provided, validate it (using empty session ID for public requests)
+        if not validate_csrf_token(token, ""):
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid CSRF token provided."
+            )

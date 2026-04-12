@@ -18,44 +18,59 @@ export default function TermsOfService() {
       <main className="cred-main">
         <section className="legal-card">
           <h1>Terms of Service</h1>
-          <p>Last updated: March 29, 2026</p>
-          <h2>Authorized Use</h2>
+          <p>Last updated: April 10, 2026</p>
+          <h2>1. Authorized Use</h2>
           <p>
             {PUBLIC_SITE.siteName} is intended for lawful defensive security operations, deception research, incident response support, and approved
-            cyber-readiness exercises.
+            cyber-readiness exercises. Use for offensive operations is strictly prohibited.
           </p>
-          <h2>Customer Responsibilities</h2>
+          <h2>2. Customer Responsibilities</h2>
           <p>
             Customers are responsible for access control, deployment isolation, lawful configuration of decoy services, and protection of their own
-            users, data, and connected infrastructure.
+            users, data, and connected infrastructure. You must comply with all applicable laws and regulations.
           </p>
-          <h2>Operational Boundaries</h2>
+          <h2>3. Operational Boundaries</h2>
           <p>
             The service must not be used for retaliation, unauthorized access, indiscriminate collection of third-party data, or any activity that
-            violates law, contract, or acceptable-use rules of hosting providers.
+            violates law, contract, or acceptable-use rules of hosting providers. Offensive cyber operations are prohibited.
           </p>
-          <h2>Availability and Changes</h2>
+          <h2>4. Service Availability</h2>
           <p>
             We aim to operate the service reliably, but security software may change as threats, dependencies, or infrastructure evolve. Features may
-            be updated to preserve safety, resilience, or product quality.
+            be updated to preserve safety, resilience, or product quality. We reserve the right to suspend service for abuse or security reasons.
           </p>
-          <h2>Third-Party Services</h2>
+          <h2>5. Third-Party Services</h2>
           <p>
             Some workflows rely on infrastructure, identity, notification, or edge-security providers. Their separate terms and service behavior can
-            affect parts of the platform.
+            affect parts of the platform. You are responsible for reviewing third-party terms.
           </p>
-          <h2>Commercial Terms</h2>
+          <h2>6. Intellectual Property</h2>
+          <p>
+            All software, documentation, and branding are owned by {PUBLIC_SITE.companyName}. You may not reverse engineer, copy, or redistribute the platform
+            without explicit written permission.
+          </p>
+          <h2>7. Limitation of Liability</h2>
+          <p>
+            To the maximum extent permitted by law, {PUBLIC_SITE.companyName} shall not be liable for indirect, incidental, special, consequential, or
+            punitive damages arising from use of the service.
+          </p>
+          <h2>8. Commercial Terms</h2>
           <p>
             If you have a signed order form, MSA, or statement of work with {PUBLIC_SITE.companyName}, those commercial documents control pricing,
             service levels, and any jurisdiction-specific terms.
           </p>
-          <h2>Contact</h2>
+          <h2>9. Termination</h2>
+          <p>
+            We may terminate your access to the service for violation of these terms, abuse, or security concerns. You may terminate your use at any time
+            by providing notice.
+          </p>
+          <h2>10. Contact</h2>
           <p>
             Commercial or legal questions can be sent to <a href={toMailto(PUBLIC_SITE.contactEmail)}>{PUBLIC_SITE.contactEmail}</a>.
           </p>
         </section>
-        <PublicFooter />
       </main>
+      <PublicFooter />
     </div>
   );
 }

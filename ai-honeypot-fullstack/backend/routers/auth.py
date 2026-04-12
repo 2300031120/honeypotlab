@@ -16,6 +16,13 @@ from core.config import (
     GOOGLE_CLIENT_ID,
 )
 from core.database import db
+from core.mfa import (
+    disable_mfa_for_user,
+    get_user_mfa_status,
+    is_mfa_required,
+    setup_mfa_for_user,
+    verify_user_mfa,
+)
 from core.request_security import enforce_rate_limit, extract_client_ip
 from core.security import create_token, hash_password, stable_hash, verify_and_upgrade_password
 from core.time_utils import iso_now
@@ -135,6 +142,22 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict[s
             conn.execute("update users set password_hash = ? where id = ?", (upgraded_hash, row["id"]))
             row = conn.execute("select * from users where id = ?", (row["id"],)).fetchone()
         user = dict(row)
+    
+    # Check if MFA is required
+    user_id = int(user["id"])
+    if is_mfa_required(user_id):
+        # Verify MFA code if provided
+        if not payload.mfa_code:
+            raise HTTPException(
+                status_code=403,
+                detail="MFA code required. Please provide your authenticator code."
+            )
+        if not verify_user_mfa(user_id, payload.mfa_code):
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid MFA code. Please try again."
+            )
+    
     token = create_token(user)
     _set_auth_cookie(response, token)
     return {
@@ -142,6 +165,7 @@ def login(payload: LoginRequest, request: Request, response: Response) -> dict[s
         "username": user["username"],
         "email": user["email"],
         "role": user["role"],
+        "mfa_required": is_mfa_required(user_id),
     }
 
 
@@ -182,6 +206,78 @@ def auth_google(payload: GoogleRequest, request: Request, response: Response) ->
 def biometric_login(request: Request) -> dict[str, Any]:
     _apply_auth_rate_limit(request, action="biometric", identifier=extract_client_ip(request))
     raise HTTPException(status_code=503, detail="Biometric login is not configured on server.")
+
+
+@router.get("/auth/mfa/status")
+def mfa_status(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    """Get MFA status for current user"""
+    return get_user_mfa_status(int(user["id"]))
+
+
+@router.post("/auth/mfa/setup")
+def mfa_setup(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    """Setup MFA for current user - returns secret and QR code"""
+    try:
+        username = str(user.get("username") or "user")
+        result = setup_mfa_for_user(int(user["id"]), username)
+        
+        with db() as conn:
+            record_operator_action(
+                conn,
+                user_id=int(user["id"]),
+                actor_username=username,
+                action="mfa.setup",
+                summary="MFA setup initiated",
+                severity="medium",
+                target_type="user",
+                target_id=int(user["id"]),
+            )
+        
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to setup MFA: {str(e)}")
+
+
+@router.post("/auth/mfa/enable")
+def mfa_enable(code: str, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    """Enable MFA after verifying code"""
+    if not verify_user_mfa(int(user["id"]), code):
+        raise HTTPException(status_code=400, detail="Invalid MFA code")
+    
+    with db() as conn:
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="mfa.enable",
+            summary="MFA enabled for account",
+            severity="high",
+            target_type="user",
+            target_id=int(user["id"]),
+        )
+    
+    return {"status": "enabled"}
+
+
+@router.post("/auth/mfa/disable")
+def mfa_disable(user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+    """Disable MFA for current user"""
+    if not disable_mfa_for_user(int(user["id"])):
+        raise HTTPException(status_code=500, detail="Failed to disable MFA")
+    
+    with db() as conn:
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "operator"),
+            action="mfa.disable",
+            summary="MFA disabled for account",
+            severity="high",
+            target_type="user",
+            target_id=int(user["id"]),
+        )
+    
+    return {"status": "disabled"}
 
 
 @router.post("/auth/logout")

@@ -38,7 +38,6 @@ export default function PublicFooter() {
           <span className="public-footer-label">Product</span>
           <Link to={toCampaignPath("/platform")} onClick={() => trackCtaClick("footer_platform", pagePath)}>Platform</Link>
           <Link to={toCampaignPath("/integrations")} onClick={() => trackCtaClick("footer_integrations", pagePath)}>Integrations</Link>
-          <Link to={toCampaignPath("/resources")} onClick={() => trackCtaClick("footer_resources", pagePath)}>Resources</Link>
           <Link to={toCampaignPath("/security")} onClick={() => trackCtaClick("footer_security", pagePath)}>Security</Link>
         </div>
         <div className="public-footer-column">

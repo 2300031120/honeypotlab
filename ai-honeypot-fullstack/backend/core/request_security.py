@@ -173,6 +173,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
         
+        # Remove server header to hide version information
+        if "Server" in response.headers:
+            del response.headers["Server"]
+        if "X-Powered-By" in response.headers:
+            del response.headers["X-Powered-By"]
+        
         # Enhanced security headers - WEB SECURITY FIX
         response.headers.setdefault("X-Frame-Options", "DENY")  # Prevent clickjacking
         response.headers.setdefault("X-Content-Type-Options", "nosniff")  # Prevent MIME sniffing
@@ -182,6 +188,10 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "Permissions-Policy", 
             "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
         )  # Feature policy
+        
+        # Additional headers to hide version information
+        response.headers.setdefault("X-Server", "Unknown")  # Generic server header
+        response.headers.setdefault("X-Application-Version", "Unknown")  # Hide version
 
         # HSTS for HTTPS
         forwarded_proto = request.headers.get("x-forwarded-proto", "").lower()

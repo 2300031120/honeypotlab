@@ -6,8 +6,7 @@ import { API_BASE } from "./apiConfig";
 import { AUTH_CHANGED_EVENT, clearAuthSession, getUserProfile, setAuthSession } from "./utils/auth";
 import Home from "./Home";
 
-// SECURITY FIX: Using secured authentication component
-const Login = lazy(() => import("./auth_fixed"));
+const Login = lazy(() => import("./Login"));
 const Signup = lazy(() => import("./Signup"));
 const ContactDemo = lazy(() => import("./ContactDemo"));
 const Platform = lazy(() => import("./Platform"));
@@ -16,7 +15,7 @@ const Deployment = lazy(() => import("./Deployment"));
 const Pricing = lazy(() => import("./Pricing"));
 const CaseStudy = lazy(() => import("./CaseStudy"));
 const Screenshots = lazy(() => import("./Screenshots"));
-const Resources = lazy(() => import("./Resources"));
+// const Resources = lazy(() => import("./Resources")); // File not found - commented out
 const PublicArchitecture = lazy(() => import("./PublicArchitecture"));
 const UseCases = lazy(() => import("./UseCases"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy"));
@@ -26,6 +25,7 @@ const AIAssistant = lazy(() => import("./AIAssistant"));
 const MainLayout = lazy(() => import("./MainLayout"));
 const ProtectedPageOutlet = lazy(() => import("./ProtectedPageOutlet"));
 const NotFound = lazy(() => import("./NotFound"));
+const CookieConsent = lazy(() => import("./components/CookieConsent"));
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -152,7 +152,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/case-study" element={<CaseStudy />} />
           <Route path="/screenshots" element={<Screenshots />} />
-          <Route path="/resources" element={<Resources />} />
+          {/* <Route path="/resources" element={<Resources />} /> */} {/* File not found - commented out */}
           <Route path="/architecture" element={<PublicArchitecture />} />
           <Route path="/use-cases" element={<UseCases />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -169,6 +169,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
           >
             <Route path="/terminal" element={<ProtectedPageOutlet page="terminal" />} />
             <Route path="/dashboard" element={<ProtectedPageOutlet page="dashboard" />} />
+            <Route path="/analytics" element={<ProtectedPageOutlet page="analytics" />} />
             <Route path="/telemetry" element={<ProtectedPageOutlet page="telemetry" />} />
             <Route path="/sites" element={<ProtectedPageOutlet page="sites" />} />
             <Route path="/forensics/detail" element={<ProtectedPageOutlet page="forensics" />} />
@@ -190,6 +191,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
         </Routes>
       </Suspense>
       <Suspense fallback={null}>{isSsr ? null : <AIAssistant />}</Suspense>
+      <Suspense fallback={null}>{isSsr ? null : <CookieConsent />}</Suspense>
     </ErrorBoundary>
   );
 }
@@ -233,9 +235,13 @@ function App() {
         }
         setAuthSession(nextProfile);
         setAuthenticated(true);
-      } catch {
+      } catch (error) {
         if (!active) {
           return;
+        }
+        // 401 is expected when user is not logged in - don't log it
+        if (error.response?.status !== 401) {
+          console.error("Auth sync error:", error);
         }
         clearAuthSession();
         setAuthenticated(false);

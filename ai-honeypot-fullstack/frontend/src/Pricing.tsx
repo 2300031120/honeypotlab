@@ -29,7 +29,7 @@ const PLANS = [
     audience: "One app, one team, first deployment",
     icon: <ShieldCheck size={18} />,
     badge: "Best first pilot",
-    priceHint: "14-day guided pilot",
+    priceHint: "$99/month - Student/Individual plan",
     scopeHint: "Typical scope: 1 exposed app, up to 10 decoy routes, core replay and analyst brief",
     description:
       "Best for teams that want to prove value on one public-facing app, service portal, or exposed domain before expanding coverage.",
@@ -46,7 +46,7 @@ const PLANS = [
     audience: "Lean SOC teams and multi-site defenders",
     icon: <Users size={18} />,
     badge: "Recommended",
-    priceHint: "Custom monthly rollout",
+    priceHint: "$299/month - Custom rollout available",
     scopeHint: "Typical scope: 3 to 10 exposed apps, response workflow, readiness review",
     description:
       "Fit for smaller security teams that need live attacker visibility, response-ready evidence, and a practical rollout path across multiple services or brands.",
@@ -63,7 +63,7 @@ const PLANS = [
     audience: "Service providers and multi-tenant operations",
     icon: <Workflow size={18} />,
     badge: "Scale channel motion",
-    priceHint: "Multi-tenant quote",
+    priceHint: "$799/month - Multi-tenant quote available",
     scopeHint: "Typical scope: 10+ customer environments, shared analyst workflow, customer reporting",
     description:
       "For MSSPs and service providers that need one operating model across many customer domains, analysts, and reporting workflows.",

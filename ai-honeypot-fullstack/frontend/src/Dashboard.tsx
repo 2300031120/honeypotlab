@@ -9,6 +9,9 @@ import {
 import { motion, AnimatePresence } from "./utils/motionLite";
 import { ForecastSparkChart, MitreDonutChart, SeverityDonutChart } from "./components/charts/SignalCharts";
 import ThreatGlobe from "./components/dashboard/ThreatGlobe";
+import { AttackTimeline } from "./components/charts/AttackTimeline";
+import { GeographicHeatmap } from "./components/charts/GeographicHeatmap";
+import { TTPAnalysis } from "./components/charts/TTPAnalysis";
 import { isSyntheticEvent, stableGeoLatLng } from "./utils/eventUtils";
 import { createManagedWebSocket, safeParseJson } from "./utils/realtime";
 

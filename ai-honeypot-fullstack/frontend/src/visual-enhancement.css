@@ -1,0 +1,626 @@
+/* Visual Enhancement CSS for Homepage - Making it more impressive */
+
+/* Enhanced Hero Section */
+.marketing-home-cinematic {
+  position: relative;
+  background: linear-gradient(135deg, #010409 0%, #0d1117 50%, #161b22 100%);
+  overflow: hidden;
+}
+
+.marketing-home-cinematic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(255, 191, 42, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 80% 30%, rgba(99, 215, 255, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 40% 80%, rgba(255, 92, 54, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Enhanced Announcement Bar */
+.marketing-home-announcement {
+  background: linear-gradient(90deg, rgba(255, 191, 42, 0.15) 0%, rgba(255, 92, 54, 0.15) 100%);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.1);
+}
+
+.marketing-home-announcement-label {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Enhanced Hero Typography */
+.marketing-home-display {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #e6edf3 0%, #8b949e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 40px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-home-kicker {
+  background: linear-gradient(90deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+}
+
+/* Enhanced Buttons */
+.marketing-btn-primary {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  border: none;
+  color: #010409;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.marketing-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.marketing-btn-primary:hover::before {
+  left: 100%;
+}
+
+.marketing-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-btn-secondary {
+  background: rgba(13, 17, 23, 0.8);
+  border: 2px solid rgba(99, 215, 255, 0.5);
+  color: #63d7ff;
+  font-weight: 600;
+  padding: 12px 30px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(99, 215, 255, 0.1);
+}
+
+.marketing-btn-secondary:hover {
+  background: rgba(99, 215, 255, 0.1);
+  border-color: #63d7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 215, 255, 0.2);
+}
+
+/* Enhanced Signal Cards */
+.marketing-home-signal-card {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-home-signal-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-home-signal-card strong {
+  color: #63d7ff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(99, 215, 255, 0.5);
+}
+
+/* Enhanced Float Cards */
+.marketing-home-float-card {
+  background: rgba(13, 17, 23, 0.9);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5),
+              0 0 60px rgba(255, 191, 42, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.marketing-home-float-card-path {
+  animation-delay: 0s;
+}
+
+.marketing-home-float-card-score {
+  animation-delay: 2s;
+}
+
+.marketing-home-float-card-brief {
+  animation-delay: 4s;
+}
+
+.marketing-home-float-card strong {
+  color: #ffbf2a;
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #63d7ff;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Enhanced Trust Section */
+.marketing-home-trust-rail {
+  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(22, 27, 34, 0.8) 100%);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.marketing-home-trust-stat {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-trust-stat:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-home-trust-stat strong {
+  color: #ffbf2a;
+  font-size: 2rem;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-home-trust-badges span {
+  background: rgba(99, 215, 255, 0.1);
+  border: 1px solid rgba(99, 215, 255, 0.3);
+  color: #63d7ff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-trust-badges span:hover {
+  background: rgba(99, 215, 255, 0.2);
+  border-color: #63d7ff;
+  transform: scale(1.05);
+}
+
+/* Enhanced Platform Cards */
+.marketing-platform-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-platform-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-icon-box {
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.2) 0%, rgba(255, 92, 54, 0.2) 100%);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  color: #ffbf2a;
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-impact-signal {
+  color: #63d7ff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.85rem;
+}
+
+/* Enhanced Feature Cards */
+.marketing-card.marketing-feature {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-card.marketing-feature:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-card.marketing-feature h3 {
+  color: #e6edf3;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.marketing-card.marketing-feature p {
+  color: #8b949e;
+  line-height: 1.6;
+}
+
+.marketing-card.marketing-feature p[style*="font-size"] {
+  color: #63d7ff;
+  text-shadow: 0 0 20px rgba(99, 215, 255, 0.5);
+}
+
+/* Enhanced Showcase Cards */
+.marketing-card.marketing-showcase {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-card.marketing-showcase:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15);
+}
+
+.marketing-card.marketing-showcase h3 {
+  color: #e6edf3;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.marketing-card.marketing-showcase p {
+  color: #8b949e;
+  line-height: 1.6;
+}
+
+/* Enhanced Screenshot Cards */
+.marketing-screenshot-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-screenshot-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-screenshot-frame {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.marketing-screenshot-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.marketing-screenshot-card:hover .marketing-screenshot-frame img {
+  transform: scale(1.05);
+}
+
+.marketing-screenshot-copy {
+  padding: 20px;
+}
+
+.marketing-screenshot-copy h3 {
+  color: #e6edf3;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.marketing-screenshot-copy p {
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+/* Enhanced Proof Asset Cards */
+.marketing-proof-asset-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-proof-asset-card:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15);
+}
+
+.marketing-proof-asset-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.marketing-proof-asset-stats strong {
+  background: rgba(255, 191, 42, 0.1);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  color: #ffbf2a;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Enhanced CTA Section */
+.marketing-card.marketing-cta {
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.1) 0%, rgba(255, 92, 54, 0.1) 100%);
+  border: 2px solid rgba(255, 191, 42, 0.3);
+  border-radius: 20px;
+  padding: 48px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15),
+              inset 0 0 60px rgba(255, 191, 42, 0.05);
+}
+
+.marketing-cta-copy h2 {
+  color: #e6edf3;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.marketing-cta-copy p {
+  color: #8b949e;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+/* Enhanced Section Headers */
+.marketing-section-head p {
+  color: #ffbf2a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.marketing-section-head h2 {
+  color: #e6edf3;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Enhanced Checklist */
+.marketing-checklist li {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.marketing-checklist li:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateX(5px);
+  background: rgba(99, 215, 255, 0.05);
+}
+
+.marketing-checklist li svg {
+  color: #63d7ff;
+  flex-shrink: 0;
+}
+
+.marketing-checklist li span {
+  color: #e6edf3;
+  font-weight: 500;
+}
+
+/* Enhanced Platform Flow */
+.marketing-platform-flow-step {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: all 0.3s ease;
+}
+
+.marketing-platform-flow-step:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateX(5px);
+  background: rgba(255, 191, 42, 0.05);
+}
+
+.marketing-platform-flow-step span {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.marketing-platform-flow-step strong {
+  color: #e6edf3;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.marketing-platform-flow-step small {
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+/* Enhanced Proof Rail */
+.marketing-home-proof-item {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-proof-item:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateX(5px);
+  background: rgba(99, 215, 255, 0.05);
+}
+
+.marketing-home-proof-item span {
+  color: #63d7ff;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.marketing-home-proof-item p {
+  color: #8b949e;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* Enhanced Visual Effects */
+.marketing-home-visual-glow-a {
+  background: radial-gradient(circle, rgba(255, 191, 42, 0.15) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.marketing-home-visual-glow-b {
+  background: radial-gradient(circle, rgba(99, 215, 255, 0.15) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite 2s;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+  .marketing-home-display {
+    font-size: 2rem;
+  }
+  
+  .marketing-card.marketing-cta {
+    padding: 32px 24px;
+  }
+  
+  .marketing-cta-copy h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Scroll Animations */
+.marketing-lazy-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s ease;
+}
+
+.marketing-lazy-section.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Enhanced Grid Layouts */
+.marketing-grid-3,
+.marketing-grid-2 {
+  display: grid;
+  gap: 24px;
+}
+
+.marketing-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.marketing-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .marketing-grid-3 {
+    grid-template-columns: 1fr;
+  }
+  
+  .marketing-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}

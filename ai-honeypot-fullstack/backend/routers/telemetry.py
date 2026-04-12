@@ -46,6 +46,11 @@ from core.audit import (
     operator_action_log_entry,
     record_operator_action,
 )
+from core.websocket_security import (
+    cleanup_websocket,
+    secure_websocket_accept,
+    secure_websocket_message,
+)
 from core.config import (
     ALLOW_SIGNUP,
     AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS,
@@ -88,7 +93,12 @@ from core.security import integrity_fingerprint
 from core.security import sha256_hex
 from core.security import sign_integrity_payload
 from core.security import stable_hash
+from core.cache import cache_result
 from core.splunk import forward_event_to_splunk
+from core.qradar import qradar_integration
+from core.elastic import elastic_integration
+from core.sentinel import sentinel_integration
+from core.siem_forwarder import siem_forwarder
 from core.time_utils import iso_now, utc_now
 from dependencies import (
     current_admin_user,
@@ -6599,7 +6609,7 @@ def analytics_event(payload: dict[str, Any], request: Request) -> dict[str, Any]
 
 @router.websocket("/ws/incidents")
 async def ws_incidents(websocket: WebSocket) -> None:
-    await websocket.accept()
+    await secure_websocket_accept(websocket)
     try:
         user = await current_websocket_user(websocket)
     except WebSocketException as exc:
@@ -6625,6 +6635,8 @@ async def ws_incidents(websocket: WebSocket) -> None:
         logger.exception("ws_incidents loop failed.")
         with suppress(Exception):
             await websocket.close()
+    finally:
+        await cleanup_websocket(websocket)
 
 
 async def _websocket_wait_for_disconnect(websocket: WebSocket, timeout_seconds: float) -> bool:
@@ -6642,7 +6654,7 @@ async def _websocket_wait_for_disconnect(websocket: WebSocket, timeout_seconds: 
 
 @router.websocket("/ws/system")
 async def ws_system(websocket: WebSocket) -> None:
-    await websocket.accept()
+    await secure_websocket_accept(websocket)
     try:
         user = await current_websocket_user(websocket)
     except WebSocketException as exc:
@@ -6672,6 +6684,8 @@ async def ws_system(websocket: WebSocket) -> None:
         logger.exception("ws_system loop failed.")
         with suppress(Exception):
             await websocket.close()
+    finally:
+        await cleanup_websocket(websocket)
 
 
 @router.get("/canary/{token}", response_class=PlainTextResponse)
@@ -6745,3 +6759,16 @@ def deception_profiles(
 @router.get("/intelligence/healthz", response_class=PlainTextResponse)
 def healthz() -> str:
     return "ok"
+
+
+@router.get("/admin/siem/status")
+def siem_status(user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Get status of all SIEM integrations"""
+    return siem_forwarder.get_status()
+
+
+@router.post("/admin/siem/test")
+async def siem_test(user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Test connections to all configured SIEM platforms"""
+    results = await siem_forwarder.test_connections()
+    return {"connections": results}

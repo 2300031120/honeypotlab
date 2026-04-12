@@ -182,6 +182,9 @@ SECURITY_HSTS_SECONDS = max(0, env_int("SECURITY_HSTS_SECONDS", 31536000 if APP_
 SECURITY_CONTENT_SECURITY_POLICY = os.getenv("SECURITY_CONTENT_SECURITY_POLICY", "").strip()
 DECOY_COOKIE_SECURE = env_flag("DECOY_COOKIE_SECURE", default=APP_ENV == "production")
 DECOY_COOKIE_SAMESITE = os.getenv("DECOY_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
+CLOUDFLARE_TUNNEL_ENABLED = env_flag("CLOUDFLARE_TUNNEL_ENABLED", default=False)
+ADMIN_WHITELIST_IPS = split_env_csv("ADMIN_WHITELIST_IPS", "")
+RESPONSE_OBFUSCATION_ENABLED = env_flag("RESPONSE_OBFUSCATION_ENABLED", default=False)
 AUTH_COOKIE_NAME = os.getenv("AUTH_COOKIE_NAME", "cybersentil_session").strip() or "cybersentil_session"
 AUTH_COOKIE_SECURE = env_flag("AUTH_COOKIE_SECURE", default=APP_ENV == "production")
 AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower() or "lax"
@@ -190,6 +193,8 @@ AUTH_RATE_LIMIT_WINDOW_SECONDS = env_int("AUTH_RATE_LIMIT_WINDOW_SECONDS", 60)
 AUTH_RATE_LIMIT_MAX_ATTEMPTS = env_int("AUTH_RATE_LIMIT_MAX_ATTEMPTS", 8)
 LEAD_RATE_LIMIT_WINDOW_SECONDS = env_int("LEAD_RATE_LIMIT_WINDOW_SECONDS", 300)
 LEAD_RATE_LIMIT_MAX_ATTEMPTS = env_int("LEAD_RATE_LIMIT_MAX_ATTEMPTS", 5)
+CONSENT_RATE_LIMIT_WINDOW_SECONDS = env_int("CONSENT_RATE_LIMIT_WINDOW_SECONDS", 60)
+CONSENT_RATE_LIMIT_MAX_ATTEMPTS = env_int("CONSENT_RATE_LIMIT_MAX_ATTEMPTS", 10)
 TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS = env_int("TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS", 60)
 TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS = env_int("TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS", 60)
 AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS = env_int("AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS", 60)
@@ -244,6 +249,47 @@ PROTOCOL_SSH_TRAP_CREDENTIALS = os.getenv("PROTOCOL_SSH_TRAP_CREDENTIALS", "").s
 PROTOCOL_MYSQL_AUTH_TRAP_ENABLED = env_flag("PROTOCOL_MYSQL_AUTH_TRAP_ENABLED", default=True)
 PROTOCOL_MYSQL_TRAP_CREDENTIALS = os.getenv("PROTOCOL_MYSQL_TRAP_CREDENTIALS", "").strip()
 SSH_DECOY_HEALTH_URL = os.getenv("SSH_DECOY_HEALTH_URL", "").strip()
+AI_LLM_ENABLED = env_flag("AI_LLM_ENABLED", default=False)
+AI_LLM_PROVIDER = os.getenv("AI_LLM_PROVIDER", "openai").strip().lower() or "openai"
+AI_LLM_MODEL = os.getenv("AI_LLM_MODEL", "gpt-4").strip() or "gpt-4"
+AI_LLM_API_KEY = os.getenv("AI_LLM_API_KEY", "").strip()
+AI_LLM_MAX_TOKENS = env_int("AI_LLM_MAX_TOKENS", 2000)
+AI_LLM_TEMPERATURE = env_float("AI_LLM_TEMPERATURE", 0.7)
+EVENTS_RETENTION_DAYS = env_int("EVENTS_RETENTION_DAYS", 90)
+LEADS_RETENTION_DAYS = env_int("LEADS_RETENTION_DAYS", 365)
+AUDIT_LOG_RETENTION_DAYS = env_int("AUDIT_LOG_RETENTION_DAYS", 180)
+BLOCKED_IPS_RETENTION_DAYS = env_int("BLOCKED_IPS_RETENTION_DAYS", 30)
+REQUEST_LOGS_RETENTION_DAYS = env_int("REQUEST_LOGS_RETENTION_DAYS", 30)
+AI_API_COST_BUDGET_MONTHLY = env_float("AI_API_COST_BUDGET_MONTHLY", 100.0)
+AI_API_COST_ALERT_THRESHOLD = env_float("AI_API_COST_ALERT_THRESHOLD", 0.8)
+HEALTH_CHECK_INTERVAL_SECONDS = env_int("HEALTH_CHECK_INTERVAL_SECONDS", 60)
+
+# QRadar SIEM Integration
+QRADAR_HOST = os.getenv("QRADAR_HOST", "").strip()
+QRADAR_PORT = env_int("QRADAR_PORT", 443)
+QRADAR_TOKEN = os.getenv("QRADAR_TOKEN", "").strip()
+QRADAR_VERIFY_TLS = env_flag("QRADAR_VERIFY_TLS", default=True)
+QRADAR_TIMEOUT_SECONDS = max(1, env_int("QRADAR_TIMEOUT_SECONDS", 5))
+
+# Elastic Security SIEM Integration
+ELASTIC_HOST = os.getenv("ELASTIC_HOST", "").strip()
+ELASTIC_PORT = env_int("ELASTIC_PORT", 9200)
+ELASTIC_USERNAME = os.getenv("ELASTIC_USERNAME", "").strip()
+ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD", "").strip()
+ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY", "").strip()
+ELASTIC_INDEX = os.getenv("ELASTIC_INDEX", "deception-events").strip() or "deception-events"
+ELASTIC_VERIFY_TLS = env_flag("ELASTIC_VERIFY_TLS", default=True)
+ELASTIC_TIMEOUT_SECONDS = max(1, env_int("ELASTIC_TIMEOUT_SECONDS", 5))
+
+# Microsoft Sentinel SIEM Integration
+SENTINEL_WORKSPACE_ID = os.getenv("SENTINEL_WORKSPACE_ID", "").strip()
+SENTINEL_SHARED_KEY = os.getenv("SENTINEL_SHARED_KEY", "").strip()
+SENTINEL_LOG_TYPE = os.getenv("SENTINEL_LOG_TYPE", "DeceptionEvents").strip() or "DeceptionEvents"
+SENTINEL_TIMEOUT_SECONDS = max(1, env_int("SENTINEL_TIMEOUT_SECONDS", 10))
+HEALTH_CHECK_ALERT_THRESHOLD = env_int("HEALTH_CHECK_ALERT_THRESHOLD", 3)
+HEALTH_CHECK_CPU_THRESHOLD = env_int("HEALTH_CHECK_CPU_THRESHOLD", 80)
+HEALTH_CHECK_MEMORY_THRESHOLD = env_int("HEALTH_CHECK_MEMORY_THRESHOLD", 80)
+HEALTH_CHECK_DISK_THRESHOLD = env_int("HEALTH_CHECK_DISK_THRESHOLD", 85)
 
 
 def validate_runtime_config() -> None:
@@ -351,12 +397,12 @@ def validate_runtime_config() -> None:
                 failures.append("CSRF_TRUSTED_ORIGINS must include the PUBLIC_BASE_URL origin in production.")
         if not TRUSTED_HOSTS or "*" in TRUSTED_HOSTS:
             failures.append("TRUSTED_HOSTS must be explicitly set and cannot include '*'.")
-        if any("localhost" in item.lower() or "127.0.0.1" in item.lower() for item in TRUSTED_HOSTS):
-            failures.append("TRUSTED_HOSTS cannot contain localhost/127.0.0.1 in production.")
+        if any("localhost" in item.lower() or "127.0.0.1" in item.lower() for item in TRUSTED_HOSTS) and not CLOUDFLARE_TUNNEL_ENABLED:
+            failures.append("TRUSTED_HOSTS cannot contain localhost/127.0.0.1 in production unless CLOUDFLARE_TUNNEL_ENABLED is true.")
         if parsed_public and parsed_public.hostname and not trusted_host_matches(parsed_public.hostname, TRUSTED_HOSTS):
             failures.append("TRUSTED_HOSTS must include the PUBLIC_BASE_URL hostname in production.")
-        if not FORCE_HTTPS_REDIRECT:
-            failures.append("FORCE_HTTPS_REDIRECT must be true in production.")
+        if not FORCE_HTTPS_REDIRECT and not CLOUDFLARE_TUNNEL_ENABLED:
+            failures.append("FORCE_HTTPS_REDIRECT must be true in production unless CLOUDFLARE_TUNNEL_ENABLED is true.")
         if not SECURITY_HEADERS_ENABLED:
             failures.append("SECURITY_HEADERS_ENABLED must be true in production.")
         if not DECOY_COOKIE_SECURE:

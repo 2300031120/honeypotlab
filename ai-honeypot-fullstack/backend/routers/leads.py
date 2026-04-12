@@ -15,12 +15,14 @@ from fastapi.responses import StreamingResponse
 
 from core.audit import record_operator_action
 from core.config import ALLOWED_STATUS, LEAD_RATE_LIMIT_MAX_ATTEMPTS, LEAD_RATE_LIMIT_WINDOW_SECONDS, SECRET_KEY, STATUS_TRANSITIONS
+from core.data_retention import cleanup_old_data, anonymize_ip_addresses
+from core.request_logging import cleanup_old_request_logs, get_request_logs, get_request_log_stats
 from core.database import db
 from core.lead_notifications import dispatch_lead_notifications
 from core.public_hosts import normalize_public_host, select_matching_site_row
 from core.request_security import build_rate_limit_dependency
 from core.time_utils import iso_now, utc_now
-from dependencies import current_admin_user, current_user
+from dependencies import current_admin_user, current_user, require_csrf_optional
 from schemas import LeadAssignPayload, LeadNotePayload, LeadSubmission, StatusUpdate
 
 
@@ -265,12 +267,12 @@ def lead_challenge() -> dict[str, Any]:
 
 
 @router.post("/contact/submit")
-def contact_submit(payload: LeadSubmission, request: Request, _: None = Depends(lead_rate_limit)) -> dict[str, Any]:
+def contact_submit(payload: LeadSubmission, request: Request, _: None = Depends(lead_rate_limit), __: None = Depends(require_csrf_optional)) -> dict[str, Any]:
     return save_lead("contact", payload, request)
 
 
 @router.post("/demo/submit")
-def demo_submit(payload: LeadSubmission, request: Request, _: None = Depends(lead_rate_limit)) -> dict[str, Any]:
+def demo_submit(payload: LeadSubmission, request: Request, _: None = Depends(lead_rate_limit), __: None = Depends(require_csrf_optional)) -> dict[str, Any]:
     return save_lead("demo", payload, request)
 
 
@@ -462,3 +464,67 @@ def admin_assign_lead(lead_id: int, payload: LeadAssignPayload, user: dict[str, 
             metadata={"assigned_to": assigned_to},
         )
     return {"lead": lead_with_flags(updated)}
+
+
+@router.post("/admin/data-retention/cleanup")
+def admin_data_retention_cleanup(user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Trigger data retention cleanup (admin only)"""
+    result = cleanup_old_data()
+    with db() as conn:
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "admin"),
+            action="data_retention.cleanup",
+            summary=f"Data retention cleanup: {result['total_deleted']} records deleted",
+            severity="low",
+            target_type="system",
+            metadata=result,
+        )
+    return result
+
+
+@router.post("/admin/data-retention/anonymize-ips")
+def admin_anonymize_ips(user: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Trigger IP address anonymization (admin only)"""
+    result = anonymize_ip_addresses()
+    with db() as conn:
+        record_operator_action(
+            conn,
+            user_id=int(user["id"]),
+            actor_username=str(user.get("username") or "admin"),
+            action="data_retention.anonymize_ips",
+            summary=f"IP address anonymization: {result['anonymized_count']} addresses anonymized",
+            severity="low",
+            target_type="system",
+            metadata=result,
+        )
+    return result
+
+
+@router.get("/admin/request-logs")
+def admin_request_logs(
+    limit: int = 100,
+    offset: int = 0,
+    client_ip: str | None = None,
+    status_code: int | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+    _: dict[str, Any] = Depends(current_admin_user)
+) -> dict[str, Any]:
+    """Get request logs with optional filters (admin only)"""
+    logs = get_request_logs(limit, offset, client_ip, None, status_code, start_date, end_date)
+    return {"logs": logs, "count": len(logs)}
+
+
+@router.get("/admin/request-logs/stats")
+def admin_request_log_stats(days: int = 7, _: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Get request log statistics (admin only)"""
+    return get_request_log_stats(days)
+
+
+@router.post("/admin/request-logs/cleanup")
+def admin_request_logs_cleanup(_: dict[str, Any] = Depends(current_admin_user)) -> dict[str, Any]:
+    """Clean up old request logs (admin only)"""
+    deleted_count = cleanup_old_request_logs()
+    return {"deleted_count": deleted_count}

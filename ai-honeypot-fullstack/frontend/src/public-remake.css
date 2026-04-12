@@ -6,17 +6,17 @@
   --mk-shadow: 0 32px 88px rgba(1, 6, 12, 0.42);
   --mk-text: #edf5ff;
   --mk-muted: #8ca0b6;
-  --mk-primary: #63d7ff;
-  --mk-primary-soft: rgba(99, 215, 255, 0.14);
-  --mk-accent: #42b8ff;
-  --mk-accent-soft: rgba(66, 184, 255, 0.16);
+  --mk-primary: #ffd700;
+  --mk-primary-soft: rgba(255, 215, 0, 0.14);
+  --mk-accent: #ff69b4;
+  --mk-accent-soft: rgba(255, 105, 180, 0.16);
   --mk-success: #3cd7a5;
-  --entry-gold: #63d7ff;
-  --entry-gold-soft: rgba(99, 215, 255, 0.16);
-  --entry-red: #2f93ff;
-  --entry-red-deep: #1e5db6;
-  --entry-pink: #70ffd3;
-  --entry-pink-soft: rgba(112, 255, 211, 0.16);
+  --entry-gold: #ffd700;
+  --entry-gold-soft: rgba(255, 215, 0, 0.16);
+  --entry-red: #ff69b4;
+  --entry-red-deep: #ff1493;
+  --entry-pink: #ff69b4;
+  --entry-pink-soft: rgba(255, 105, 180, 0.16);
   --entry-ink: #08111b;
   --entry-ink-soft: #132131;
   --mk-motion-fast: 180ms;
@@ -34,9 +34,9 @@ body {
 .marketing-shell {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(99, 215, 255, 0.18), transparent 22%),
-    radial-gradient(circle at top right, rgba(47, 147, 255, 0.14), transparent 28%),
-    radial-gradient(circle at 50% 20%, rgba(112, 255, 211, 0.08), transparent 32%),
+    radial-gradient(circle at top left, rgba(255, 215, 0, 0.18), transparent 22%),
+    radial-gradient(circle at top right, rgba(255, 105, 180, 0.14), transparent 28%),
+    radial-gradient(circle at 50% 20%, rgba(255, 182, 193, 0.08), transparent 32%),
     linear-gradient(180deg, #06101a 0%, #0b1520 38%, #0f1b29 72%, #132232 100%);
   color: var(--mk-text);
   overflow-x: clip;
@@ -44,9 +44,9 @@ body {
 
 .marketing-shell-home {
   background:
-    radial-gradient(circle at 18% 14%, rgba(99, 215, 255, 0.18), transparent 18%),
-    radial-gradient(circle at 74% 16%, rgba(47, 147, 255, 0.16), transparent 18%),
-    radial-gradient(circle at 50% 44%, rgba(112, 255, 211, 0.1), transparent 20%),
+    radial-gradient(circle at 18% 14%, rgba(255, 215, 0, 0.18), transparent 18%),
+    radial-gradient(circle at 74% 16%, rgba(255, 105, 180, 0.16), transparent 18%),
+    radial-gradient(circle at 50% 44%, rgba(255, 182, 193, 0.1), transparent 20%),
     linear-gradient(180deg, #040a11 0%, #09111b 34%, #0d1824 58%, #142536 100%);
 }
 
@@ -95,9 +95,9 @@ body {
 
 .marketing-shell-home .cred-btn-primary,
 .marketing-shell-home .home-v2-btn-primary {
-  background: linear-gradient(135deg, #ffbf2a, #ff7f2a 24%, #ff5b35 48%, #356fff 100%);
+  background: linear-gradient(135deg, #ffd700, #ffb6c1 24%, #ff69b4 48%, #ff1493 100%);
   color: #07111b;
-  box-shadow: 0 16px 32px rgba(53, 141, 255, 0.24);
+  box-shadow: 0 16px 32px rgba(255, 105, 180, 0.24);
 }
 
 .marketing-shell-home .cred-btn-ghost,
@@ -130,8 +130,8 @@ body {
 .marketing-shell-home .marketing-hero-copy {
   padding: 46px 44px;
   background:
-    radial-gradient(circle at 12% 10%, rgba(255, 191, 42, 0.14), transparent 28%),
-    radial-gradient(circle at 86% 18%, rgba(53, 120, 255, 0.12), transparent 24%),
+    radial-gradient(circle at 12% 10%, rgba(255, 215, 0, 0.14), transparent 28%),
+    radial-gradient(circle at 86% 18%, rgba(255, 105, 180, 0.12), transparent 24%),
     linear-gradient(180deg, rgba(11, 20, 31, 0.96), rgba(9, 17, 28, 0.94));
 }
 
@@ -221,7 +221,8 @@ body {
   border-radius: 24px;
   border: 1px solid rgba(140, 176, 214, 0.12);
   background:
-    radial-gradient(circle at 82% 14%, rgba(104, 220, 255, 0.12), transparent 22%),
+    radial-gradient(circle at 82% 14%, rgba(255, 215, 0, 0.12), transparent 22%),
+    radial-gradient(circle at 18% 86%, rgba(255, 105, 180, 0.1), transparent 22%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
 }
 
@@ -402,9 +403,9 @@ body {
   gap: 22px;
   align-items: stretch;
   background:
-    radial-gradient(circle at 12% 82%, rgba(255, 98, 58, 0.22), transparent 28%),
-    radial-gradient(circle at 82% 22%, rgba(53, 120, 255, 0.24), transparent 26%),
-    radial-gradient(circle at 58% 30%, rgba(255, 191, 42, 0.16), transparent 20%),
+    radial-gradient(circle at 12% 82%, rgba(255, 105, 180, 0.22), transparent 28%),
+    radial-gradient(circle at 82% 22%, rgba(255, 215, 0, 0.24), transparent 26%),
+    radial-gradient(circle at 58% 30%, rgba(255, 182, 193, 0.16), transparent 20%),
     linear-gradient(120deg, #080d15 0%, #120d10 12%, #3a0f16 38%, #6d1d18 54%, #1c2450 78%, #101722 100%);
   box-shadow: 0 42px 90px rgba(4, 10, 18, 0.42);
 }
@@ -464,10 +465,10 @@ body {
 }
 
 .marketing-shell-home .marketing-home-cinematic-actions .marketing-btn-primary {
-  background: linear-gradient(135deg, #ffbf2a, #ff8930 28%, #ff5d36 58%, #356fff 100%);
+  background: linear-gradient(135deg, #ffd700, #ffb6c1 28%, #ff69b4 58%, #ff1493 100%);
   color: #07111b;
   border-color: rgba(255, 255, 255, 0.16);
-  box-shadow: 0 20px 38px rgba(20, 39, 75, 0.26);
+  box-shadow: 0 20px 38px rgba(255, 105, 180, 0.26);
 }
 
 .marketing-shell-home .marketing-home-cinematic-actions .marketing-btn-secondary {
@@ -525,22 +526,22 @@ body {
   inset: 5% 8% auto auto;
   width: 320px;
   height: 320px;
-  background: radial-gradient(circle, rgba(255, 191, 42, 0.18), rgba(53, 120, 255, 0.22) 42%, transparent 72%);
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.18), rgba(255, 105, 180, 0.22) 42%, transparent 72%);
 }
 
 .marketing-shell-home .marketing-home-visual-glow-b {
   inset: auto auto 6% 16%;
   width: 260px;
   height: 260px;
-  background: radial-gradient(circle, rgba(255, 191, 42, 0.16), rgba(255, 98, 58, 0.22) 42%, transparent 72%);
+  background: radial-gradient(circle, rgba(255, 215, 0, 0.16), rgba(255, 105, 180, 0.22) 42%, transparent 72%);
 }
 
 .marketing-shell-home .marketing-home-visual-line-grid {
   position: absolute;
   inset: -6% 6% -8% 28%;
   background:
-    repeating-linear-gradient(90deg, rgba(255, 191, 42, 0.16) 0 1px, transparent 1px 74px),
-    linear-gradient(180deg, rgba(53, 120, 255, 0.12), transparent 24%, transparent 72%, rgba(255, 98, 58, 0.08));
+    repeating-linear-gradient(90deg, rgba(255, 215, 0, 0.16) 0 1px, transparent 1px 74px),
+    linear-gradient(180deg, rgba(255, 105, 180, 0.12), transparent 24%, transparent 72%, rgba(255, 105, 180, 0.08));
   mask-image: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.9) 18%, rgba(0, 0, 0, 0.95) 84%, transparent);
   opacity: 0.45;
 }

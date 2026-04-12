@@ -14,6 +14,7 @@ class SignupRequest(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    mfa_code: str | None = None
 
 
 class GoogleRequest(BaseModel):
@@ -139,3 +140,8 @@ class InternalProtocolEventPayload(BaseModel):
     severity: str | None = None
     score: float | None = None
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConsentUpdateRequest(BaseModel):
+    consent_given: bool
+    preferences: dict[str, bool] = Field(default_factory=dict)

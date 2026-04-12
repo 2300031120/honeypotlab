@@ -5,7 +5,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file. Use strong password with min 16 chars, mixed case, numbers, symbols
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
       interval: 10s
@@ -13,6 +13,38 @@ services:
       retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data-tier
+
+  db-backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    profiles:
+      - backup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
+      - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}
+      - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data:ro
+      - backup_data:/backups
+    command: >
+      /bin/sh -c "
+      apk add --no-cache postgresql-client &&
+      while true; do
+        echo 'Starting backup at $$(date)' &&
+        pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB > /backups/backup-$$(date +%Y%m%d-%H%M%S).sql &&
+        find /backups -name 'backup-*.sql' -mtime +$$BACKUP_RETENTION_DAYS -delete &&
+        echo 'Backup completed' &&
+        sleep 86400
+      done
+      "
 
   terminal-sandbox:
     build: ./terminal-sandbox
@@ -119,19 +151,22 @@ services:
       terminal-sandbox:
         condition: service_started
     environment:
-      - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://cybersentinel:ChangeThisLocalDbPassword_2026!@postgres:5432/cybersentinel}
+      - APP_ENV=${APP_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}  # ⚠️ CRITICAL: MUST be set in .env file
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}
-      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
-      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
-      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-localhost,127.0.0.1,testserver,backend}
-      - FORCE_HTTPS_REDIRECT=${FORCE_HTTPS_REDIRECT:-false}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file
+      - PUBLIC_BASE_URL=https://cybersentil.online
+      - CORS_ORIGINS=${CORS_ORIGINS:-https://cybersentil.online,https://app.cybersentil.online}
+      - TRUSTED_HOSTS=${TRUSTED_HOSTS:-cybersentil.online,app.cybersentil.online,localhost,127.0.0.1}
+      - CLOUDFLARE_TUNNEL_ENABLED=${CLOUDFLARE_TUNNEL_ENABLED:-true}
+      - ADMIN_WHITELIST_IPS=${ADMIN_WHITELIST_IPS:-}
+      - RESPONSE_OBFUSCATION_ENABLED=${RESPONSE_OBFUSCATION_ENABLED:-true}
+      - FORCE_HTTPS_REDIRECT=${FORCE_HTTPS_REDIRECT:-true}
       - SECURITY_HEADERS_ENABLED=${SECURITY_HEADERS_ENABLED:-true}
       - SECURITY_HSTS_SECONDS=${SECURITY_HSTS_SECONDS:-31536000}
       - SECURITY_CONTENT_SECURITY_POLICY=${SECURITY_CONTENT_SECURITY_POLICY:-}
-      - DECOY_COOKIE_SECURE=${DECOY_COOKIE_SECURE:-false}
+      - DECOY_COOKIE_SECURE=${DECOY_COOKIE_SECURE:-true}
       - DECOY_COOKIE_SAMESITE=${DECOY_COOKIE_SAMESITE:-lax}
       - AUTH_RATE_LIMIT_WINDOW_SECONDS=${AUTH_RATE_LIMIT_WINDOW_SECONDS:-60}
       - AUTH_RATE_LIMIT_MAX_ATTEMPTS=${AUTH_RATE_LIMIT_MAX_ATTEMPTS:-8}
@@ -142,15 +177,15 @@ services:
       - LEAD_NOTIFICATION_EMAIL_TO=${LEAD_NOTIFICATION_EMAIL_TO:-}
       - LEAD_NOTIFICATION_BRAND_NAME=${LEAD_NOTIFICATION_BRAND_NAME:-CyberSentil}
       - LEAD_NOTIFICATION_CONTACT_EMAIL=${LEAD_NOTIFICATION_CONTACT_EMAIL:-}
-      - LEAD_AUTOREPLY_ENABLED=${LEAD_AUTOREPLY_ENABLED:-false}
+      - LEAD_AUTOREPLY_ENABLED=${LEAD_AUTOREPLY_ENABLED:-true}
       - LEAD_AUTOREPLY_REPLY_TO=${LEAD_AUTOREPLY_REPLY_TO:-}
       - LEAD_AUTOREPLY_DEMO_BOOKING_URL=${LEAD_AUTOREPLY_DEMO_BOOKING_URL:-}
-      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_HOST=${SMTP_HOST:-smtp-relay.brevo.com}
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USERNAME=${SMTP_USERNAME:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-CyberSentil}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-padigireddyhemachandrareddy@gmail.com}
+      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-CyberSentinel}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
       - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - OLLAMA_BASE_URL=http://host.docker.internal:11434
@@ -165,13 +200,13 @@ services:
       - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
       - TERMINAL_EXEC_TIMEOUT_SEC=${TERMINAL_EXEC_TIMEOUT_SEC:-8}
       - TERMINAL_MAX_OUTPUT_CHARS=${TERMINAL_MAX_OUTPUT_CHARS:-12000}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET}  # ⚠️ CRITICAL: MUST be set in .env file. Use random 32+ char secret
       - SSH_DECOY_HEALTH_URL=${SSH_DECOY_HEALTH_URL:-http://ssh-decoy:5101/health}
-      - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me-at-least-32b}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char key
+      - SECRET_KEY=${SECRET_KEY}  # ⚠️ CRITICAL: MUST be set in .env file. Use random 32+ char key
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
       - BOOTSTRAP_ADMIN_USERNAME=${BOOTSTRAP_ADMIN_USERNAME:-admin}
       - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@cybersentil.local}
-      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-ChangeThisAdminPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file. Use strong password with min 16 chars, mixed case, numbers, symbols
       - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-true}
       - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
       - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-}
@@ -182,6 +217,29 @@ services:
       - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-}
       - PROTOCOL_MYSQL_AUTH_TRAP_ENABLED=${PROTOCOL_MYSQL_AUTH_TRAP_ENABLED:-true}
       - PROTOCOL_MYSQL_TRAP_CREDENTIALS=${PROTOCOL_MYSQL_TRAP_CREDENTIALS:-}
+      - AI_LLM_ENABLED=${AI_LLM_ENABLED:-true}
+      - AI_LLM_PROVIDER=${AI_LLM_PROVIDER:-openai}
+      - AI_LLM_MODEL=${AI_LLM_MODEL:-gpt-4}
+      - AI_LLM_API_KEY=${AI_LLM_API_KEY:-}
+      - AI_LLM_MAX_TOKENS=${AI_LLM_MAX_TOKENS:-2000}
+      - AI_LLM_TEMPERATURE=${AI_LLM_TEMPERATURE:-0.7}
+      - QRADAR_HOST=${QRADAR_HOST:-}
+      - QRADAR_PORT=${QRADAR_PORT:-443}
+      - QRADAR_TOKEN=${QRADAR_TOKEN:-}
+      - QRADAR_VERIFY_TLS=${QRADAR_VERIFY_TLS:-true}
+      - QRADAR_TIMEOUT_SECONDS=${QRADAR_TIMEOUT_SECONDS:-5}
+      - ELASTIC_HOST=${ELASTIC_HOST:-}
+      - ELASTIC_PORT=${ELASTIC_PORT:-9200}
+      - ELASTIC_USERNAME=${ELASTIC_USERNAME:-}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD:-}
+      - ELASTIC_API_KEY=${ELASTIC_API_KEY:-}
+      - ELASTIC_INDEX=${ELASTIC_INDEX:-deception-events}
+      - ELASTIC_VERIFY_TLS=${ELASTIC_VERIFY_TLS:-true}
+      - ELASTIC_TIMEOUT_SECONDS=${ELASTIC_TIMEOUT_SECONDS:-5}
+      - SENTINEL_WORKSPACE_ID=${SENTINEL_WORKSPACE_ID:-}
+      - SENTINEL_SHARED_KEY=${SENTINEL_SHARED_KEY:-}
+      - SENTINEL_LOG_TYPE=${SENTINEL_LOG_TYPE:-DeceptionEvents}
+      - SENTINEL_TIMEOUT_SECONDS=${SENTINEL_TIMEOUT_SECONDS:-10}
     volumes:
       - backend_data:/data
 
@@ -219,20 +277,9 @@ services:
           cpus: '0.1'
           memory: 64M
     # SECURITY HARDENING - Container Security
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - NET_BIND_SERVICE
-      - SETGID
-      - SETUID
-    read_only: true
     tmpfs:
       - /tmp:noexec,nosuid,size=50m
-      - /var/cache/nginx:noexec,nosuid,size=20m
       - /var/run:noexec,nosuid,size=5m
-    user: "101:101"
     restart: unless-stopped
     ports:
       - "80:80"
@@ -274,6 +321,8 @@ services:
     restart: unless-stopped
     depends_on:
       - frontend
+    networks:
+      - dmz-tier
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
 
   cloudflared-quick:
@@ -321,3 +370,4 @@ volumes:
   cowrie_bridge_data:
   certbot_www:
   certbot_conf:
+  backup_data:

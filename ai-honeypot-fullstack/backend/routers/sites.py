@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from core.audit import record_operator_action
+from core.cache import cache_result
 from core.database import db
 from core.public_hosts import find_domain_conflict, is_valid_public_host, normalize_public_host
 from core.security import hash_api_key
@@ -17,6 +18,7 @@ router = APIRouter()
 
 
 @router.get("/sites")
+@cache_result(ttl=300, key_prefix="sites_list")
 def list_sites(user: dict[str, Any] = Depends(current_user)) -> list[dict[str, Any]]:
     with db() as conn:
         rows = conn.execute(

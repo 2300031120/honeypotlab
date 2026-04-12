@@ -70,7 +70,6 @@ const CORE_LINKS: NavLink[] = [
         items: [
           { label: "Contact Team", to: "/contact", description: "Ask about fit, rollout, or buying." },
           { label: "Screenshots", to: "/screenshots", description: "Preview the product before the call." },
-          { label: "Resources", to: "/resources", description: "Open public docs and launch material." },
         ],
       },
     ],
@@ -108,35 +107,6 @@ const CORE_LINKS: NavLink[] = [
       description: "Show the incident story, screenshots, and rollout notes.",
       to: "/case-study",
       cta: "Open proof",
-    },
-  },
-  {
-    label: "Resources",
-    to: "/resources",
-    sections: [
-      {
-        title: "Company",
-        items: [
-          { label: "Resources", to: "/resources", description: "Browse public docs and product material." },
-          { label: "Contact Team", to: "/contact", description: "Reach the team directly." },
-          { label: "Pricing", to: "/pricing", description: "Jump into plans and packaging." },
-        ],
-      },
-      {
-        title: "Policies",
-        items: [
-          { label: "Privacy", to: "/privacy", description: "See how lead and site data are handled." },
-          { label: "Terms", to: "/terms", description: "Review the current site and service terms." },
-          { label: "Security", to: "/security", description: "Read disclosure and security notes." },
-        ],
-      },
-    ],
-    promo: {
-      eyebrow: "Resources",
-      title: "Keep company info easy to find.",
-      description: "Policies, contact, and public docs stay in one place.",
-      to: "/resources",
-      cta: "View resources",
     },
   },
 ];

@@ -372,6 +372,29 @@ services:
       - frontend
     command: tunnel --no-autoupdate --url http://frontend:80
 
+  # ==================== DATABASE BACKUP ====================
+  db-backup:
+    image: postgres:16-alpine
+    profiles:
+      - backup
+    restart: unless-stopped
+    # SECURITY: Network Segmentation - Backup in data-tier
+    networks:
+      - data-tier
+    depends_on:
+      - postgres
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${POSTGRES_DB:-cybersentinel}
+      - DB_USER=${POSTGRES_USER:-cybersentinel}
+      - DB_PASSWORD=${POSTGRES_PASSWORD:-}
+    volumes:
+      - ./scripts/backup_database.sh:/backup.sh:ro
+      - db_backups:/backups
+    # Run backup daily at 2 AM UTC
+    entrypoint: ["/bin/sh", "-c", "sh /backup.sh && crond -f -l 2 && echo '0 2 * * * sh /backup.sh >> /var/log/backup.log 2>&1' | crontab -"]
+
 # ==================== NETWORK SEGMENTATION ====================
 networks:
   # DMZ Tier - Public facing services (Internet accessible)
@@ -415,3 +438,4 @@ volumes:
   ssh_decoy_data:
   cowrie_var_data:
   cowrie_bridge_data:
+  db_backups:

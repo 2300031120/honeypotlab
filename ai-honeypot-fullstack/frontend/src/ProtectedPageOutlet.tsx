@@ -19,6 +19,7 @@ const AdminLeads = lazy(() => import("./AdminLeads"));
 const LabArchitecture = lazy(() => import("./Architecture"));
 const About = lazy(() => import("./About"));
 const UrlScanner = lazy(() => import("./UrlScanner"));
+const Analytics = lazy(() => import("./Analytics"));
 
 const PAGE_MAP = {
   terminal: Terminal,
@@ -39,6 +40,7 @@ const PAGE_MAP = {
   lab_architecture: LabArchitecture,
   about: About,
   url_scanner: UrlScanner,
+  analytics: Analytics,
 };
 
 type ProtectedPageOutletProps = {

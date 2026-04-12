@@ -2,6 +2,9 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import App from "./App.tsx";
 import "./public-remake.css";
+import "./public-polish.css";
+import "./bold-enhancement.css";
+import "./visual-enhancement.css";
 
 function toErrorMessage(value: unknown): string {
   if (!value) {

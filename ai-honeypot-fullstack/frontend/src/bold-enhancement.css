@@ -1,0 +1,450 @@
+/* ===== BOLD DESIGN ENHANCEMENTS ===== */
+/* This file enhances the existing design with bolder, more impactful styling */
+
+:root {
+  /* Enhanced bold color palette */
+  --bold-primary: #ffbf2a;
+  --bold-primary-strong: #ff9500;
+  --bold-secondary: #356fff;
+  --bold-accent: #ff5b35;
+  --bold-success: #00d4aa;
+  --bold-bg-dark: #050b12;
+  --bold-surface: rgba(15, 25, 40, 0.95);
+  --bold-border: rgba(255, 191, 42, 0.3);
+  --bold-text: #ffffff;
+  --bold-muted: #a8b8c8;
+}
+
+/* Enhanced typography - bolder weights */
+body {
+  font-family: "Outfit", "Segoe UI", sans-serif;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 800 !important;
+  letter-spacing: -0.02em;
+  line-height: 1.1 !important;
+}
+
+h1 {
+  font-size: clamp(2.5rem, 5vw, 4.5rem) !important;
+  text-shadow: 0 4px 24px rgba(255, 191, 42, 0.3);
+}
+
+h2 {
+  font-size: clamp(2rem, 3.5vw, 3rem) !important;
+}
+
+h3 {
+  font-size: clamp(1.5rem, 2.5vw, 2rem) !important;
+}
+
+/* Bold button styling */
+.btn-bold-primary {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff7f2a 30%, #ff5b35 60%, #356fff 100%) !important;
+  border: 2px solid rgba(255, 191, 42, 0.5) !important;
+  color: #0a0f18 !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+  padding: 14px 28px !important;
+  border-radius: 12px !important;
+  box-shadow: 
+    0 8px 24px rgba(255, 191, 42, 0.4),
+    0 0 48px rgba(255, 91, 53, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-bold-primary:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 
+    0 12px 32px rgba(255, 191, 42, 0.5),
+    0 0 64px rgba(255, 91, 53, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+}
+
+.btn-bold-secondary {
+  background: rgba(15, 25, 40, 0.9) !important;
+  border: 2px solid rgba(255, 191, 42, 0.4) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  font-size: 1rem !important;
+  padding: 14px 28px !important;
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.btn-bold-secondary:hover {
+  background: rgba(255, 191, 42, 0.15) !important;
+  border-color: rgba(255, 191, 42, 0.7) !important;
+  transform: translateY(-3px);
+  box-shadow: 0 12px 32px rgba(255, 191, 42, 0.3) !important;
+}
+
+/* Bold card styling */
+.card-bold {
+  background: linear-gradient(180deg, rgba(15, 25, 40, 0.98), rgba(10, 18, 30, 0.98)) !important;
+  border: 2px solid rgba(255, 191, 42, 0.25) !important;
+  border-radius: 20px !important;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 191, 42, 0.1) !important;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-bold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ffbf2a, #ff5b35, #356fff);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-bold:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 191, 42, 0.5) !important;
+  box-shadow: 
+    0 30px 80px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 191, 42, 0.2),
+    0 0 60px rgba(255, 191, 42, 0.15) !important;
+}
+
+.card-bold:hover::before {
+  opacity: 1;
+}
+
+/* Bold hero section */
+.hero-bold {
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(255, 191, 42, 0.15), transparent 40%),
+    radial-gradient(circle at 80% 20%, rgba(53, 111, 255, 0.12), transparent 35%),
+    radial-gradient(circle at 50% 80%, rgba(255, 91, 53, 0.1), transparent 40%),
+    linear-gradient(180deg, #050b12 0%, #0a1520 50%, #0f1d2e 100%) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-bold::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: 
+    radial-gradient(circle at 30% 30%, rgba(255, 191, 42, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(53, 111, 255, 0.06) 0%, transparent 50%);
+  animation: heroPulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes heroPulse {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: translate(-20px, -20px) scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+/* Bold navigation */
+.nav-bold {
+  background: rgba(10, 18, 30, 0.95) !important;
+  border: 2px solid rgba(255, 191, 42, 0.3) !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(255, 191, 42, 0.1) !important;
+}
+
+.nav-bold a {
+  font-weight: 700 !important;
+  font-size: 0.9rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease !important;
+}
+
+.nav-bold a:hover,
+.nav-bold a.active {
+  color: #ffbf2a !important;
+  text-shadow: 0 0 20px rgba(255, 191, 42, 0.5);
+}
+
+/* Bold typography enhancements */
+.text-bold-gradient {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5b35 50%, #356fff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 900 !important;
+}
+
+.text-bold-glow {
+  color: #ffffff;
+  text-shadow: 
+    0 0 10px rgba(255, 191, 42, 0.5),
+    0 0 20px rgba(255, 191, 42, 0.3),
+    0 0 40px rgba(255, 191, 42, 0.2);
+}
+
+/* Bold section styling */
+.section-bold {
+  background: linear-gradient(180deg, rgba(10, 18, 30, 0.98), rgba(15, 25, 40, 0.98)) !important;
+  border: 2px solid rgba(255, 191, 42, 0.2) !important;
+  border-radius: 24px !important;
+  box-shadow: 
+    0 24px 64px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(255, 191, 42, 0.1) !important;
+  position: relative;
+  overflow: hidden;
+}
+
+.section-bold::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ffbf2a, #ff5b35, #356fff);
+}
+
+/* Bold metric/stat styling */
+.metric-bold {
+  background: rgba(255, 191, 42, 0.08) !important;
+  border: 2px solid rgba(255, 191, 42, 0.3) !important;
+  border-radius: 16px !important;
+  padding: 20px !important;
+  text-align: center;
+  transition: all 0.3s ease !important;
+}
+
+.metric-bold:hover {
+  background: rgba(255, 191, 42, 0.15) !important;
+  border-color: rgba(255, 191, 42, 0.5) !important;
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(255, 191, 42, 0.3) !important;
+}
+
+.metric-bold strong {
+  font-size: 2.5rem !important;
+  font-weight: 900 !important;
+  background: linear-gradient(135deg, #ffbf2a, #ff5b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Bold feature icon */
+.icon-bold {
+  width: 56px !important;
+  height: 56px !important;
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.2), rgba(255, 91, 53, 0.2)) !important;
+  border: 2px solid rgba(255, 191, 42, 0.4) !important;
+  border-radius: 16px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffbf2a !important;
+  box-shadow: 0 8px 24px rgba(255, 191, 42, 0.3) !important;
+}
+
+/* Bold badge/tag */
+.badge-bold {
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.2), rgba(255, 91, 53, 0.2)) !important;
+  border: 2px solid rgba(255, 191, 42, 0.4) !important;
+  color: #ffbf2a !important;
+  font-weight: 800 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  box-shadow: 0 4px 16px rgba(255, 191, 42, 0.3) !important;
+}
+
+/* Bold input styling */
+.input-bold {
+  background: rgba(15, 25, 40, 0.9) !important;
+  border: 2px solid rgba(255, 191, 42, 0.3) !important;
+  border-radius: 12px !important;
+  padding: 14px 18px !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  transition: all 0.3s ease !important;
+}
+
+.input-bold:focus {
+  border-color: #ffbf2a !important;
+  box-shadow: 0 0 0 4px rgba(255, 191, 42, 0.2), 0 8px 24px rgba(255, 191, 42, 0.3) !important;
+  outline: none;
+}
+
+.input-bold::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* Bold link styling */
+.link-bold {
+  color: #ffbf2a !important;
+  font-weight: 700 !important;
+  text-decoration: none;
+  position: relative;
+  transition: all 0.3s ease !important;
+}
+
+.link-bold::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffbf2a, #ff5b35);
+  transition: width 0.3s ease;
+}
+
+.link-bold:hover::after {
+  width: 100%;
+}
+
+.link-bold:hover {
+  color: #ff5b35 !important;
+  text-shadow: 0 0 20px rgba(255, 91, 53, 0.5);
+}
+
+/* Bold divider */
+.divider-bold {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(255, 191, 42, 0.5), transparent);
+  margin: 32px 0;
+}
+
+/* Bold scroll indicator */
+.scroll-indicator-bold {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 64px;
+  border: 3px solid rgba(255, 191, 42, 0.4);
+  border-radius: 24px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+  animation: scrollBounce 2s ease-in-out infinite;
+}
+
+.scroll-indicator-bold::before {
+  content: '';
+  width: 8px;
+  height: 16px;
+  background: linear-gradient(180deg, #ffbf2a, #ff5b35);
+  border-radius: 4px;
+  animation: scrollDot 2s ease-in-out infinite;
+}
+
+@keyframes scrollBounce {
+  0%, 100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(8px);
+  }
+}
+
+@keyframes scrollDot {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(16px);
+    opacity: 0.3;
+  }
+}
+
+/* Bold footer */
+.footer-bold {
+  background: linear-gradient(180deg, rgba(10, 18, 30, 0.98), #050b12) !important;
+  border-top: 3px solid rgba(255, 191, 42, 0.3) !important;
+  padding: 48px 0 32px !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  h1 {
+    font-size: clamp(2rem, 8vw, 3rem) !important;
+  }
+  
+  .btn-bold-primary,
+  .btn-bold-secondary {
+    padding: 12px 20px !important;
+    font-size: 0.9rem !important;
+  }
+  
+  .card-bold,
+  .section-bold {
+    border-radius: 16px !important;
+  }
+}
+
+/* Animation utilities */
+.animate-fade-in {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.6s ease-out forwards;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
