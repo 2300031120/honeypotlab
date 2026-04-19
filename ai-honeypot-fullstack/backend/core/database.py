@@ -149,10 +149,23 @@ def _connect_postgres():
     try:
         import psycopg
         from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
     except ImportError as exc:
-        raise RuntimeError("PostgreSQL support requires psycopg. Install backend requirements first.") from exc
+        raise RuntimeError("PostgreSQL support requires psycopg and psycopg-pool. Install backend requirements first.") from exc
 
-    return psycopg.connect(DATABASE_URL, autocommit=False, row_factory=dict_row)
+    # Use connection pool for better performance
+    if not hasattr(_connect_postgres, "_pool"):
+        _connect_postgres._pool = ConnectionPool(
+            DATABASE_URL,
+            min_size=5,
+            max_size=20,
+            open=True,
+            timeout=30,
+            autocommit=False,
+            row_factory=dict_row
+        )
+    
+    return _connect_postgres._pool.getconn()
 
 
 class CursorAdapter:

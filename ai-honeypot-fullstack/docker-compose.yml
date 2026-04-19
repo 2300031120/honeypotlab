@@ -16,6 +16,20 @@ services:
     networks:
       - data-tier
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - redis_data:/data
+    networks:
+      - data-tier
+
   db-backup:
     image: postgres:16-alpine
     restart: unless-stopped
@@ -31,17 +45,38 @@ services:
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
       - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
+      - BACKUP_ENCRYPTION_KEY=${BACKUP_ENCRYPTION_KEY:-}
     volumes:
       - postgres_data:/var/lib/postgresql/data:ro
       - backup_data:/backups
     command: >
       /bin/sh -c "
-      apk add --no-cache postgresql-client &&
+      apk add --no-cache postgresql-client coreutils openssl &&
       while true; do
         echo 'Starting backup at $$(date)' &&
-        pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB > /backups/backup-$$(date +%Y%m%d-%H%M%S).sql &&
-        find /backups -name 'backup-*.sql' -mtime +$$BACKUP_RETENTION_DAYS -delete &&
-        echo 'Backup completed' &&
+        BACKUP_FILE=/backups/backup-$$(date +%Y%m%d-%H%M%S).sql &&
+        pg_dump -h postgres -U $$POSTGRES_USER $$POSTGRES_DB > $$BACKUP_FILE &&
+        
+        # Verify backup
+        if [ -s $$BACKUP_FILE ]; then
+          echo 'Backup verification successful'
+          
+          # Encrypt backup if key provided
+          if [ -n \"$$BACKUP_ENCRYPTION_KEY\" ]; then
+            openssl enc -aes-256-cbc -salt -in $$BACKUP_FILE -out $$BACKUP_FILE.enc -k \"$$BACKUP_ENCRYPTION_KEY\" &&
+            rm $$BACKUP_FILE &&
+            BACKUP_FILE=$$BACKUP_FILE.enc &&
+            echo 'Backup encrypted'
+          fi
+          
+          # Cleanup old backups
+          find /backups -name 'backup-*.sql*' -mtime +$$BACKUP_RETENTION_DAYS -delete &&
+          echo 'Old backups cleaned'
+        else
+          echo 'ERROR: Backup file is empty or missing'
+        fi
+        
+        echo 'Backup completed successfully' &&
         sleep 86400
       done
       "
@@ -148,6 +183,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
       terminal-sandbox:
         condition: service_started
     environment:
@@ -156,6 +193,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file
+      - REDIS_URL=redis://redis:6379/0
       - PUBLIC_BASE_URL=https://cybersentil.online
       - CORS_ORIGINS=${CORS_ORIGINS:-https://cybersentil.online,https://app.cybersentil.online}
       - TRUSTED_HOSTS=${TRUSTED_HOSTS:-cybersentil.online,app.cybersentil.online,localhost,127.0.0.1}
@@ -363,6 +401,7 @@ networks:
 
 volumes:
   postgres_data:
+  redis_data:
   backend_data:
   terminal_sandbox_data:
   ssh_decoy_data:
