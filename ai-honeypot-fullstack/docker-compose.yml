@@ -60,6 +60,18 @@ services:
     networks:
       - data-tier
 
+  loadbalancer:
+    image: haproxy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./infrastructure/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - backend
+    networks:
+      - app-tier
+
   db-backup:
     image: postgres:16-alpine
     restart: unless-stopped
