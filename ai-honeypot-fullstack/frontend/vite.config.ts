@@ -125,38 +125,67 @@ export default defineConfig({
   ],
   build: {
     target: 'es2020',
-    minify: 'esbuild',
-    sourcemap: true,
-    reportCompressedSize: false,
+    minify: 'terser',
+    sourcemap: false,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 300,
+    cssCodeSplit: true,
     modulePreload: {
       resolveDependencies(_filename, deps) {
         // Avoid preloading attack-graph vendor code on public/home entry.
         return deps.filter((dep) => !dep.includes('graph-flow'))
       }
     },
-    // Keep warnings visible for real regressions now that the heavy 3D globe vendor
-    // stack is no longer part of the dashboard path.
-    chunkSizeWarningLimit: 550,
     rollupOptions: {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) {
             return undefined
           }
+          // React core
           if (
             /[\\/]node_modules[\\/]react[\\/]/.test(id) ||
             /[\\/]node_modules[\\/]react-dom[\\/]/.test(id)
           ) {
             return 'react-core'
           }
+          // Router
           if (/[\\/]node_modules[\\/]react-router-dom[\\/]/.test(id)) {
             return 'router'
           }
+          // UI libraries
+          if (
+            /[\\/]node_modules[\\/]lucide-react[\\/]/.test(id) ||
+            /[\\/]node_modules[\\/]framer-motion[\\/]/.test(id)
+          ) {
+            return 'ui-libs'
+          }
+          // Graph/visualization
           if (/[\\/]node_modules[\\/]@xyflow[\\/]/.test(id)) {
             return 'graph-flow'
           }
-          return undefined
-        }
+          // Utilities
+          if (
+            /[\\/]node_modules[\\/]date-fns[\\/]/.test(id) ||
+            /[\\/]node_modules[\\/]clsx[\\/]/.test(id)
+          ) {
+            return 'utils'
+          }
+          return 'vendor'
+        },
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]'
+      }
+    },
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug']
+      },
+      mangle: {
+        safari10: true
       }
     }
   },
