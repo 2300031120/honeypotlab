@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Any
 import time
+import logging
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,6 +51,7 @@ from routers.decoy import router as decoy_router
 
 APP_STARTED_AT = utc_now()
 configure_logging(level=LOG_LEVEL, json_logs=JSON_LOGS)
+logger = logging.getLogger(__name__)
 
 # Rate limiting for public endpoints
 limiter = Limiter(key_func=get_remote_address)
@@ -137,6 +139,9 @@ class RequestLoggingMiddleware:
                     )
             except:
                 pass
+# Security: Don't default to wildcard in production
+if not CORS_ORIGINS and APP_ENV == "production":
+    raise RuntimeError("CORS_ORIGINS must be explicitly set in production environment")
 resolved_cors_origins = CORS_ORIGINS or ["*"]
 allow_all_cors_origins = "*" in resolved_cors_origins
 app.add_middleware(
@@ -238,30 +243,3 @@ app.include_router(leads_router)
 app.include_router(consent_router)
 app.include_router(ai_router)
 app.include_router(decoy_router)
-
-
-@app.get("/health")
-@limiter.limit("60/minute")
-def health(request: Request) -> dict[str, Any]:
-    with db() as conn:
-        summary = build_summary(conn)["summary"]
-    now = utc_now()
-    uptime_seconds = int((now - APP_STARTED_AT).total_seconds()) if APP_STARTED_AT else 0
-    return {
-        "status": "healthy",
-        "service": APP_TITLE,
-        "time": now.isoformat(),
-        "uptime_seconds": uptime_seconds,
-        "services": {
-            "backend": "operational",
-            "database": "operational",
-        },
-        "metrics": {
-            "active_sessions": summary["live_sessions"],
-            "total_events": summary["total"],
-            "critical_events": summary["critical"],
-            "unique_ips": summary["unique_ips"],
-            "blocked_ips": summary["blocked"],
-        },
-        "summary": summary,
-    }

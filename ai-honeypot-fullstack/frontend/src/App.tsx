@@ -15,7 +15,6 @@ const Deployment = lazy(() => import("./Deployment"));
 const Pricing = lazy(() => import("./Pricing"));
 const CaseStudy = lazy(() => import("./CaseStudy"));
 const Screenshots = lazy(() => import("./Screenshots"));
-// const Resources = lazy(() => import("./Resources")); // File not found - commented out
 const PublicArchitecture = lazy(() => import("./PublicArchitecture"));
 const UseCases = lazy(() => import("./UseCases"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy"));
@@ -152,7 +151,6 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/case-study" element={<CaseStudy />} />
           <Route path="/screenshots" element={<Screenshots />} />
-          {/* <Route path="/resources" element={<Resources />} /> */} {/* File not found - commented out */}
           <Route path="/architecture" element={<PublicArchitecture />} />
           <Route path="/use-cases" element={<UseCases />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
