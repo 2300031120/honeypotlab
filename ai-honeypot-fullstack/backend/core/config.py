@@ -14,6 +14,7 @@ BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "ChangeThisAdmi
 ENABLE_DEMO_SEED = os.getenv("ENABLE_DEMO_SEED", "true").strip().lower() in {"1", "true", "yes", "on"}
 ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP", "false").strip().lower() in {"1", "true", "yes", "on"}
 DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+DATABASE_REPLICA_URL = os.getenv("DATABASE_REPLICA_URL", "").strip()
 BACKEND_DB_PATH = os.getenv("BACKEND_DB_PATH", "").strip()
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
 ALLOWED_STATUS = ["new", "contacted", "qualified", "demo_scheduled", "closed_won", "closed_lost", "spam"]

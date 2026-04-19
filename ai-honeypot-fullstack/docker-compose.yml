@@ -6,6 +6,14 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file. Use strong password with min 16 chars, mixed case, numbers, symbols
+      - POSTGRES_REPLICATION_USER=${POSTGRES_REPLICATION_USER:-replicator}
+      - POSTGRES_REPLICATION_PASSWORD=${POSTGRES_REPLICATION_PASSWORD}
+    command:
+      - postgres
+      - -c max_wal_senders=10
+      - -c wal_level=replica
+      - -c hot_standby=on
+      - -c wal_keep_size=100
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
       interval: 10s
@@ -13,6 +21,28 @@ services:
       retries: 5
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - data-tier
+
+  postgres-replica:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
+      - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_MASTER_HOST=postgres
+      - POSTGRES_MASTER_PORT=5432
+      - POSTGRES_REPLICATION_USER=${POSTGRES_REPLICATION_USER:-replicator}
+      - POSTGRES_REPLICATION_PASSWORD=${POSTGRES_REPLICATION_PASSWORD}
+    command:
+      - postgres
+      - -c hot_standby=on
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - postgres_replica_data:/var/lib/postgresql/data
     networks:
       - data-tier
 
@@ -401,6 +431,7 @@ networks:
 
 volumes:
   postgres_data:
+  postgres_replica_data:
   redis_data:
   backend_data:
   terminal_sandbox_data:

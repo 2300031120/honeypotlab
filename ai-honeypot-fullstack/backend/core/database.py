@@ -17,6 +17,7 @@ from core.config import (
     BOOTSTRAP_ADMIN_USERNAME,
     DATABASE_BACKEND,
     DATABASE_URL,
+    DATABASE_REPLICA_URL,
     DB_PATH,
     ENABLE_DEMO_SEED,
 )
@@ -166,6 +167,34 @@ def _connect_postgres():
         )
     
     return _connect_postgres._pool.getconn()
+
+
+def _connect_postgres_replica():
+    """Connect to PostgreSQL replica for read operations"""
+    try:
+        import psycopg
+        from psycopg.rows import dict_row
+        from psycopg_pool import ConnectionPool
+    except ImportError as exc:
+        raise RuntimeError("PostgreSQL support requires psycopg and psycopg-pool. Install backend requirements first.") from exc
+
+    # Use replica only if configured
+    if not DATABASE_REPLICA_URL:
+        return _connect_postgres()
+
+    # Use connection pool for replica
+    if not hasattr(_connect_postgres_replica, "_pool"):
+        _connect_postgres_replica._pool = ConnectionPool(
+            DATABASE_REPLICA_URL,
+            min_size=3,
+            max_size=10,
+            open=True,
+            timeout=30,
+            autocommit=False,
+            row_factory=dict_row
+        )
+    
+    return _connect_postgres_replica._pool.getconn()
 
 
 class CursorAdapter:
