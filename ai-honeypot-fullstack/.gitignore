@@ -49,6 +49,7 @@ copilot-messages.log
 .project/attachments/files/**
 .env
 .env.local
+.env.splunk
 frontend/.env.*
 !frontend/.env.example
 .integration.env.local
