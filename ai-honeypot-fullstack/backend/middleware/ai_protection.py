@@ -2,11 +2,74 @@
 AI/Bot Protection Middleware
 Blocks known AI crawlers and detects bot behavior patterns
 """
+from __future__ import annotations
+
+import ipaddress
+import logging
+import os
+
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
-import logging
 
 logger = logging.getLogger(__name__)
+
+# Configurable allowlist for legitimate monitoring tools
+ALLOWED_TOOLS_CSV = os.getenv("AI_PROTECTION_ALLOWED_TOOLS", "")
+ALLOWED_TOOLS = {tool.strip().lower() for tool in ALLOWED_TOOLS_CSV.split(",") if tool.strip()}
+
+# Probe/decoy paths must stay reachable; blocking scanners here defeats the product.
+DECOY_BYPASS_PATHS = frozenset(
+    {
+        "/admin",
+        "/admin/login",
+        "/admin/portal",
+        "/administrator",
+        "/wp-admin",
+        "/wp-admin/",
+        "/wp-login.php",
+        "/xmlrpc.php",
+        "/phpmyadmin",
+        "/phpmyadmin/",
+        "/config.php",
+        "/.env",
+        "/.git",
+        "/.git/config",
+        "/api/config",
+        "/api/secret",
+        "/api/admin",
+        "/api/users",
+        "/api/database",
+        "/api/v1/users",
+        "/actuator/env",
+        "/backup",
+        "/backups",
+        "/console",
+        "/debug",
+        "/test",
+        "/login.php",
+        "/robots.txt",
+    }
+)
+
+# External uptime monitors often use curl/python; keep health probes open.
+HEALTH_BYPASS_PATHS = frozenset({"/health", "/health/detailed", "/api/health", "/api/health/detailed"})
+
+
+def _client_host(request: Request) -> str:
+    if request.client and request.client.host:
+        return str(request.client.host)
+    return "unknown"
+
+
+def _is_private_or_local(host: str) -> bool:
+    if host in {"127.0.0.1", "localhost", "::1", "unknown"}:
+        return host != "unknown"
+    try:
+        parsed = ipaddress.ip_address(host)
+    except ValueError:
+        return False
+    return bool(parsed.is_private or parsed.is_loopback or parsed.is_link_local)
+
 
 # Known AI/bot user-agents to block
 BLOCKED_USER_AGENTS = [
@@ -59,43 +122,35 @@ class AIProtectionMiddleware(BaseHTTPMiddleware):
     """
     
     async def dispatch(self, request: Request, call_next):
-        # Get user-agent
+        path = request.url.path or ""
+        client_ip = _client_host(request)
+
+        # Honeypot decoys and health probes must remain reachable to scanners/monitors.
+        if (
+            path in DECOY_BYPASS_PATHS
+            or path in HEALTH_BYPASS_PATHS
+            or path.startswith("/phpmyadmin/")
+            or path.startswith("/wp-admin/")
+        ):
+            return await call_next(request)
+
         user_agent = request.headers.get("user-agent", "").lower()
-        
-        # Check if user-agent matches blocked patterns
+
         for blocked_agent in BLOCKED_USER_AGENTS:
             if blocked_agent.lower() in user_agent:
-                logger.warning(f"Blocked AI/bot request: {blocked_agent} from {request.client.host}")
-                return Response(
-                    content="Access denied",
-                    status_code=403,
-                    media_type="text/plain"
-                )
-        
-        # Check for suspicious patterns
-        # No user-agent
-        if not user_agent or user_agent == "":
-            logger.warning(f"Blocked request with no user-agent from {request.client.host}")
-            return Response(
-                content="Access denied",
-                status_code=403,
-                media_type="text/plain"
-            )
-        
-        # Check for curl/wget (common in automated attacks)
+                logger.warning("Blocked AI/bot request: %s from %s", blocked_agent, client_ip)
+                return Response(content="Access denied", status_code=403, media_type="text/plain")
+
+        if not user_agent:
+            logger.warning("Blocked request with no user-agent from %s", client_ip)
+            return Response(content="Access denied", status_code=403, media_type="text/plain")
+
         if "curl" in user_agent or "wget" in user_agent or "python" in user_agent:
-            # Allow health checks from localhost
-            if request.client.host in ["127.0.0.1", "localhost", "::1"]:
-                pass
-            else:
-                logger.warning(f"Blocked automated tool request from {request.client.host}: {user_agent}")
-                return Response(
-                    content="Access denied",
-                    status_code=403,
-                    media_type="text/plain"
-                )
-        
-        # Allow request to proceed
-        response = await call_next(request)
-        
-        return response
+            tool_name = "curl" if "curl" in user_agent else "wget" if "wget" in user_agent else "python"
+            if tool_name in ALLOWED_TOOLS or _is_private_or_local(client_ip):
+                return await call_next(request)
+
+            logger.warning("Blocked automated tool request from %s: %s", client_ip, user_agent)
+            return Response(content="Access denied", status_code=403, media_type="text/plain")
+
+        return await call_next(request)

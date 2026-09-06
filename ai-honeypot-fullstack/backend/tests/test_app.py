@@ -150,6 +150,22 @@ def test_health_endpoint(monkeypatch, tmp_path):
     assert response.headers["permissions-policy"] == "camera=(), microphone=(), geolocation=()"
 
 
+def test_health_detailed_endpoint(monkeypatch, tmp_path):
+    monkeypatch.setenv("REDIS_URL", "")
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        response = client.get("/health/detailed")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "healthy"
+    assert payload["service"] == "CyberSentil Backend"
+    assert "database" in payload["dependencies"]
+    assert payload["dependencies"]["database"]["healthy"] is True
+    assert "redis" in payload["dependencies"]
+    assert payload["dependencies"]["redis"]["configured"] is False
+
+
 def test_health_endpoint_sets_request_id_header(monkeypatch, tmp_path):
     main = load_main(monkeypatch, tmp_path)
     with TestClient(main.app) as client:
@@ -524,6 +540,83 @@ def test_production_config_rejects_invalid_sentry_settings(monkeypatch):
     message = str(excinfo.value)
     assert "SENTRY_DSN must be a valid HTTP/HTTPS URL." in message
     assert "SENTRY_TRACES_SAMPLE_RATE must be between 0.0 and 1.0." in message
+
+
+def test_production_config_requires_file_backed_critical_secrets(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("ENFORCE_FILE_BASED_SECRETS", "true")
+    monkeypatch.setenv("SECRET_KEY", "s" * 40)
+    monkeypatch.setenv("ENABLE_DEMO_SEED", "false")
+    monkeypatch.setenv("ALLOW_SIGNUP", "false")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://cybersentinel:StrongPostgresPass123!@postgres:5432/cybersentinel")
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://cybersentil.online")
+    monkeypatch.setenv("CORS_ORIGINS", "https://cybersentil.online")
+    monkeypatch.setenv("TRUSTED_HOSTS", "cybersentil.online,www.cybersentil.online")
+    monkeypatch.setenv("FORCE_HTTPS_REDIRECT", "true")
+    monkeypatch.setenv("SECURITY_HEADERS_ENABLED", "true")
+    monkeypatch.setenv("DECOY_COOKIE_SECURE", "true")
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_PASSWORD", "StrongAdminPass123!")
+    monkeypatch.setenv("PROTOCOL_SHARED_SECRET", "StrongProtocolSecret_Change_2026!")
+    monkeypatch.setenv("PROTOCOL_SSH_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("PROTOCOL_MYSQL_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("TERMINAL_REAL_EXEC_ENABLED", "false")
+
+    sys.modules.pop("core.config", None)
+    config = importlib.import_module("core.config")
+    config = importlib.reload(config)
+
+    with pytest.raises(RuntimeError) as excinfo:
+        config.validate_runtime_config()
+
+    message = str(excinfo.value)
+    assert "Production requires file-backed secrets for:" in message
+    assert "SECRET_KEY" in message
+    assert "DATABASE_URL" in message
+    assert "BOOTSTRAP_ADMIN_PASSWORD" in message
+    assert "PROTOCOL_SHARED_SECRET" in message
+
+
+def test_production_config_accepts_file_backed_critical_secrets(monkeypatch, tmp_path):
+    secret_key_file = tmp_path / "secret_key.txt"
+    database_url_file = tmp_path / "database_url.txt"
+    admin_password_file = tmp_path / "bootstrap_admin_password.txt"
+    protocol_secret_file = tmp_path / "protocol_shared_secret.txt"
+
+    secret_key_file.write_text("s" * 40, encoding="utf-8")
+    database_url_file.write_text(
+        "postgresql://cybersentinel:StrongPostgresPass123!@postgres:5432/cybersentinel",
+        encoding="utf-8",
+    )
+    admin_password_file.write_text("StrongAdminPass123!", encoding="utf-8")
+    protocol_secret_file.write_text("StrongProtocolSecret_Change_2026!", encoding="utf-8")
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("ENFORCE_FILE_BASED_SECRETS", "true")
+    monkeypatch.setenv("ENABLE_DEMO_SEED", "false")
+    monkeypatch.setenv("ALLOW_SIGNUP", "false")
+    monkeypatch.setenv("PUBLIC_BASE_URL", "https://cybersentil.online")
+    monkeypatch.setenv("CORS_ORIGINS", "https://cybersentil.online")
+    monkeypatch.setenv("TRUSTED_HOSTS", "cybersentil.online,www.cybersentil.online")
+    monkeypatch.setenv("FORCE_HTTPS_REDIRECT", "true")
+    monkeypatch.setenv("SECURITY_HEADERS_ENABLED", "true")
+    monkeypatch.setenv("DECOY_COOKIE_SECURE", "true")
+    monkeypatch.setenv("PROTOCOL_SSH_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("PROTOCOL_MYSQL_AUTH_TRAP_ENABLED", "false")
+    monkeypatch.setenv("TERMINAL_REAL_EXEC_ENABLED", "false")
+    monkeypatch.setenv("SECRET_KEY_FILE", str(secret_key_file))
+    monkeypatch.setenv("DATABASE_URL_FILE", str(database_url_file))
+    monkeypatch.setenv("BOOTSTRAP_ADMIN_PASSWORD_FILE", str(admin_password_file))
+    monkeypatch.setenv("PROTOCOL_SHARED_SECRET_FILE", str(protocol_secret_file))
+
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    monkeypatch.delenv("BOOTSTRAP_ADMIN_PASSWORD", raising=False)
+    monkeypatch.delenv("PROTOCOL_SHARED_SECRET", raising=False)
+
+    sys.modules.pop("core.config", None)
+    config = importlib.import_module("core.config")
+    config = importlib.reload(config)
+    config.validate_runtime_config()
 
 
 def test_auth_site_and_ingest_flow(monkeypatch, tmp_path):

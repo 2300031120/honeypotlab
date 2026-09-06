@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import smtplib
+import ssl
 from email.message import EmailMessage
 from email.utils import formataddr
 from typing import Any
@@ -85,10 +86,30 @@ def _send_smtp_email(*, to_addrs: list[str], subject: str, body: str, reply_to: 
         message["Reply-To"] = reply_to
     message.set_content(body)
 
-    smtp_factory = smtplib.SMTP_SSL if SMTP_USE_SSL else smtplib.SMTP
-    with smtp_factory(SMTP_HOST, SMTP_PORT, timeout=LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS) as smtp_client:
+    tls_context = ssl.create_default_context()
+    if SMTP_USE_SSL:
+        smtp_client_ctx = smtplib.SMTP_SSL(
+            SMTP_HOST,
+            SMTP_PORT,
+            timeout=LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS,
+            context=tls_context,
+        )
+    else:
+        smtp_client_ctx = smtplib.SMTP(
+            SMTP_HOST,
+            SMTP_PORT,
+            timeout=LEAD_NOTIFICATION_WEBHOOK_TIMEOUT_SECONDS,
+        )
+
+    with smtp_client_ctx as smtp_client:
         if not SMTP_USE_SSL and SMTP_USE_TLS:
-            smtp_client.starttls()
+            try:
+                smtp_client.starttls(context=tls_context)
+            except TypeError:
+                # Compatibility for mocked/legacy SMTP clients that don't accept context=.
+                smtp_client.starttls()
+            if hasattr(smtp_client, "ehlo"):
+                smtp_client.ehlo()
         if SMTP_USERNAME:
             smtp_client.login(SMTP_USERNAME, SMTP_PASSWORD)
         smtp_client.send_message(message)

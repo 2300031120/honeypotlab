@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -58,6 +59,10 @@ def run_local(command: list[str], *, cwd: Path | None = None) -> str:
     return proc.stdout.strip()
 
 
+def has_command(command: str) -> bool:
+    return shutil.which(command) is not None
+
+
 def normalize_api_base(base_url: str) -> str:
     clean = str(base_url or "").strip().rstrip("/")
     if not clean:
@@ -67,7 +72,61 @@ def normalize_api_base(base_url: str) -> str:
     return clean + "/api"
 
 
+ARCHIVE_EXCLUDE_NAMES = {
+    ".env",
+    ".env.splunk",
+    ".git",
+    ".pytest_cache",
+    ".pytest_tmp",
+    ".venv",
+    "__pycache__",
+    "backend_data",
+    "dist",
+    "dist-ssr",
+    "node_modules",
+}
+
+ARCHIVE_EXCLUDE_SUFFIXES = {
+    ".log",
+    ".pyc",
+    ".pyo",
+}
+
+
+def should_archive_path(path: Path) -> bool:
+    if any(part in ARCHIVE_EXCLUDE_NAMES for part in path.parts):
+        return False
+    if path.name.startswith(".env."):
+        return False
+    if path.suffix.lower() in ARCHIVE_EXCLUDE_SUFFIXES:
+        return False
+    return True
+
+
+def create_filesystem_bundle(*, project_root: Path) -> Path:
+    tmp_dir = Path(tempfile.mkdtemp(prefix="remote-redeploy-"))
+    archive_path = tmp_dir / "bundle.tar.gz"
+    base_name = project_root.name
+
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for path in project_root.rglob("*"):
+            relative = path.relative_to(project_root)
+            if not should_archive_path(relative):
+                if path.is_dir():
+                    continue
+                continue
+            archive.add(path, arcname=str(Path(base_name) / relative), recursive=False)
+
+    if not archive_path.exists() or archive_path.stat().st_size == 0:
+        raise RuntimeError("Failed to create deployment archive from filesystem.")
+    return archive_path
+
+
 def create_git_bundle(*, project_root: Path) -> Path:
+    if not has_command("git"):
+        print("[local] git not found; building deployment archive from filesystem.")
+        return create_filesystem_bundle(project_root=project_root)
+
     repo_root = Path(run_local(["git", "-C", str(project_root), "rev-parse", "--show-toplevel"]))
     relative_project = project_root.relative_to(repo_root).as_posix()
 

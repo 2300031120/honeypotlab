@@ -5,6 +5,7 @@ import "./public-remake.css";
 import "./public-polish.css";
 import "./bold-enhancement.css";
 import "./visual-enhancement.css";
+import "./clarity-enhancement.css";
 
 function toErrorMessage(value: unknown): string {
   if (!value) {

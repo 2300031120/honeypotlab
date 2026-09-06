@@ -83,3 +83,21 @@ docker compose --profile tls up -d tls-gateway
 ```
 
 If you terminate TLS outside Docker or through Cloudflare, make sure both the apex and `app.` hostnames resolve correctly before running the smoke checks.
+
+## Recover Cloudflare tunnel errors
+
+If `https://cybersentil.online` returns Cloudflare `530` or a Cloudflare Tunnel error page, the browser is reaching Cloudflare but Cloudflare cannot reach this Docker stack. On the host running the deployment:
+
+```powershell
+docker compose ps
+docker compose logs --tail=200 cloudflared frontend backend
+docker compose --profile cloudflare up -d --force-recreate cloudflared
+```
+
+Then verify the public route:
+
+```powershell
+node -e "fetch('https://cybersentil.online/api/health').then(async r=>{console.log(r.status); console.log((await r.text()).slice(0,300))})"
+```
+
+When using Cloudflare as the TLS edge, keep `CLOUDFLARE_TUNNEL_ENABLED=true` and do not override the frontend nginx `X-Forwarded-Proto` handling. The frontend nginx config preserves Cloudflare's original `https` scheme before proxying to the backend so FastAPI's HTTPS redirect middleware does not create redirect loops.

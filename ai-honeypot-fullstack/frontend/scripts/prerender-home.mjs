@@ -1,10 +1,10 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const cwd = process.cwd();
 const clientIndexPath = resolve(cwd, "dist", "index.html");
-const serverEntryPath = resolve(cwd, "dist-ssr", "entry-server.js");
+const distSsrDir = resolve(cwd, "dist-ssr");
 const siteName = String(process.env.VITE_PUBLIC_SITE_NAME || "CyberSentil").trim();
 const shortName = String(process.env.VITE_PUBLIC_SHORT_NAME || siteName.replace(/\s+AI$/i, "") || siteName).trim();
 const tagline = String(process.env.VITE_PUBLIC_TAGLINE || "Deception-led threat detection").trim();
@@ -12,7 +12,21 @@ const siteDescription = String(
   process.env.VITE_PUBLIC_SITE_DESCRIPTION ||
     "Deception-led threat detection platform for earlier attacker visibility, preserved evidence, and AI-assisted incident context."
 ).trim();
-const siteUrl = String(process.env.VITE_PUBLIC_SITE_URL || "http://localhost").replace(/\/+$/, "");
+function assertProductionUrl(name, rawValue) {
+  const trimmed = String(rawValue ?? "").trim();
+  const loopbackPattern = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])([/:]|$)/i;
+  const placeholderPattern =
+    /example\.(com|net|org|io)|your-?domain|yourdomain|domain\.com|placeholder|change-?me|replace-?me|\.(local|test|invalid)$|^(?!https:\/\/)/i;
+  if (!trimmed || loopbackPattern.test(trimmed) || placeholderPattern.test(trimmed)) {
+    throw new Error(
+      `${name} must be set to the production HTTPS domain (e.g. https://cybersentil.online) before prerendering. Found: ${trimmed || "(unset)"}`
+    );
+  }
+  return trimmed.replace(/\/+$/, "");
+}
+
+const siteUrl = assertProductionUrl("VITE_PUBLIC_SITE_URL", process.env.VITE_PUBLIC_SITE_URL);
+assertProductionUrl("VITE_PUBLIC_APP_URL", process.env.VITE_PUBLIC_APP_URL);
 const suspenseFallbackMarker = "Loading secure module...";
 
 const routeMetadata = [
@@ -129,6 +143,32 @@ function outputPathForRoute(route) {
   return resolve(cwd, "dist", route.replace(/^\/+/, ""), "index.html");
 }
 
+async function resolveServerEntryPath() {
+  const directCandidates = [
+    resolve(distSsrDir, "entry-server.js"),
+    resolve(distSsrDir, "assets", "js", "entry-server.js"),
+  ];
+  for (const candidate of directCandidates) {
+    try {
+      await readFile(candidate, "utf8");
+      return candidate;
+    } catch {
+      // Continue to hashed build outputs.
+    }
+  }
+
+  const jsDir = resolve(distSsrDir, "assets", "js");
+  const files = await readdir(jsDir);
+  const hashedEntry = files
+    .filter((name) => /^entry-server-.*\.js$/i.test(name))
+    .sort()[0];
+  if (!hashedEntry) {
+    throw new Error("Unable to locate SSR entry module in dist-ssr.");
+  }
+  return resolve(jsDir, hashedEntry);
+}
+
+const serverEntryPath = await resolveServerEntryPath();
 const { render } = await import(pathToFileURL(serverEntryPath).href);
 const html = await readFile(clientIndexPath, "utf8");
 const rootTag = '<div id="root"></div>';

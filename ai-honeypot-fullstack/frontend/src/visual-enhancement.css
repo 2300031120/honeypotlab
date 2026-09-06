@@ -301,6 +301,29 @@
   text-shadow: 0 0 20px rgba(99, 215, 255, 0.5);
 }
 
+.marketing-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  color: #ffbf2a;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  transition:
+    color 0.2s ease,
+    gap 0.2s ease;
+}
+
+.marketing-text-link svg {
+  flex-shrink: 0;
+}
+
+.marketing-text-link:hover {
+  color: #ffd700;
+  gap: 9px;
+}
+
 /* Enhanced Showcase Cards */
 .marketing-card.marketing-showcase {
   background: rgba(13, 17, 23, 0.8);

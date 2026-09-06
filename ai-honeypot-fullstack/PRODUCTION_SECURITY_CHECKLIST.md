@@ -61,6 +61,7 @@
 
 ### Secrets Management
 - [x] Remove hardcoded secrets from docker-compose.yml
+- [x] Runtime enforcement for file-backed critical secrets (`*_FILE`) in production
 - [ ] Use secrets manager (AWS Secrets Manager, HashiCorp Vault)
 - [ ] Rotate secrets regularly (API keys, passwords)
 - [ ] Separate secrets for development/staging/production

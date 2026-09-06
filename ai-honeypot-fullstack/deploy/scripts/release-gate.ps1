@@ -38,13 +38,17 @@ function Invoke-Step {
 }
 
 function Get-PythonExe {
+    $venvPython = Join-Path $repoRoot ".venv\Scripts\python.exe"
+    if (Test-Path $venvPython) {
+        return @($venvPython)
+    }
     if (Get-Command python -ErrorAction SilentlyContinue) {
         return @("python")
     }
     if (Get-Command py -ErrorAction SilentlyContinue) {
         return @("py", "-3")
     }
-    throw "Python executable not found (expected 'py' or 'python')."
+    throw "Python executable not found (expected .venv, 'py', or 'python')."
 }
 
 $python = @(Get-PythonExe)

@@ -38,7 +38,7 @@ services:
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
       interval: 10s
@@ -132,7 +132,7 @@ services:
       - cowrie
     environment:
       - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret-change-me}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET}
       - COWRIE_SITE_ID=${COWRIE_SITE_ID:-}
       - COWRIE_JSON_LOG=${COWRIE_JSON_LOG:-/cowrie/cowrie-git/var/log/cowrie/cowrie.json}
       - COWRIE_HTTP_TIMEOUT_SEC=${COWRIE_HTTP_TIMEOUT_SEC:-4}
@@ -175,7 +175,7 @@ services:
     environment:
       - BACKEND_INTERNAL_URL=${BACKEND_INTERNAL_URL:-http://backend:5000}
       - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret-change-me}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET}
       - PROTOCOL_SSH_AUTH_TRAP_ENABLED=${PROTOCOL_SSH_AUTH_TRAP_ENABLED:-true}
       - PROTOCOL_SSH_TRAP_CREDENTIALS=${PROTOCOL_SSH_TRAP_CREDENTIALS:-admin:Winter2026!,deploy:Deploy@2026!,reporting:Report#2026}  # ⚠️ CRITICAL: Change to realistic credentials in production
       - SSH_DECOY_LISTEN_HOST=0.0.0.0
@@ -225,11 +225,11 @@ services:
       terminal-sandbox:
         condition: service_started
     environment:
-      - APP_ENV=${APP_ENV:-development}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://cybersentinel:ChangeThisLocalDbPassword_2026!@postgres:5432/cybersentinel}
+      - APP_ENV=${APP_ENV:-production}
+      - DATABASE_URL=${DATABASE_URL}
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-ChangeThisLocalDbPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
       - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
       - TRUSTED_HOSTS=${TRUSTED_HOSTS:-}
@@ -271,13 +271,13 @@ services:
       - TERMINAL_SANDBOX_URL=${TERMINAL_SANDBOX_URL:-http://terminal-sandbox:5100}
       - TERMINAL_EXEC_TIMEOUT_SEC=${TERMINAL_EXEC_TIMEOUT_SEC:-8}
       - TERMINAL_MAX_OUTPUT_CHARS=${TERMINAL_MAX_OUTPUT_CHARS:-12000}
-      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET:-dev-protocol-shared-secret}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char secret
+      - PROTOCOL_SHARED_SECRET=${PROTOCOL_SHARED_SECRET}
       - SSH_DECOY_HEALTH_URL=${SSH_DECOY_HEALTH_URL:-http://ssh-decoy:5101/health}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key-change-me-at-least-32b}  # ⚠️ CRITICAL: MUST change in production! Use random 32+ char key
       - GOOGLE_OAUTH_CLIENT_ID=${GOOGLE_OAUTH_CLIENT_ID:-}
       - BOOTSTRAP_ADMIN_USERNAME=${BOOTSTRAP_ADMIN_USERNAME:-admin}
       - BOOTSTRAP_ADMIN_EMAIL=${BOOTSTRAP_ADMIN_EMAIL:-admin@cybersentil.local}
-      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD:-ChangeThisAdminPassword_2026!}  # ⚠️ CRITICAL: MUST change in production! Use strong password with min 16 chars, mixed case, numbers, symbols
+      - BOOTSTRAP_ADMIN_PASSWORD=${BOOTSTRAP_ADMIN_PASSWORD}
       - ENABLE_DEMO_SEED=${ENABLE_DEMO_SEED:-true}
       - ALLOW_SIGNUP=${ALLOW_SIGNUP:-false}
       - SPLUNK_HEC_URL=${SPLUNK_HEC_URL:-}

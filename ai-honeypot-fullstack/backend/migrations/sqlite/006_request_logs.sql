@@ -1,4 +1,4 @@
--- Create request_logs table for security monitoring
+-- Create request_logs table for security monitoring (SQLite)
 CREATE TABLE IF NOT EXISTS request_logs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     timestamp TEXT NOT NULL,

@@ -169,13 +169,13 @@ async def current_websocket_user(websocket: WebSocket) -> dict[str, Any]:
     return user
 
 
-def require_csrf(request: Request, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
+async def require_csrf(request: Request, user: dict[str, Any] = Depends(current_user)) -> dict[str, Any]:
     """Dependency that validates CSRF token for state-changing requests"""
     # Get session ID from user (using user ID as session identifier)
     session_id = str(user.get("id") or "")
     
     # Get CSRF token from request
-    token = get_csrf_token_from_request(request)
+    token = await get_csrf_token_from_request(request)
     
     if not token:
         raise HTTPException(
@@ -193,10 +193,10 @@ def require_csrf(request: Request, user: dict[str, Any] = Depends(current_user))
     return user
 
 
-def require_csrf_optional(request: Request) -> None:
+async def require_csrf_optional(request: Request) -> None:
     """Optional CSRF validation - validates token if present but doesn't require it"""
     # For public endpoints that may have CSRF protection but don't require it
-    token = get_csrf_token_from_request(request)
+    token = await get_csrf_token_from_request(request)
     if token:
         # If token is provided, validate it (using empty session ID for public requests)
         if not validate_csrf_token(token, ""):

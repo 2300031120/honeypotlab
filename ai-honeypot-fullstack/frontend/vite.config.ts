@@ -16,7 +16,26 @@ const tagline = process.env.VITE_PUBLIC_TAGLINE || 'Deception-led threat detecti
 const siteDescription =
   process.env.VITE_PUBLIC_SITE_DESCRIPTION ||
   'Deception-led threat detection platform for earlier attacker visibility, preserved evidence, and AI-assisted incident context.'
-const siteUrl = process.env.VITE_PUBLIC_SITE_URL || 'http://localhost'
+function assertProductionUrl(name: string, rawValue: string | undefined): string {
+  const trimmed = String(rawValue ?? '').trim()
+  const loopbackPattern = /^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])([/:]|$)/i
+  const placeholderPattern =
+    /example\.(com|net|org|io)|your-?domain|yourdomain|domain\.com|placeholder|change-?me|replace-?me|\.(local|test|invalid)$|^(?!https:\/\/)/i
+  if (!trimmed || loopbackPattern.test(trimmed) || placeholderPattern.test(trimmed)) {
+    throw new Error(
+      `${name} must be set to the production HTTPS domain (e.g. https://cybersentil.online) at build time in CI. Found: ${trimmed || '(unset)'}`
+    )
+  }
+  return trimmed.replace(/\/+$/, '')
+}
+
+const isProductionBuild = process.env.NODE_ENV === 'production'
+const siteUrl = isProductionBuild
+  ? assertProductionUrl('VITE_PUBLIC_SITE_URL', process.env.VITE_PUBLIC_SITE_URL)
+  : (String(process.env.VITE_PUBLIC_SITE_URL || '').trim() || 'http://localhost')
+if (isProductionBuild) {
+  assertProductionUrl('VITE_PUBLIC_APP_URL', process.env.VITE_PUBLIC_APP_URL)
+}
 const companyName = process.env.VITE_PUBLIC_COMPANY_NAME || siteName
 
 const structuredData = renderStructuredData({
@@ -142,34 +161,26 @@ export default defineConfig({
           if (!id.includes('node_modules')) {
             return undefined
           }
-          // React core
+          // Keep React family in ONE chunk. Splitting react/react-dom/scheduler
+          // across vendor chunks causes runtime: "Cannot read properties of
+          // undefined (reading 'createContext')" and a blank white page.
           if (
-            /[\\/]node_modules[\\/]react[\\/]/.test(id) ||
-            /[\\/]node_modules[\\/]react-dom[\\/]/.test(id)
+            /[\\/]node_modules[\\/](react|react-dom|scheduler)([\\/]|$)/.test(id) ||
+            /[\\/]node_modules[\\/]react-router/.test(id) ||
+            /[\\/]node_modules[\\/]@remix-run[\\/]router/.test(id)
           ) {
             return 'react-core'
           }
-          // Router
-          if (/[\\/]node_modules[\\/]react-router-dom[\\/]/.test(id)) {
-            return 'router'
-          }
-          // UI libraries
+          // Heavy optional UI
           if (
             /[\\/]node_modules[\\/]lucide-react[\\/]/.test(id) ||
             /[\\/]node_modules[\\/]framer-motion[\\/]/.test(id)
           ) {
             return 'ui-libs'
           }
-          // Graph/visualization
+          // Graph/visualization (lazy routes only)
           if (/[\\/]node_modules[\\/]@xyflow[\\/]/.test(id)) {
             return 'graph-flow'
-          }
-          // Utilities
-          if (
-            /[\\/]node_modules[\\/]date-fns[\\/]/.test(id) ||
-            /[\\/]node_modules[\\/]clsx[\\/]/.test(id)
-          ) {
-            return 'utils'
           }
           return 'vendor'
         },

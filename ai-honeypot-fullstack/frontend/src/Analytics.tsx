@@ -48,6 +48,13 @@ const Analytics = () => {
   });
   const [loading, setLoading] = useState(true);
 
+  const normalizeSeverity = (value: DashboardFeedEvent["severity"]): "high" | "medium" | "low" => {
+    if (value === "high" || value === "medium" || value === "low") {
+      return value;
+    }
+    return "low";
+  };
+
   useEffect(() => {
     fetchAnalytics();
     const interval = setInterval(fetchAnalytics, 30000);
@@ -79,6 +86,37 @@ const Analytics = () => {
     name,
     value,
     color: '#58a6ff'
+  }));
+
+  const timelineEvents = stats.feed.slice(0, 50).map((event, index) => ({
+    id: event.id ?? `timeline-${index}`,
+    timestamp: String(event.ts ?? new Date().toISOString()),
+    severity: normalizeSeverity(event.severity),
+    score: Number(event.score ?? 0),
+    event_type: event.event_type ?? "unknown",
+    ip: event.ip ?? "unknown",
+    country: event.country ?? event.geo ?? "Unknown",
+    mitre_tactic: event.mitre_tactic ?? "Unknown",
+    mitre_technique: event.mitre_technique ?? "Unknown",
+  }));
+
+  const geoEvents = stats.feed.slice(0, 100).map((event, index) => ({
+    id: event.id ?? `geo-${index}`,
+    country: event.country ?? event.geo ?? "Unknown",
+    severity: normalizeSeverity(event.severity),
+    score: Number(event.score ?? 0),
+    event_type: event.event_type ?? "unknown",
+    ip: event.ip ?? "unknown",
+  }));
+
+  const ttpEvents = stats.feed.slice(0, 100).map((event, index) => ({
+    id: event.id ?? `ttp-${index}`,
+    mitre_tactic: event.mitre_tactic ?? "Unknown",
+    mitre_technique: event.mitre_technique ?? "Unknown",
+    severity: normalizeSeverity(event.severity),
+    score: Number(event.score ?? 0),
+    event_type: event.event_type ?? "unknown",
+    timestamp: String(event.ts ?? new Date().toISOString()),
   }));
 
   if (loading) {
@@ -138,7 +176,7 @@ const Analytics = () => {
         <h3 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <Zap size={20} color="#d29922" /> Attack Timeline
         </h3>
-        <AttackTimeline events={stats.feed.slice(0, 50)} height={200} />
+        <AttackTimeline events={timelineEvents} height={200} />
       </div>
 
       {/* Geographic Distribution */}
@@ -146,7 +184,7 @@ const Analytics = () => {
         <h3 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <GlobeIcon size={20} color="#42b8ff" /> Geographic Distribution
         </h3>
-        <GeographicHeatmap events={stats.feed.slice(0, 100)} height={300} />
+        <GeographicHeatmap events={geoEvents} height={300} />
       </div>
 
       {/* TTP Analysis */}
@@ -154,7 +192,7 @@ const Analytics = () => {
         <h3 style={{ margin: '0 0 24px', fontSize: '18px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <FileSearch size={20} color="#a371f7" /> MITRE ATT&CK Pattern Analysis
         </h3>
-        <TTPAnalysis events={stats.feed.slice(0, 100)} height={400} />
+        <TTPAnalysis events={ttpEvents} height={400} />
       </div>
 
       {/* Severity Distribution */}

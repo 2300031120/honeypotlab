@@ -19,6 +19,7 @@ from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
 
 from core.config import (
+    APP_ENV,
     APP_TITLE,
     ADMIN_WHITELIST_IPS,
     CORS_ORIGINS,
@@ -36,7 +37,7 @@ from core.config import (
     TRUSTED_HOSTS,
     validate_runtime_config,
 )
-from core.database import build_summary, db, seed_database
+from core.database import build_summary, db_read, seed_database, check_database_health, check_redis_health
 from core.observability import RequestIdMiddleware, configure_logging, init_sentry
 from core.request_logging import log_request
 from core.request_security import SecurityHeadersMiddleware
@@ -109,8 +110,8 @@ class RequestLoggingMiddleware:
         # Process request
         try:
             await self.app(scope, receive, send_wrapper)
-        except Exception as e:
-            # Log error requests
+        except ValueError as e:
+            # Log validation errors
             response_time = (time.time() - start_time) * 1000
             try:
                 user_id = getattr(request.state, "user_id", None)
@@ -119,9 +120,39 @@ class RequestLoggingMiddleware:
                     response_status=status_code,
                     response_time_ms=response_time,
                     user_id=user_id,
-                    error_message=str(e)
+                    error_message=f"Validation error: {str(e)}"
                 )
-            except:
+            except Exception:
+                pass
+            raise
+        except (ConnectionError, TimeoutError) as e:
+            # Log network errors
+            response_time = (time.time() - start_time) * 1000
+            try:
+                user_id = getattr(request.state, "user_id", None)
+                log_request(
+                    request=request,
+                    response_status=status_code,
+                    response_time_ms=response_time,
+                    user_id=user_id,
+                    error_message=f"Network error: {str(e)}"
+                )
+            except Exception:
+                pass
+            raise
+        except Exception as e:
+            # Log unexpected errors
+            response_time = (time.time() - start_time) * 1000
+            try:
+                user_id = getattr(request.state, "user_id", None)
+                log_request(
+                    request=request,
+                    response_status=status_code,
+                    response_time_ms=response_time,
+                    user_id=user_id,
+                    error_message=f"Unexpected error: {str(e)}"
+                )
+            except Exception:
                 pass
             raise
         else:
@@ -154,7 +185,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
-if TRUSTED_HOSTS:
+if TRUSTED_HOSTS and APP_ENV == "production":
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=TRUSTED_HOSTS)
 if FORCE_HTTPS_REDIRECT:
     app.add_middleware(HTTPSRedirectMiddleware)
@@ -174,7 +205,7 @@ app.add_middleware(ResponseObfuscationMiddleware, enable_obfuscation=RESPONSE_OB
 @app.get("/health")
 @limiter.limit("60/minute")
 def health(request: Request) -> dict[str, Any]:
-    with db() as conn:
+    with db_read() as conn:
         summary = build_summary(conn)["summary"]
     now = utc_now()
     uptime_seconds = int((now - APP_STARTED_AT).total_seconds()) if APP_STARTED_AT else 0
@@ -198,44 +229,37 @@ def health(request: Request) -> dict[str, Any]:
     }
 
 
-# Honeypot decoy endpoints to trap bots/scanners
-@app.get("/admin")
-@app.get("/admin/login")
-@app.get("/administrator")
-@app.get("/wp-admin")
-@app.get("/phpmyadmin")
-@app.get("/config.php")
-@app.get("/.env")
-@app.get("/.git")
-@app.get("/api/config")
-@app.get("/api/secret")
-@app.get("/api/admin")
-@app.get("/api/users")
-@app.get("/api/database")
-@app.get("/backup")
-@app.get("/backups")
-@app.get("/console")
-@app.get("/debug")
-@app.get("/test")
-@app.get("/login.php")
-@app.get("/robots.txt")
-def honeypot_trap(request: Request) -> dict[str, Any]:
-    """Honeypot endpoint to trap bots and scanners"""
-    client_ip = request.client.host if request.client else "unknown"
-    path = request.url.path
-    user_agent = request.headers.get("user-agent", "unknown")
-    
-    logger.warning(f"HONEYPOT TRAP: {client_ip} accessed decoy endpoint {path} with UA: {user_agent}")
-    
-    # Log the trap attempt
-    with db() as conn:
-        conn.execute("""
-            INSERT INTO request_logs (ip_address, path, method, user_agent, status_code, response_time_ms, is_honeypot)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (client_ip, path, request.method, user_agent, 404, 0, True))
-    
-    # Return fake 404 to avoid revealing it's a honeypot
-    return {"error": "Not Found", "code": 404}
+@app.get("/health/detailed")
+@limiter.limit("30/minute")
+def health_detailed(request: Request) -> JSONResponse:
+    """Dependency-aware health probe for load balancers and ops monitors."""
+    db_health = check_database_health()
+    redis_health = check_redis_health()
+
+    now = utc_now()
+    uptime_seconds = int((now - APP_STARTED_AT).total_seconds()) if APP_STARTED_AT else 0
+
+    critical_ok = bool(db_health.get("healthy"))
+    # Redis is optional: only degrade when it is configured but unreachable.
+    redis_ok = (not redis_health.get("configured")) or bool(redis_health.get("healthy"))
+    overall_status = "healthy" if critical_ok and redis_ok else "degraded"
+    status_code = 200 if overall_status == "healthy" else 503
+
+    payload = {
+        "status": overall_status,
+        "service": APP_TITLE,
+        "time": now.isoformat(),
+        "uptime_seconds": uptime_seconds,
+        "environment": APP_ENV,
+        "dependencies": {
+            "database": db_health,
+            "redis": redis_health,
+        },
+        "services": {
+            "backend": "operational" if critical_ok else "degraded",
+        },
+    }
+    return JSONResponse(content=payload, status_code=status_code)
 
 
 app.include_router(auth_router)

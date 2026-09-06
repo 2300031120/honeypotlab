@@ -53,7 +53,7 @@ def validate_csrf_token(token: str, session_id: str) -> bool:
         return False
 
 
-def get_csrf_token_from_request(request: Any) -> str | None:
+async def get_csrf_token_from_request(request: Any) -> str | None:
     """Extract CSRF token from request headers or form data"""
     # Check header first
     token = request.headers.get("X-CSRF-Token")
@@ -63,7 +63,7 @@ def get_csrf_token_from_request(request: Any) -> str | None:
     # Check form data
     if hasattr(request, "form"):
         try:
-            form_data = request.form()
+            form_data = await request.form()
             if "csrf_token" in form_data:
                 return form_data["csrf_token"]
         except:
@@ -72,7 +72,7 @@ def get_csrf_token_from_request(request: Any) -> str | None:
     # Check JSON body
     if hasattr(request, "json"):
         try:
-            json_data = request.json()
+            json_data = await request.json()
             if isinstance(json_data, dict) and "csrf_token" in json_data:
                 return json_data["csrf_token"]
         except:

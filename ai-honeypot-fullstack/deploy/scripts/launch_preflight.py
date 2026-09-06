@@ -209,8 +209,11 @@ def run_preflight(env: Dict[str, str], check_url: bool, *, repo_root: Path | Non
             else:
                 passes.append("frontend/index.html JSON-LD marker is deploy-safe.")
 
+    cloudflare_tunnel_enabled = env_bool(first_defined(env, "CLOUDFLARE_TUNNEL_ENABLED", "false"), default=False)
     if env_bool(first_defined(env, "FORCE_HTTPS_REDIRECT", "true"), default=True):
         passes.append("FORCE_HTTPS_REDIRECT is enabled.")
+    elif cloudflare_tunnel_enabled:
+        passes.append("FORCE_HTTPS_REDIRECT is disabled because Cloudflare tunnel terminates HTTPS.")
     else:
         fails.append("FORCE_HTTPS_REDIRECT must be true for launch.")
 

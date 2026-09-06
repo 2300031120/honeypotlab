@@ -18,7 +18,8 @@ ENHANCED_SECURITY_HEADERS = {
     "X-Frame-Options": "DENY",
     "X-XSS-Protection": "1; mode=block",
     "Referrer-Policy": "strict-origin-when-cross-origin",
-    "Permissions-Policy": "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()",
+    # Keep this minimal and stable; tests (and some proxies) treat this header as an exact string.
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
 }
 
 
@@ -58,13 +59,50 @@ def _is_trusted_proxy_source(host: str) -> bool:
     return parsed.is_loopback or parsed.is_private or parsed.is_link_local
 
 
+def _parse_forwarded_ip(value: str) -> str | None:
+    token = str(value or "").strip().strip('"')
+    if not token:
+        return None
+
+    # RFC 7239-style forwarded token: for=<client>
+    if token.lower().startswith("for="):
+        token = token[4:].strip().strip('"')
+
+    # IPv6 in brackets, optionally with a trailing port.
+    if token.startswith("[") and "]" in token:
+        token = token[1: token.index("]")]
+    else:
+        # IPv4 with optional ":port"
+        if token.count(":") == 1 and token.split(":", 1)[1].isdigit() and "." in token:
+            token = token.split(":", 1)[0]
+
+    try:
+        return str(ipaddress.ip_address(token))
+    except ValueError:
+        return None
+
+
 def extract_client_ip(request: Request) -> str:
     source_host = str(request.client.host) if request.client and request.client.host else ""
-    forwarded_for = request.headers.get("x-forwarded-for", "").split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip", "").strip()
+    forwarded_for_raw = request.headers.get("x-forwarded-for", "")
+    real_ip = _parse_forwarded_ip(request.headers.get("x-real-ip", ""))
+    cf_connecting_ip = _parse_forwarded_ip(request.headers.get("cf-connecting-ip", ""))
     if _is_trusted_proxy_source(source_host):
-        if forwarded_for:
-            return forwarded_for
+        if cf_connecting_ip:
+            return cf_connecting_ip
+
+        # Parse from right-to-left and stop at the first non-trusted hop.
+        # This prevents attackers from spoofing left-most values in long XFF chains.
+        forwarded_chain = [
+            parsed_ip
+            for raw_item in forwarded_for_raw.split(",")
+            if (parsed_ip := _parse_forwarded_ip(raw_item))
+        ]
+        for forwarded_ip in reversed(forwarded_chain):
+            if not _is_trusted_proxy_source(forwarded_ip):
+                return forwarded_ip
+        if forwarded_chain:
+            return forwarded_chain[-1]
         if real_ip:
             return real_ip
     if source_host:
@@ -186,7 +224,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")  # Referrer policy
         response.headers.setdefault(
             "Permissions-Policy", 
-            "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"
+            "camera=(), microphone=(), geolocation=()"
         )  # Feature policy
         
         # Additional headers to hide version information

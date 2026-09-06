@@ -1,19 +1,26 @@
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, constr
+
+
+UsernameValue = constr(strip_whitespace=True, min_length=3, max_length=64)
+EmailValue = EmailStr
+PasswordValue = constr(min_length=8, max_length=256)
+ShortTextValue = constr(strip_whitespace=True, min_length=1, max_length=255)
+MessageValue = constr(strip_whitespace=True, min_length=1, max_length=4000)
 
 
 class SignupRequest(BaseModel):
-    username: str
-    email: str
-    password: str
+    username: UsernameValue
+    email: EmailValue
+    password: PasswordValue
     plan: str | None = None
     tenant_name: str | None = None
 
 
 class LoginRequest(BaseModel):
-    username: str
-    password: str
+    username: ShortTextValue
+    password: constr(min_length=1, max_length=256)
     mfa_code: str | None = None
 
 
@@ -39,11 +46,11 @@ class IngestRequest(BaseModel):
 
 
 class LeadSubmission(BaseModel):
-    name: str
-    email: str
-    organization: str
-    use_case: str
-    message: str
+    name: ShortTextValue
+    email: EmailValue
+    organization: ShortTextValue
+    use_case: ShortTextValue
+    message: MessageValue
     referral_code: str = ""
     website: str = ""
     challenge_id: str | None = None

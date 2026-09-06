@@ -16,6 +16,7 @@ const Pricing = lazy(() => import("./Pricing"));
 const CaseStudy = lazy(() => import("./CaseStudy"));
 const Screenshots = lazy(() => import("./Screenshots"));
 const PublicArchitecture = lazy(() => import("./PublicArchitecture"));
+const Resources = lazy(() => import("./Resources"));
 const UseCases = lazy(() => import("./UseCases"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./TermsOfService"));
@@ -152,6 +153,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
           <Route path="/case-study" element={<CaseStudy />} />
           <Route path="/screenshots" element={<Screenshots />} />
           <Route path="/architecture" element={<PublicArchitecture />} />
+          <Route path="/resources" element={<Resources />} />
           <Route path="/use-cases" element={<UseCases />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
@@ -233,12 +235,12 @@ function App() {
         }
         setAuthSession(nextProfile);
         setAuthenticated(true);
-      } catch (error) {
+      } catch (error: unknown) {
         if (!active) {
           return;
         }
         // 401 is expected when user is not logged in - don't log it
-        if (error.response?.status !== 401) {
+        if (!(axios.isAxiosError(error) && error.response?.status === 401)) {
           console.error("Auth sync error:", error);
         }
         clearAuthSession();

@@ -28,8 +28,9 @@ This directory contains Kubernetes manifests for deploying CyberSentil with auto
 
 ## Deployment Steps
 
-### 1. Update Secrets
-Edit `secrets.yaml` and replace `CHANGE_ME` with actual values from your `.env` file.
+### 1. Secrets (use ExternalSecrets)
+This repository recommends using ExternalSecrets with AWS Secrets Manager to avoid storing secrets in VCS. Deploy the ExternalSecrets operator (https://external-secrets.io/) and the ClusterSecretStore in infrastructure/kubernetes/external-secrets/clustersecretstore-aws.yaml, then apply infrastructure/kubernetes/external-secrets/externalsecret-cybersentil.yaml to populate a Kubernetes Secret named `cybersentil-secrets` used by the deployments. For local testing only, use a temporary, uncommitted copy of infrastructure/kubernetes/secrets.yaml with placeholder values.
+
 
 ### 2. Apply Kubernetes Manifests
 ```bash

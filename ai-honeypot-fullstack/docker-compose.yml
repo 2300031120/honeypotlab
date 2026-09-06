@@ -8,12 +8,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}  # ⚠️ CRITICAL: MUST be set in .env file. Use strong password with min 16 chars, mixed case, numbers, symbols
       - POSTGRES_REPLICATION_USER=${POSTGRES_REPLICATION_USER:-replicator}
       - POSTGRES_REPLICATION_PASSWORD=${POSTGRES_REPLICATION_PASSWORD}
-    command:
-      - postgres
-      - -c max_wal_senders=10
-      - -c wal_level=replica
-      - -c hot_standby=on
-      - -c wal_keep_size=100
+    command: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-cybersentinel} -d ${POSTGRES_DB:-cybersentinel}"]
       interval: 10s
@@ -231,6 +226,7 @@ services:
         condition: service_started
     environment:
       - APP_ENV=${APP_ENV:-production}
+      - ENFORCE_FILE_BASED_SECRETS=${ENFORCE_FILE_BASED_SECRETS:-false}
       - DATABASE_URL=${DATABASE_URL}  # ⚠️ CRITICAL: MUST be set in .env file
       - POSTGRES_DB=${POSTGRES_DB:-cybersentinel}
       - POSTGRES_USER=${POSTGRES_USER:-cybersentinel}
@@ -264,7 +260,7 @@ services:
       - SMTP_PORT=${SMTP_PORT:-587}
       - SMTP_USERNAME=${SMTP_USERNAME:-}
       - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-padigireddyhemachandrareddy@gmail.com}
+      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-contact@cybersentil.local}
       - SMTP_FROM_NAME=${SMTP_FROM_NAME:-CyberSentinel}
       - SMTP_USE_TLS=${SMTP_USE_TLS:-true}
       - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
@@ -362,7 +358,7 @@ services:
       - /var/run:noexec,nosuid,size=5m
     restart: unless-stopped
     ports:
-      - "80:80"
+      - "${FRONTEND_HTTP_PORT:-80}:80"
     volumes:
       - certbot_www:/var/www/certbot:ro
     depends_on:
@@ -412,6 +408,8 @@ services:
     restart: unless-stopped
     depends_on:
       - frontend
+    networks:
+      - dmz-tier
     command: tunnel --no-autoupdate --url http://frontend:80
 
 # SECURITY HARDENING - Network Segmentation

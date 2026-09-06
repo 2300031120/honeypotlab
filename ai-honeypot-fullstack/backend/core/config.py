@@ -10,13 +10,13 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID", "")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "").strip()
 BOOTSTRAP_ADMIN_USERNAME = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "admin").strip() or "admin"
 BOOTSTRAP_ADMIN_EMAIL = os.getenv("BOOTSTRAP_ADMIN_EMAIL", "admin@cybersentil.local").strip() or "admin@cybersentil.local"
-BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD", "ChangeThisAdminPassword_2026!")
+BOOTSTRAP_ADMIN_PASSWORD = ""
 ENABLE_DEMO_SEED = os.getenv("ENABLE_DEMO_SEED", "true").strip().lower() in {"1", "true", "yes", "on"}
 ALLOW_SIGNUP = os.getenv("ALLOW_SIGNUP", "false").strip().lower() in {"1", "true", "yes", "on"}
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
-DATABASE_REPLICA_URL = os.getenv("DATABASE_REPLICA_URL", "").strip()
+DATABASE_URL = ""
+DATABASE_REPLICA_URL = ""
 BACKEND_DB_PATH = os.getenv("BACKEND_DB_PATH", "").strip()
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0").strip()
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
 ALLOWED_STATUS = ["new", "contacted", "qualified", "demo_scheduled", "closed_won", "closed_lost", "spam"]
 STATUS_TRANSITIONS = {
     "new": ["contacted", "qualified", "spam", "closed_lost"],
@@ -52,6 +52,38 @@ def env_flag(name: str, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+SECRET_VALUE_SOURCES: dict[str, str] = {}
+
+
+def read_secret(name: str, default: str = "") -> str:
+    file_name = f"{name}_FILE"
+    from_env = os.getenv(name)
+    from_file = os.getenv(file_name)
+
+    if from_env is not None and from_file:
+        raise RuntimeError(f"{name} and {file_name} cannot both be set.")
+
+    if from_file:
+        try:
+            with open(from_file, "r", encoding="utf-8") as secret_file:
+                value = secret_file.read().strip()
+        except OSError as exc:
+            raise RuntimeError(f"{file_name} points to an unreadable file: {from_file}") from exc
+        SECRET_VALUE_SOURCES[name] = "file"
+        return value
+
+    if from_env is not None:
+        SECRET_VALUE_SOURCES[name] = "env"
+        return from_env.strip()
+
+    if default:
+        SECRET_VALUE_SOURCES[name] = "default"
+        return default
+
+    SECRET_VALUE_SOURCES[name] = "missing"
+    return ""
+
+
 def env_int(name: str, default: int) -> int:
     raw = os.getenv(name)
     if raw is None or not str(raw).strip():
@@ -70,6 +102,19 @@ def env_float(name: str, default: float) -> float:
         return float(str(raw).strip())
     except ValueError as exc:
         raise RuntimeError(f"{name} must be a float.") from exc
+
+
+ENFORCE_FILE_BASED_SECRETS = env_flag("ENFORCE_FILE_BASED_SECRETS", default=APP_ENV == "production")
+PRODUCTION_FILE_SECRET_KEYS = (
+    "SECRET_KEY",
+    "DATABASE_URL",
+    "BOOTSTRAP_ADMIN_PASSWORD",
+    "PROTOCOL_SHARED_SECRET",
+)
+
+BOOTSTRAP_ADMIN_PASSWORD = read_secret("BOOTSTRAP_ADMIN_PASSWORD", "ChangeThisAdminPassword_2026!")
+DATABASE_URL = read_secret("DATABASE_URL", "")
+DATABASE_REPLICA_URL = read_secret("DATABASE_REPLICA_URL", "")
 
 
 def is_placeholder_secret(value: str) -> bool:
@@ -117,7 +162,7 @@ def trusted_host_matches(hostname: str, candidates: list[str]) -> bool:
 
 
 def _resolve_secret_key() -> str:
-    secret_key = os.getenv("SECRET_KEY", "").strip()
+    secret_key = read_secret("SECRET_KEY", "")
     if not secret_key and APP_ENV != "production":
         return "dev-secret-key-change-me-at-least-32b"
     return secret_key
@@ -214,7 +259,7 @@ TERMINAL_SANDBOX_URL = os.getenv("TERMINAL_SANDBOX_URL", "").strip()
 TERMINAL_EXEC_TIMEOUT_SEC = max(1, env_int("TERMINAL_EXEC_TIMEOUT_SEC", 8))
 TERMINAL_MAX_OUTPUT_CHARS = max(512, env_int("TERMINAL_MAX_OUTPUT_CHARS", 12000))
 SPLUNK_HEC_URL = os.getenv("SPLUNK_HEC_URL", "").strip()
-SPLUNK_HEC_TOKEN = os.getenv("SPLUNK_HEC_TOKEN", "").strip()
+SPLUNK_HEC_TOKEN = read_secret("SPLUNK_HEC_TOKEN", "")
 SPLUNK_HEC_VERIFY_TLS = env_flag("SPLUNK_HEC_VERIFY_TLS", default=True)
 SPLUNK_HEC_TIMEOUT_SECONDS = max(1, env_int("SPLUNK_HEC_TIMEOUT_SECONDS", 4))
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").strip().upper() or "INFO"
@@ -240,12 +285,15 @@ LEAD_AUTOREPLY_DEMO_BOOKING_URL = os.getenv(
 SMTP_HOST = os.getenv("SMTP_HOST", "").strip()
 SMTP_PORT = env_int("SMTP_PORT", 587)
 SMTP_USERNAME = os.getenv("SMTP_USERNAME", "").strip()
-SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "").strip()
+SMTP_PASSWORD = read_secret("SMTP_PASSWORD", "")
 SMTP_FROM_EMAIL = os.getenv("SMTP_FROM_EMAIL", "").strip()
 SMTP_FROM_NAME = os.getenv("SMTP_FROM_NAME", LEAD_NOTIFICATION_BRAND_NAME).strip() or LEAD_NOTIFICATION_BRAND_NAME
 SMTP_USE_TLS = env_flag("SMTP_USE_TLS", default=True)
 SMTP_USE_SSL = env_flag("SMTP_USE_SSL", default=False)
-PROTOCOL_SHARED_SECRET = os.getenv("PROTOCOL_SHARED_SECRET", "").strip() or ("dev-protocol-shared-secret" if APP_ENV != "production" else "")
+PROTOCOL_SHARED_SECRET = read_secret(
+    "PROTOCOL_SHARED_SECRET",
+    "dev-protocol-shared-secret" if APP_ENV != "production" else "",
+)
 PROTOCOL_SSH_AUTH_TRAP_ENABLED = env_flag("PROTOCOL_SSH_AUTH_TRAP_ENABLED", default=True)
 PROTOCOL_SSH_TRAP_CREDENTIALS = os.getenv("PROTOCOL_SSH_TRAP_CREDENTIALS", "").strip()
 PROTOCOL_MYSQL_AUTH_TRAP_ENABLED = env_flag("PROTOCOL_MYSQL_AUTH_TRAP_ENABLED", default=True)
@@ -254,7 +302,7 @@ SSH_DECOY_HEALTH_URL = os.getenv("SSH_DECOY_HEALTH_URL", "").strip()
 AI_LLM_ENABLED = env_flag("AI_LLM_ENABLED", default=False)
 AI_LLM_PROVIDER = os.getenv("AI_LLM_PROVIDER", "openai").strip().lower() or "openai"
 AI_LLM_MODEL = os.getenv("AI_LLM_MODEL", "gpt-4").strip() or "gpt-4"
-AI_LLM_API_KEY = os.getenv("AI_LLM_API_KEY", "").strip()
+AI_LLM_API_KEY = read_secret("AI_LLM_API_KEY", "")
 AI_LLM_MAX_TOKENS = env_int("AI_LLM_MAX_TOKENS", 2000)
 AI_LLM_TEMPERATURE = env_float("AI_LLM_TEMPERATURE", 0.7)
 EVENTS_RETENTION_DAYS = env_int("EVENTS_RETENTION_DAYS", 90)
@@ -269,7 +317,7 @@ HEALTH_CHECK_INTERVAL_SECONDS = env_int("HEALTH_CHECK_INTERVAL_SECONDS", 60)
 # QRadar SIEM Integration
 QRADAR_HOST = os.getenv("QRADAR_HOST", "").strip()
 QRADAR_PORT = env_int("QRADAR_PORT", 443)
-QRADAR_TOKEN = os.getenv("QRADAR_TOKEN", "").strip()
+QRADAR_TOKEN = read_secret("QRADAR_TOKEN", "")
 QRADAR_VERIFY_TLS = env_flag("QRADAR_VERIFY_TLS", default=True)
 QRADAR_TIMEOUT_SECONDS = max(1, env_int("QRADAR_TIMEOUT_SECONDS", 5))
 
@@ -277,15 +325,15 @@ QRADAR_TIMEOUT_SECONDS = max(1, env_int("QRADAR_TIMEOUT_SECONDS", 5))
 ELASTIC_HOST = os.getenv("ELASTIC_HOST", "").strip()
 ELASTIC_PORT = env_int("ELASTIC_PORT", 9200)
 ELASTIC_USERNAME = os.getenv("ELASTIC_USERNAME", "").strip()
-ELASTIC_PASSWORD = os.getenv("ELASTIC_PASSWORD", "").strip()
-ELASTIC_API_KEY = os.getenv("ELASTIC_API_KEY", "").strip()
+ELASTIC_PASSWORD = read_secret("ELASTIC_PASSWORD", "")
+ELASTIC_API_KEY = read_secret("ELASTIC_API_KEY", "")
 ELASTIC_INDEX = os.getenv("ELASTIC_INDEX", "deception-events").strip() or "deception-events"
 ELASTIC_VERIFY_TLS = env_flag("ELASTIC_VERIFY_TLS", default=True)
 ELASTIC_TIMEOUT_SECONDS = max(1, env_int("ELASTIC_TIMEOUT_SECONDS", 5))
 
 # Microsoft Sentinel SIEM Integration
 SENTINEL_WORKSPACE_ID = os.getenv("SENTINEL_WORKSPACE_ID", "").strip()
-SENTINEL_SHARED_KEY = os.getenv("SENTINEL_SHARED_KEY", "").strip()
+SENTINEL_SHARED_KEY = read_secret("SENTINEL_SHARED_KEY", "")
 SENTINEL_LOG_TYPE = os.getenv("SENTINEL_LOG_TYPE", "DeceptionEvents").strip() or "DeceptionEvents"
 SENTINEL_TIMEOUT_SECONDS = max(1, env_int("SENTINEL_TIMEOUT_SECONDS", 10))
 HEALTH_CHECK_ALERT_THRESHOLD = env_int("HEALTH_CHECK_ALERT_THRESHOLD", 3)
@@ -349,8 +397,12 @@ def validate_runtime_config() -> None:
             failures.append("SENTRY_TRACES_SAMPLE_RATE must be between 0.0 and 1.0.")
     if LEAD_NOTIFICATION_WEBHOOK_URL:
         parsed_webhook = urlparse(LEAD_NOTIFICATION_WEBHOOK_URL)
-        if parsed_webhook.scheme not in {"http", "https"} or not parsed_webhook.netloc:
-            failures.append("LEAD_NOTIFICATION_WEBHOOK_URL must be a valid HTTP/HTTPS URL.")
+        allowed_webhook_schemes = {"https"} if APP_ENV == "production" else {"http", "https"}
+        if parsed_webhook.scheme not in allowed_webhook_schemes or not parsed_webhook.netloc:
+            if APP_ENV == "production":
+                failures.append("LEAD_NOTIFICATION_WEBHOOK_URL must be a valid HTTPS URL in production.")
+            else:
+                failures.append("LEAD_NOTIFICATION_WEBHOOK_URL must be a valid HTTP/HTTPS URL.")
         elif is_placeholder_secret(LEAD_NOTIFICATION_WEBHOOK_URL):
             failures.append("LEAD_NOTIFICATION_WEBHOOK_URL cannot use placeholder/example values.")
     smtp_any = any(
@@ -374,6 +426,14 @@ def validate_runtime_config() -> None:
             failures.append("SMTP_FROM_EMAIL must be set when lead email follow-up is enabled.")
 
     if APP_ENV == "production":
+        if ENFORCE_FILE_BASED_SECRETS:
+            required_file_keys = [name for name in PRODUCTION_FILE_SECRET_KEYS if SECRET_VALUE_SOURCES.get(name) != "file"]
+            if required_file_keys:
+                failures.append(
+                    "Production requires file-backed secrets for: "
+                    + ", ".join(required_file_keys)
+                    + " (set *_FILE variables from your secrets manager)."
+                )
         if len(BOOTSTRAP_ADMIN_PASSWORD) < 12 or is_placeholder_secret(BOOTSTRAP_ADMIN_PASSWORD):
             failures.append("BOOTSTRAP_ADMIN_PASSWORD must be set to a strong non-placeholder value for production.")
         if ENABLE_DEMO_SEED:

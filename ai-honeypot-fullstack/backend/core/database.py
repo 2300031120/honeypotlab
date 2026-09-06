@@ -20,6 +20,7 @@ from core.config import (
     DATABASE_REPLICA_URL,
     DB_PATH,
     ENABLE_DEMO_SEED,
+    REDIS_URL,
 )
 from core.security import hash_password
 from core.time_utils import iso_now, utc_now
@@ -162,17 +163,20 @@ def _connect_postgres():
             max_size=20,
             open=True,
             timeout=30,
-            autocommit=False,
-            row_factory=dict_row
+            kwargs={"row_factory": dict_row}
         )
     
-    return _connect_postgres._pool.getconn()
+    conn = _connect_postgres._pool.getconn()
+    conn.autocommit = False
+    return conn, _connect_postgres._pool
 
 
 def _connect_postgres_replica():
-    """Connect to PostgreSQL replica for read operations"""
+    """Connect to PostgreSQL replica for read operations.
+
+    Returns (connection, pool) so callers can putconn() safely, matching primary.
+    """
     try:
-        import psycopg
         from psycopg.rows import dict_row
         from psycopg_pool import ConnectionPool
     except ImportError as exc:
@@ -190,11 +194,71 @@ def _connect_postgres_replica():
             max_size=10,
             open=True,
             timeout=30,
-            autocommit=False,
-            row_factory=dict_row
+            kwargs={"row_factory": dict_row},
         )
-    
-    return _connect_postgres_replica._pool.getconn()
+
+    conn = _connect_postgres_replica._pool.getconn()
+    conn.autocommit = False
+    return conn, _connect_postgres_replica._pool
+
+
+def check_database_health() -> dict[str, Any]:
+    """Check database connection health without modifying existing architecture"""
+    health_status = {
+        "database_backend": DATABASE_BACKEND,
+        "healthy": False,
+        "message": "",
+        "replica_configured": bool(DATABASE_REPLICA_URL),
+    }
+
+    try:
+        with db() as conn:
+            conn.execute("SELECT 1").fetchone()
+        health_status["healthy"] = True
+        health_status["message"] = (
+            "PostgreSQL connection successful"
+            if DATABASE_BACKEND == "postgresql"
+            else "SQLite connection successful"
+        )
+    except Exception as e:
+        health_status["healthy"] = False
+        health_status["message"] = f"Database connection failed: {str(e)}"
+        logger.warning("Database health check failed: %s", e)
+
+    return health_status
+
+
+def check_redis_health() -> dict[str, Any]:
+    """Probe Redis if configured. Missing Redis is reported as not_configured, not failure."""
+    status: dict[str, Any] = {
+        "configured": bool(REDIS_URL),
+        "healthy": False,
+        "message": "",
+    }
+    if not REDIS_URL:
+        status["message"] = "REDIS_URL not set"
+        return status
+
+    try:
+        import redis
+    except ImportError:
+        status["message"] = "redis package not installed"
+        return status
+
+    try:
+        client = redis.from_url(
+            REDIS_URL,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+        client.ping()
+        status["healthy"] = True
+        status["message"] = "Redis ping successful"
+    except Exception as exc:
+        status["message"] = f"Redis unavailable: {exc}"
+        logger.warning("Redis health check failed: %s", exc)
+
+    return status
 
 
 class CursorAdapter:
@@ -277,16 +341,48 @@ class ConnectionAdapter:
 
 @contextmanager
 def db() -> Iterator[ConnectionAdapter]:
-    raw_connection = _connect_postgres() if DATABASE_BACKEND == "postgresql" else _connect_sqlite()
-    conn = ConnectionAdapter(raw_connection, DATABASE_BACKEND)
-    try:
-        yield conn
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        conn.close()
+    if DATABASE_BACKEND == "postgresql":
+        raw_connection, pool = _connect_postgres()
+        conn = ConnectionAdapter(raw_connection, DATABASE_BACKEND)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            pool.putconn(raw_connection)
+    else:
+        raw_connection = _connect_sqlite()
+        conn = ConnectionAdapter(raw_connection, DATABASE_BACKEND)
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
+
+
+@contextmanager
+def db_read() -> Iterator[ConnectionAdapter]:
+    """Prefer replica for read-only workloads when DATABASE_REPLICA_URL is set."""
+    if DATABASE_BACKEND == "postgresql":
+        raw_connection, pool = _connect_postgres_replica()
+        conn = ConnectionAdapter(raw_connection, DATABASE_BACKEND)
+        try:
+            yield conn
+            # Read path: roll back any accidental writes instead of committing.
+            conn.rollback()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            pool.putconn(raw_connection)
+    else:
+        with db() as conn:
+            yield conn
 
 
 def _migration_dir() -> Path:
@@ -320,7 +416,7 @@ def run_migrations(conn: ConnectionAdapter) -> None:
 
 
 def fetch_user_by_id(user_id: int) -> dict[str, Any] | None:
-    with db() as conn:
+    with db_read() as conn:
         row = conn.execute("select * from users where id = ?", (user_id,)).fetchone()
         return dict(row) if row else None
 
