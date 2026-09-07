@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Activity, ArrowRight, BrainCircuit, CheckCircle2, Database, LayoutDashboard, Shield } from "lucide-react";
+import { Activity, ArrowRight, BrainCircuit, CheckCircle2, Database, LayoutDashboard, Shield, Zap } from "lucide-react";
 import { useSeo } from "./utils/seo";
 import { usePageAnalytics } from "./hooks/usePageAnalytics";
 import { PUBLIC_SITE } from "./siteConfig";
@@ -86,7 +86,11 @@ const ARCHITECTURE_FLOW_TRACK = [
   },
 ];
 
-export default function PublicArchitecture() {
+type PublicArchitectureProps = {
+  embedded?: boolean;
+};
+
+export default function PublicArchitecture({ embedded = false }: PublicArchitectureProps) {
   usePageAnalytics("architecture");
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
   useSeo({
@@ -97,8 +101,8 @@ export default function PublicArchitecture() {
   });
 
   return (
-    <div className="marketing-shell">
-      <PublicHeader variant="cred" pagePath="/architecture" />
+    <div className={embedded ? "marketing-shell marketing-shell-embedded" : "marketing-shell"}>
+      {!embedded && <PublicHeader variant="cred" pagePath="/architecture" />}
       <main className="marketing-main">
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
@@ -272,6 +276,45 @@ export default function PublicArchitecture() {
           </div>
         </section>
 
+<section className="marketing-section">
+          <div className="marketing-section-head">
+            <p>Production readiness</p>
+            <h2>Built to perform, scale, persist, adapt, and stay accountable.</h2>
+          </div>
+          <div className="marketing-grid-3">
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><Zap size={18} /></div>
+              <h3>Performance</h3>
+              <p>Behind a load-balanced pipeline with cached responses and optimized bundles, so telemetry and dashboards stay responsive under sustained attacker traffic.</p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><Activity size={18} /></div>
+              <h3>Scalability</h3>
+              <p>Containerized services that scale horizontally behind a reverse proxy, with auto-scaling from 2 to 10 replicas as load grows.</p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><Database size={18} /></div>
+              <h3>Durability</h3>
+              <p>PostgreSQL-backed storage with replication and backup paths, so preserved evidence and session records survive operational churn.</p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><Shield size={18} /></div>
+              <h3>Adaptability</h3>
+              <p>Deception surfaces, decoy routes, and response workflows are configurable per environment, so the platform molds to the app it protects.</p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><LayoutDashboard size={18} /></div>
+              <h3>Accountability</h3>
+              <p>Operator actions, authentication events, and tenant scope are preserved in an audit trail so every review step can be traced.</p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-icon-box"><CheckCircle2 size={18} /></div>
+              <h3>Operational guardrails</h3>
+              <p>Production preflight checks, trusted-host validation, and secure defaults gate the path before anything reaches a public surface.</p>
+            </article>
+          </div>
+        </section>
+
         <section className="marketing-card marketing-cta">
           <div className="marketing-cta-copy">
             <h2>Need a clean architecture walkthrough for your team?</h2>
@@ -287,7 +330,7 @@ export default function PublicArchitecture() {
           </div>
         </section>
       </main>
-      <PublicFooter />
+      {!embedded && <PublicFooter />}
     </div>
   );
 }

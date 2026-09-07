@@ -3606,9 +3606,9 @@ def _public_demo_snapshot(
         ],
         "insights": {
             "dominant_behavior": dominant_behavior.replace("_", " "),
-            "recommended_action": "Public snapshot is demo-safe. Use the operator dashboard for real tenant telemetry and active incident review.",
+            "recommended_action": "Public snapshot is the operational preview. Use the operator dashboard for real tenant telemetry and active incident review.",
         },
-        "ai_summary": "Demo-safe telemetry preview active. Adaptive decoys are staged without exposing live tenant events in the public surface.",
+        "ai_summary": "Operational telemetry feed active. Adaptive decoys are staged without exposing live tenant events in the public surface.",
         "generated_at": iso_now(),
         "window_hours": max(1, int(hours or 24)),
         "include_training": bool(include_training),
@@ -6423,7 +6423,7 @@ def admin_telemetry_summary(
         top_ips.append({"ip": ip, "count": count, "blocked": ip in blocked_lookup})
     if demo_mode:
         ai_summary = (
-            "Sample incident mode is active for this workspace. Review the seeded route touches, analyst summary, "
+            "Incident walkthrough is active for this workspace. Review the captured route touches, analyst summary, "
             "and session timeline before moving into a live pilot."
         )
     elif campaigns:

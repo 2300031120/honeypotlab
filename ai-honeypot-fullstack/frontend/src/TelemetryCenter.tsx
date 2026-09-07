@@ -356,13 +356,13 @@ export default function TelemetryCenter() {
           <div style={{ display: "flex", justifyContent: "space-between", gap: "16px", flexWrap: "wrap", alignItems: "flex-start" }}>
             <div style={{ maxWidth: "720px" }}>
               <div style={{ color: "#93c5fd", fontSize: "11px", fontWeight: 900, letterSpacing: "1px", textTransform: "uppercase", marginBottom: "8px" }}>
-                Sample Incident Walkthrough
+                Incident Walkthrough
               </div>
               <h2 style={{ margin: "0 0 8px", fontSize: "18px", fontWeight: 900, color: "#f8fafc" }}>
-                Telemetry Center is currently showing the seeded incident instead of live workspace traffic.
+                Telemetry Center is currently showing the guided walkthrough instead of live workspace traffic.
               </h2>
               <p style={{ margin: 0, color: "#94a3b8", fontSize: "13px", lineHeight: 1.6 }}>
-                Review the analyst summary, open the first active session timeline, then pivot into forensics and audit logs. This mode is for demos and first-run evaluation only, and it will disappear once live tenant events arrive.
+                Review the analyst summary, open the first active session timeline, then pivot into forensics and audit logs. This mode shows a guided walkthrough for first-run evaluation, and it will clear automatically once live tenant events arrive.
               </p>
             </div>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>

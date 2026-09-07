@@ -41,7 +41,7 @@ ENV VITE_PUBLIC_DEMO_BOOKING_URL=${VITE_PUBLIC_DEMO_BOOKING_URL}
 ENV VITE_PUBLIC_DEMO_BOOKING_LABEL=${VITE_PUBLIC_DEMO_BOOKING_LABEL}
 ENV VITE_PUBLIC_SHOW_STATUS_PILL=${VITE_PUBLIC_SHOW_STATUS_PILL}
 ENV VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
-RUN node ./node_modules/vite/bin/vite.js build --config vite.config.ts
+RUN npm run build
 
 # Serve with Nginx for production stability
 FROM nginx:alpine

@@ -210,7 +210,7 @@ const Signup = () => {
 
   const readinessLinks = [
     {
-      title: "Review the sample incident",
+      title: "Review the incident walkthrough",
       detail: "Understand the product proof path before creating an owner account.",
       to: "/case-study",
       action: "View incident",
@@ -240,7 +240,7 @@ const Signup = () => {
         title: `Create the first ${productName} workspace owner account.`,
         description: `Use this page to create the initial owner credentials for ${productName}. If you want a guided walkthrough before rollout, keep the demo path separate and review the public proof first.`,
         actions: [
-          { label: "View Sample Incident", to: "/case-study", variant: "primary" },
+          { label: "View Incident Walkthrough", to: "/case-study", variant: "primary" },
           { label: "Request Guided Demo", to: "/demo", variant: "secondary" },
         ],
         cards: storyCards,

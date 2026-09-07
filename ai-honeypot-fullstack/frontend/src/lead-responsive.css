@@ -1,0 +1,115 @@
+/*
+ * Lead / Contact / Demo pages - targeted mobile & laptop responsive refinements.
+ * Loaded AFTER public-remake.css so these rules win over the generic breakpoint
+ * styles, which otherwise lose specificity to `.lead-marketing-shell ...` selectors.
+ */
+
+/* Laptop: keep the two-column hero balanced without cramping the form panel. */
+@media (max-width: 1180px) {
+  .lead-marketing-shell .marketing-hero {
+    align-items: start;
+  }
+
+  .lead-marketing-shell .marketing-hero-copy {
+    padding: 36px 30px;
+  }
+}
+
+@media (max-width: 1040px) {
+  .lead-marketing-shell .lead-form-panel {
+    padding: 24px;
+  }
+
+  /* Three cramped columns inside a ~340px wide form panel are unusable on laptops. */
+  .lead-quick-start-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lead-story-card,
+  .lead-audience-card,
+  .lead-agenda-card,
+  .lead-outcome-card {
+    padding: 26px;
+  }
+
+  .lead-marketing-shell .lead-form-assist {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 920px) {
+  .lead-marketing-shell .marketing-hero-copy {
+    padding: 30px 26px;
+  }
+
+  .lead-marketing-shell .marketing-section {
+    margin-top: 34px;
+  }
+
+  .lead-marketing-shell .marketing-hero {
+    row-gap: 20px;
+  }
+}
+
+@media (max-width: 860px) {
+  .lead-marketing-shell .lead-form-panel {
+    padding: 22px;
+  }
+}
+
+/* Mobile: reduce heavy desktop card padding so forms and grids fit small screens. */
+@media (max-width: 640px) {
+  .lead-marketing-shell .marketing-hero-copy,
+  .lead-marketing-shell .lead-form-panel {
+    padding: 20px 18px;
+  }
+
+  .lead-marketing-shell .lead-form {
+    gap: 14px;
+  }
+
+  .lead-marketing-shell .lead-form-head h2 {
+    font-size: clamp(1.4rem, 6vw, 1.7rem);
+  }
+
+  .lead-marketing-shell .lead-form-head p {
+    font-size: 0.92rem;
+  }
+
+  .lead-story-card,
+  .lead-audience-card,
+  .lead-agenda-card,
+  .lead-outcome-card {
+    padding: 20px;
+  }
+
+  .lead-story-card h2,
+  .lead-audience-card h2 {
+    font-size: clamp(1.4rem, 6vw, 1.75rem);
+  }
+
+  .lead-story-card .marketing-checklist,
+  .lead-audience-card .marketing-checklist {
+    margin-top: 14px;
+  }
+
+  .lead-inline-point-row {
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  .lead-inline-point-row span {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 11px;
+  }
+
+  .lead-booking-panel {
+    padding: 16px;
+  }
+
+  .lead-success-meta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

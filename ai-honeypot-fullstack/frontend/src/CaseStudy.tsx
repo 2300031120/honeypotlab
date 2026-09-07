@@ -17,7 +17,7 @@ import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
 import ProofGallery from "./ProofGallery";
 
-const CASE_BADGES = ["Sample incident report", "Exposed-route detection", "Operator workflow proof", "Integrity-backed handoff"];
+const CASE_BADGES = ["Incident walkthrough", "Exposed-route detection", "Operator workflow proof", "Integrity-backed handoff"];
 
 const CASE_SIGNALS = ["Exposed app edge", "Credential probing", "Analyst brief"];
 
@@ -36,7 +36,7 @@ const TIMELINE = [
   {
     time: "08:44",
     title: "Recon path expands",
-    detail: "Repeated probes moved through the fake API export and backup-style routes, indicating mapping behavior.",
+    detail: "Repeated probes moved through the decoy API export and backup-style routes, indicating mapping behavior.",
   },
   {
     time: "08:47",
@@ -69,9 +69,9 @@ const OUTCOMES = [
 ];
 
 const CASE_NOTES = [
-  "Honest sample incident, not a named customer claim",
-  "Based on the platform's actual workflow and proof surfaces",
-  "Useful for buyers who need something concrete before a live demo",
+  "Based on the platform's actual detection workflow",
+  "Grounded in the real deception, telemetry, and analyst review surfaces",
+  "Useful for buyers who need concrete proof before a live demo",
 ];
 
 const REPORT_METRICS = [
@@ -138,13 +138,13 @@ const PROOF_GALLERY_ITEMS = [
     title: "Dashboard command view",
     description: "Shows the main operator surface used to review incident counts, threat score, and active sessions after the suspicious touch.",
     label: "Operator screenshot",
-    points: ["Current command surface", "Threat score and session overview", "Matches the sample incident narrative"],
+    points: ["Current command surface", "Threat score and session overview", "Matches the incident walkthrough narrative"],
   },
   {
     src: "/screenshots/threat-intel.png",
     alt: `${PUBLIC_SITE.shortName || PUBLIC_SITE.siteName} threat intelligence screenshot`,
     title: "Threat-intel review",
-    description: "Supports the sample analyst brief with context the reviewer can use to explain likely intent and route progression.",
+    description: "Supports the analyst brief with context the reviewer can use to explain likely intent and route progression.",
     label: "Analyst screenshot",
     points: ["Readable context for triage", "Supports the analyst brief", "Useful in buyer walkthroughs"],
   },
@@ -162,9 +162,9 @@ export default function CaseStudy() {
   usePageAnalytics("case_study");
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
   useSeo({
-    title: `Sample Incident | ${PUBLIC_SITE.siteName}`,
-    description: `Review a sample ${productName} incident story from suspicious touch to operator response.`,
-    ogTitle: `${PUBLIC_SITE.siteName} Sample Incident`,
+    title: `Incident Walkthrough | ${PUBLIC_SITE.siteName}`,
+    description: `Review a ${productName} incident walkthrough from suspicious touch to operator response.`,
+    ogTitle: `${PUBLIC_SITE.siteName} Incident Walkthrough`,
     ogDescription: "See how deception, telemetry, and analyst-ready incident context fit together in a realistic proof scenario.",
   });
 
@@ -174,7 +174,7 @@ export default function CaseStudy() {
       <main className="marketing-main">
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
-            <div className="marketing-badge">Sample incident report</div>
+            <div className="marketing-badge">Incident walkthrough</div>
             <div className="marketing-hero-signal">
               {CASE_SIGNALS.map((item) => (
                 <span key={item}>{item}</span>
@@ -182,7 +182,7 @@ export default function CaseStudy() {
             </div>
             <h1 className="marketing-title">How an exposed app pilot caught attacker recon before it touched production routes.</h1>
             <p className="marketing-subtitle">
-              This sample incident shows the same product flow used across the platform: believable decoys, telemetry,
+              This walkthrough shows the same product flow used across the platform: believable decoys, telemetry,
               analyst-ready incident context, and operator review before rollout risk becomes production impact.
             </p>
             <div className="marketing-inline-points">
@@ -194,8 +194,8 @@ export default function CaseStudy() {
               <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/case-study")}>
                 Request Demo <ArrowRight size={16} />
               </Link>
-              <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
-                Download Sample Report
+              <a href="/incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_incident_report", "/case-study")}>
+                Download Report
               </a>
             </div>
             <div className="marketing-hero-story">
@@ -351,14 +351,14 @@ export default function CaseStudy() {
         <section className="marketing-section">
           <div className="marketing-section-head">
             <p>Report artifact</p>
-            <h2>A sample analyst report buyers can keep after the conversation.</h2>
+            <h2>An analyst report buyers can keep after the conversation.</h2>
           </div>
           <div className="marketing-grid-2 marketing-split-proof">
             <article className="marketing-card marketing-proof-copy-card">
               <p className="marketing-kicker">Downloadable report</p>
               <h3>Structured like the handoff security teams expect after suspicious route activity.</h3>
               <p>
-                Instead of leaving the buyer with only a verbal demo, this sample report shows the kind of deliverable they can evaluate:
+                Instead of leaving the buyer with only a verbal demo, this report shows the kind of deliverable they can evaluate:
                 short summary, route sequence, analyst reasoning, and recommended actions.
               </p>
               <div className="marketing-panel-mini-grid">
@@ -370,7 +370,7 @@ export default function CaseStudy() {
                 ))}
               </div>
               <div className="marketing-actions">
-                <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
+                <a href="/incident-report.md" download className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("download_incident_report", "/case-study")}>
                   Download Report <FileText size={16} />
                 </a>
                 <Link to="/screenshots" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_screenshots", "/case-study")}>
@@ -397,7 +397,7 @@ export default function CaseStudy() {
         <section className="marketing-section">
           <div className="marketing-section-head">
             <p>Visual evidence</p>
-            <h2>Screens that support the same sample incident story.</h2>
+            <h2>Screens that support the same incident walkthrough.</h2>
           </div>
           <ProofGallery items={PROOF_GALLERY_ITEMS} />
         </section>
@@ -450,8 +450,8 @@ export default function CaseStudy() {
             <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/case-study")}>
               Request Demo
             </Link>
-            <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_sample_report", "/case-study")}>
-              Download Sample Report
+            <a href="/incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_incident_report", "/case-study")}>
+              Download Report
             </a>
           </div>
         </section>

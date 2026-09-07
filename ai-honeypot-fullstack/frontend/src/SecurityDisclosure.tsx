@@ -95,7 +95,7 @@ export default function SecurityDisclosure() {
                 Request Demo <ArrowRight size={16} />
               </Link>
               <Link to="/case-study" className="marketing-btn marketing-btn-secondary">
-                View Sample Incident
+                View Incident Walkthrough
               </Link>
             </div>
             <div className="marketing-hero-story">

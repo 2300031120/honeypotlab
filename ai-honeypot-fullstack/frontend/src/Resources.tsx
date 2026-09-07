@@ -35,7 +35,7 @@ const RESOURCE_SIGNALS = ["Technical review hub", "Readable evidence", "Safer ro
 const RESOURCE_CHECKLIST = [
   "Group security, architecture, deployment, and integration pages into one technical review lane",
   "Start with the product story, then move into deployment reality and API details",
-  "Confirm claims with sample incidents, screenshots, and rollout guardrails",
+  "Confirm claims with incident walkthroughs, screenshots, and rollout guardrails",
 ];
 
 const RESOURCE_LIBRARY = [
@@ -95,7 +95,7 @@ const ARCHITECTURE_RESOURCES = [
     title: "Evidence pipeline",
     detail: "Routes, request paths, session timing, and behavior markers stay linked into one evidence chain instead of scattered logs.",
     href: "/case-study",
-    cta: "View sample incident",
+    cta: "View incident walkthrough",
     icon: <Database size={18} />,
   },
   {
@@ -109,7 +109,7 @@ const ARCHITECTURE_RESOURCES = [
     title: "Threat scoring model",
     detail: "Suspicious movement is turned into readable incident briefs with severity signals that analysts can prioritize.",
     href: "/case-study",
-    cta: "Open sample incident",
+    cta: "Open incident walkthrough",
     icon: <BrainCircuit size={18} />,
   },
 ];
@@ -330,7 +330,7 @@ export default function Resources() {
             </div>
             <div className="marketing-live-pill-item">
               <span>Prove</span>
-              <code>Sample incident {"->"} Architecture {"->"} Security</code>
+              <code>Incident walkthrough {"->"} Architecture {"->"} Security</code>
             </div>
             <div className="marketing-live-pill-item">
               <span>Plan</span>
@@ -374,7 +374,7 @@ export default function Resources() {
                 </li>
                 <li>
                   <CheckCircle2 size={16} />
-                  <span>Confirm claims with a public sample incident and screenshot gallery</span>
+                  <span>Confirm claims with a public incident walkthrough and screenshot gallery</span>
                 </li>
               </ul>
             </article>

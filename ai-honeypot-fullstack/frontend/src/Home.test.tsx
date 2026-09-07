@@ -67,7 +67,7 @@ describe("Home", () => {
     expect(screen.getAllByRole("link", { name: "Platform" }).length).toBeGreaterThan(0);
     expect(screen.getAllByRole("link", { name: "Integrations" }).length).toBeGreaterThan(0);
     expect((await screen.findAllByRole("link", { name: /request demo/i })).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole("link", { name: /view sample incident/i }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("link", { name: /view incident walkthrough/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: /see the platform from armed decoy routes to analyst-ready evidence/i })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /view integrations/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: /choose behavior capture over passive dashboards, lab demos, or log-only summaries/i })).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: /built for real rollout conversations, not lab-only hype/i })).toBeInTheDocument();
   }, 20000);
 
-  it("treats the public snapshot as demo-safe telemetry on the homepage", async () => {
+  it("surfaces the public telemetry feed instead of live telemetry on the homepage", async () => {
     const { fetchPublicTelemetrySnapshot } = await import("./utils/publicTelemetry");
     const mockedTelemetry = vi.mocked(fetchPublicTelemetrySnapshot);
     mockedTelemetry.mockResolvedValue({
@@ -108,7 +108,7 @@ describe("Home", () => {
           ip: "203.0.113.24",
         },
       ],
-      ai_summary: "Demo-safe telemetry preview active.",
+      ai_summary: "Public telemetry feed active.",
     } as unknown as PublicTelemetrySnapshot);
 
     render(
@@ -117,8 +117,8 @@ describe("Home", () => {
       </MemoryRouter>
     );
 
-    expect((await screen.findAllByText(/^demo-safe telemetry$/i)).length).toBeGreaterThan(0);
-    expect(screen.getByText(/^8 demo events$/i)).toBeInTheDocument();
+    expect((await screen.findAllByText(/^telemetry feed$/i)).length).toBeGreaterThan(0);
+    expect(screen.getByText(/^8 surfaced events$/i)).toBeInTheDocument();
     expect(screen.queryByText(/^live telemetry$/i)).not.toBeInTheDocument();
   });
 });

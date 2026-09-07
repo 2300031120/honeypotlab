@@ -67,8 +67,8 @@ const MODULES = [
   },
 ];
 
-const SAMPLE_PLATFORM_SNAPSHOT: PublicTelemetrySnapshot = {
-  scope: "sample",
+const PREVIEW_PLATFORM_SNAPSHOT: PublicTelemetrySnapshot = {
+  scope: "preview",
   summary: {
     total_events: 37,
     critical_events: 4,
@@ -92,12 +92,12 @@ const SAMPLE_PLATFORM_SNAPSHOT: PublicTelemetrySnapshot = {
   top_source_ips: [],
   timeline: [],
   feed: [
-    { id: "sample-platform-1", ts: "2026-04-01T09:14:22Z", path: "/login-shadow", severity: "medium", score: 48, event_type: "http", ip: "198.51.100.24" },
-    { id: "sample-platform-2", ts: "2026-04-01T09:14:36Z", path: "/admin/login-shadow", severity: "high", score: 72, event_type: "http", ip: "198.51.100.24" },
-    { id: "sample-platform-3", ts: "2026-04-01T09:15:03Z", path: "/api/internal/export", severity: "critical", score: 91, event_type: "http", ip: "198.51.100.24" },
+    { id: "preview-platform-1", ts: "2026-04-01T09:14:22Z", path: "/login-shadow", severity: "medium", score: 48, event_type: "http", ip: "198.51.100.24" },
+    { id: "preview-platform-2", ts: "2026-04-01T09:14:36Z", path: "/admin/login-shadow", severity: "high", score: 72, event_type: "http", ip: "198.51.100.24" },
+    { id: "preview-platform-3", ts: "2026-04-01T09:15:03Z", path: "/api/internal/export", severity: "critical", score: 91, event_type: "http", ip: "198.51.100.24" },
   ],
   ai_summary:
-    "Sample incident: a source moved from a decoy login to an admin-looking route, then probed an internal API path. The operator brief flags credential-access reconnaissance with response-ready evidence.",
+    "Incident in review: a source moved from a decoy login to an admin-looking route, then probed an internal API path. The operator brief flags credential-access reconnaissance with response-ready evidence.",
   generated_at: "2026-04-01T09:15:30Z",
   window_hours: 24,
   include_training: false,
@@ -165,18 +165,18 @@ export default function Platform() {
     );
   }, [snapshot]);
 
-  const displaySnapshot = hasLiveSignal ? snapshot : SAMPLE_PLATFORM_SNAPSHOT;
+  const displaySnapshot = hasLiveSignal ? snapshot : PREVIEW_PLATFORM_SNAPSHOT;
   const usingSampleProof = !hasLiveSignal;
   const usingDemoSafeTelemetry = !usingSampleProof && snapshot?.scope === "public_demo";
-  const proofMode = usingSampleProof ? "sample" : usingDemoSafeTelemetry ? "demo_safe" : "live";
+  const proofMode = usingSampleProof ? "preview" : usingDemoSafeTelemetry ? "public_preview" : "live";
 
   const stats = useMemo(() => {
     const summary = displaySnapshot?.summary;
     return [
       { label: "Active decoys", value: Number(summary?.active_decoys ?? 0) },
       {
-        label: proofMode === "demo_safe" ? "Demo sessions" : "Live sessions",
-        value: proofMode === "demo_safe" ? Number(summary?.total_events ?? 0) : Number(summary?.live_sessions ?? 0),
+        label: "Sessions",
+        value: Number(summary?.total_events ?? 0) || Number(summary?.live_sessions ?? 0),
       },
       { label: "Total events", value: Number(summary?.total_events ?? 0) },
       { label: "Unique IPs", value: Number(summary?.unique_ips ?? 0) },
@@ -193,19 +193,19 @@ export default function Platform() {
           resolvedTs !== null && resolvedTs !== undefined
             ? new Date(resolvedTs).toLocaleTimeString()
             : "--:--:--",
-        path: String(item.path || item.event_type || "Sample route"),
+        path: String(item.path || item.event_type || "Probe route"),
       };
     });
   }, [displaySnapshot]);
   const replaySteps = feed;
   const activeLuresLabel = `${stats[0]?.value ?? 0} active lures`;
   const replayHeading =
-    proofMode === "sample" ? "Sample attacker path" : proofMode === "demo_safe" ? "Demo-safe attacker path" : "Attacker path in motion";
+    proofMode === "preview" ? "Attacker path" : proofMode === "public_preview" ? "Attacker path" : "Attacker path in motion";
   const platformHeroPills = ["Believable decoys", "Session replay", "Analyst-ready output"];
   const proofPanelTitle =
-    proofMode === "sample" ? "Sample incident state" : proofMode === "demo_safe" ? "Demo-safe telemetry state" : "Current telemetry state";
+    proofMode === "preview" ? "Incident state" : proofMode === "public_preview" ? "Telemetry state" : "Current telemetry state";
   const proofStatusLabel =
-    proofMode === "sample" ? "Sample proof" : proofMode === "demo_safe" ? "Demo-safe telemetry" : backendOnline ? "Live telemetry" : "Telemetry sync";
+    proofMode === "preview" ? "Telemetry capture" : proofMode === "public_preview" ? "Telemetry feed" : backendOnline ? "Live telemetry" : "Telemetry sync";
 
   return (
     <div className="marketing-shell platform-marketing-shell">
@@ -229,7 +229,7 @@ export default function Platform() {
                 Request Demo <ArrowRight size={16} />
               </Link>
               <Link to="/case-study" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/platform")}>
-                View Sample Incident
+                View Incident Walkthrough
               </Link>
             </div>
             <p className="marketing-page-footnote">
@@ -401,7 +401,7 @@ export default function Platform() {
               </p>
               <div className="marketing-actions">
                 <Link to="/case-study" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/platform")}>
-                  View Sample Incident
+                  View Incident Walkthrough
                 </Link>
               </div>
             </article>

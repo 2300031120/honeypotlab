@@ -235,7 +235,7 @@ const Dashboard = () => {
   const readinessTone = opsReadiness?.status === "ready" ? "#3fb950" : "#d29922";
   const readinessLabel = opsReadiness?.status === "ready" ? "ROLL_OUT_READY" : "ATTENTION_NEEDED";
   const readinessActions = (opsReadiness?.next_actions || []).slice(0, 3);
-  const usingSampleIncident = Boolean(stats.demo_mode);
+  const showingPreviewData = Boolean(stats.demo_mode);
 
   const loadAdaptiveTimeline = async (sessionId: string) => {
     const safeSessionId = String(sessionId || "").trim();
@@ -615,7 +615,7 @@ const Dashboard = () => {
         </div>
       )}
 
-      {usingSampleIncident && (
+      {showingPreviewData && (
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -634,10 +634,10 @@ const Dashboard = () => {
             <div style={{ maxWidth: '720px' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '5px 10px', borderRadius: '999px', background: 'rgba(88, 166, 255, 0.12)', border: '1px solid rgba(88, 166, 255, 0.28)', color: '#93c5fd', fontSize: '11px', fontWeight: '900', letterSpacing: '0.9px', textTransform: 'uppercase' }}>
                 <Target size={14} />
-                Sample Incident Active
+                Guided Walkthrough Active
               </div>
               <h2 style={{ margin: '0 0 8px', fontSize: '20px', fontWeight: '900', color: '#f8fafc' }}>
-                This workspace is showing the guided incident path instead of live tenant telemetry.
+                This workspace is showing the guided walkthrough instead of live tenant telemetry.
               </h2>
               <p style={{ margin: 0, color: '#94a3b8', fontSize: '13px', lineHeight: 1.65 }}>
                 Use the current signal chain to walk through the product in order: route touch, telemetry review, forensics reconstruction, and operator audit trail. The banner clears automatically once real tenant events arrive.

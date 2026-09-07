@@ -3,9 +3,9 @@ import { ErrorBoundary, type FallbackProps } from "react-error-boundary";
 import App from "./App.tsx";
 import "./public-remake.css";
 import "./public-polish.css";
-import "./bold-enhancement.css";
-import "./visual-enhancement.css";
-import "./clarity-enhancement.css";
+import "./obsidian-theme.css";
+import "./lead-responsive.css";
+import "./cyber-theme-override.css";
 
 function toErrorMessage(value: unknown): string {
   if (!value) {

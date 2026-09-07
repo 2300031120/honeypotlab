@@ -62,8 +62,8 @@ const routeMetadata = [
   },
   {
     route: "/case-study",
-    title: `Sample Incident | ${siteName}`,
-    description: `Review a sample attacker path, analyst brief, and evidence handoff from ${shortName}.`,
+    title: `Incident Walkthrough | ${siteName}`,
+    description: `Review an attacker path, analyst brief, and evidence handoff from ${shortName}.`,
   },
   {
     route: "/screenshots",
@@ -103,7 +103,7 @@ const routeMetadata = [
   {
     route: "/demo",
     title: `Request Demo | ${siteName}`,
-    description: `Request a live ${siteName} walkthrough with demo-safe telemetry, decoys, replay, and analyst-ready context.`,
+    description: `Request a live ${siteName} walkthrough with decoys, replay, and analyst-ready context.`,
   },
 ];
 

@@ -1192,16 +1192,17 @@ html {
 }
 
 .home-v2-nav-links a {
-  color: #94a3b8;
+  color: #cbd5e1;
   text-decoration: none;
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 800;
   letter-spacing: 0.7px;
   transition: color 0.2s ease;
 }
 
 .home-v2-nav-links a:hover {
-  color: #dbeafe;
+  color: #ffffff;
+  text-shadow: 0 0 12px rgba(147, 197, 253, 0.4);
 }
 
 .home-v2-nav-actions {
@@ -4057,8 +4058,10 @@ body {
 .cred-page:not(.platform-page) .platform-timeline-list li,
 .lead-field input,
 .lead-field textarea {
-  border-color: rgba(251, 146, 60, 0.26);
+  border-color: rgba(255, 255, 255, 0.15);
   background: rgba(30, 14, 8, 0.84);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .home-v2-analyst > div,
@@ -4126,289 +4129,7 @@ body {
   color: #fff7ed;
 }
 
-/* ===== NON-CYBER UX/UI REFRESH (FINAL OVERRIDE) ===== */
-:root {
-  --ux-bg: #f7f6f3;
-  --ux-surface: #ffffff;
-  --ux-border: #e8e2d8;
-  --ux-text: #243044;
-  --ux-muted: #5f6b7f;
-  --ux-accent: #c65d1a;
-  --ux-accent-strong: #ad4d13;
-  --ux-soft: #fff4eb;
-}
-
-body {
-  background: var(--ux-bg) !important;
-  color: var(--ux-text) !important;
-}
-
-.home-v2,
-.cred-page,
-.platform-page,
-.lead-page {
-  color: var(--ux-text) !important;
-  background:
-    radial-gradient(circle at 10% -10%, rgba(198, 93, 26, 0.12), transparent 34%),
-    radial-gradient(circle at 90% 2%, rgba(16, 185, 129, 0.08), transparent 36%),
-    linear-gradient(180deg, #f8f7f4 0%, #f4f2ee 52%, #f8f7f4 100%) !important;
-}
-
-.home-v2-ambient-a,
-.home-v2-ambient-b,
-.cred-ambient-a,
-.cred-ambient-b {
-  opacity: 0.1 !important;
-}
-
-.home-v2-nav,
-.cred-nav {
-  border-color: var(--ux-border) !important;
-  background: rgba(255, 255, 255, 0.92) !important;
-  box-shadow: 0 12px 30px rgba(29, 39, 56, 0.08) !important;
-}
-
-.home-v2-brand,
-.cred-brand {
-  color: var(--ux-accent) !important;
-}
-
-.home-v2-nav-links a,
-.cred-nav-links a {
-  color: #4b5568 !important;
-}
-
-.home-v2-nav-links a:hover,
-.cred-nav-links a:hover {
-  color: var(--ux-accent-strong) !important;
-}
-
-.home-v2-badge,
-.cred-badge,
-.lead-badge {
-  color: var(--ux-accent-strong) !important;
-  border-color: rgba(198, 93, 26, 0.35) !important;
-  background: var(--ux-soft) !important;
-}
-
-.home-v2-hero h1,
-.cred-hero h1,
-.lead-card h1 {
-  background: none !important;
-  -webkit-text-fill-color: initial !important;
-  color: #1f2a3d !important;
-}
-
-.home-v2-subtitle,
-.cred-subtitle,
-.lead-card > p {
-  color: var(--ux-muted) !important;
-}
-
-.home-v2-btn-primary,
-.cred-btn-primary,
-.lead-btn-primary,
-.platform-page .cred-btn-primary {
-  background: linear-gradient(135deg, #c65d1a, #df7a3b) !important;
-  color: #ffffff !important;
-  border-color: transparent !important;
-  box-shadow: 0 10px 24px rgba(198, 93, 26, 0.28) !important;
-  animation: none !important;
-}
-
-.home-v2-btn-ghost,
-.cred-btn-ghost,
-.lead-btn-secondary,
-.platform-page .cred-btn-ghost {
-  border-color: var(--ux-border) !important;
-  background: #ffffff !important;
-  color: #39475b !important;
-}
-
-.home-v2-btn-ghost:hover,
-.cred-btn-ghost:hover,
-.lead-btn-secondary:hover,
-.platform-page .cred-btn-ghost:hover {
-  border-color: rgba(198, 93, 26, 0.45) !important;
-  color: var(--ux-accent-strong) !important;
-  background: #fffdfb !important;
-}
-
-.home-v2-panel,
-.home-v2-feature-card,
-.home-v2-table-wrap,
-.home-v2-flow-node,
-.home-v2-live-demo,
-.home-v2-live-kpi,
-.home-v2-live-panel,
-.home-v2-page-card,
-.home-v2-trend-card,
-.home-v2-cta,
-.cred-card,
-.proof-card,
-.platform-kpi-card,
-.platform-module-card,
-.platform-trend-card,
-.architecture-flow-card,
-.architecture-component-card,
-.architecture-node,
-.use-case-card,
-.demo-see-item,
-.platform-state-strip,
-.platform-outcome-item,
-.platform-v3-contrast,
-.lead-card {
-  border-color: var(--ux-border) !important;
-  background: var(--ux-surface) !important;
-  box-shadow: 0 10px 26px rgba(29, 39, 56, 0.06) !important;
-}
-
-.platform-page .cred-card::before,
-.platform-page .proof-card::before,
-.platform-page .platform-module-card::before,
-.platform-page .platform-trend-card::before,
-.platform-page .platform-v3-contrast::before {
-  content: none !important;
-  display: none !important;
-}
-
-.home-v2-panel-head h3,
-.home-v2-section-head h2,
-.home-v2-feature-card h3,
-.home-v2-page-card h3,
-.home-v2-trend-card h3,
-.home-v2-cta h2,
-.home-v2-live-panel h3,
-.cred-section-head h2,
-.proof-copy h3,
-.platform-module-card h3,
-.platform-trend-card h3 {
-  color: #1f2a3d !important;
-}
-
-.home-v2-section-head p,
-.cred-section-head p,
-.platform-kpi-card span,
-.platform-outcome-item span,
-.platform-v3-card-label,
-.architecture-diagram-title {
-  color: var(--ux-accent) !important;
-}
-
-.home-v2-metric span,
-.home-v2-live-kpi span {
-  color: #64748b !important;
-}
-
-.home-v2-metric strong,
-.home-v2-live-kpi strong,
-.platform-kpi-card strong {
-  color: #1f2a3d !important;
-}
-
-.home-v2-feature-card p,
-.home-v2-page-card p,
-.home-v2-trend-card p,
-.home-v2-live-panel p,
-.home-v2-analyst p,
-.home-v2-table-wrap td,
-.home-v2-section-split li,
-.platform-module-card p,
-.platform-trend-card p,
-.platform-state-strip p,
-.platform-outcome-item p,
-.architecture-flow-card p,
-.architecture-component-card p,
-.architecture-diagram-note,
-.proof-copy p,
-.use-case-card p,
-.demo-see-item span,
-.platform-timeline-list span,
-.platform-timeline-list code,
-.public-footer-main span,
-.public-footer-contact span {
-  color: var(--ux-muted) !important;
-}
-
-.home-v2-analyst,
-.home-v2-live-panel li,
-.home-v2-metric,
-.home-v2-trust-strip span,
-.home-v2-chip-grid span,
-.platform-state-strip,
-.platform-outcome-item,
-.platform-timeline-list li,
-.demo-see-item {
-  border-color: rgba(198, 93, 26, 0.2) !important;
-  background: #fffaf6 !important;
-}
-
-.home-v2-table-wrap th,
-.platform-v3-contrast th {
-  background: #f8f5f0 !important;
-  color: var(--ux-accent) !important;
-}
-
-.home-v2-table-wrap td,
-.platform-v3-contrast td,
-.platform-v3-contrast th {
-  border-bottom-color: #ece6dd !important;
-}
-
-.home-v2-trust-strip span,
-.home-v2-chip-grid span,
-.platform-v3-chip {
-  border-color: rgba(198, 93, 26, 0.25) !important;
-  background: #fff4ea !important;
-  color: var(--ux-accent-strong) !important;
-}
-
-.home-v2-cta,
-.cred-cta,
-.platform-page .cred-cta {
-  border-color: rgba(198, 93, 26, 0.3) !important;
-  background: linear-gradient(145deg, #fff7f1, #ffffff) !important;
-}
-
-.home-v2-cta p,
-.cred-cta p {
-  color: var(--ux-accent) !important;
-}
-
-.home-v2-cta h2,
-.cred-cta h2 {
-  color: #1f2a3d !important;
-}
-
-.home-v2-cta span,
-.cred-cta span {
-  color: var(--ux-muted) !important;
-}
-
-.public-footer {
-  border-top-color: var(--ux-border) !important;
-}
-
-.public-footer-main strong {
-  color: #1f2a3d !important;
-}
-
-.public-footer-links a {
-  color: var(--ux-accent) !important;
-}
-
-.lead-field > span {
-  color: #2b3a4e !important;
-}
-
-.lead-field input,
-.lead-field textarea {
-  border-color: var(--ux-border) !important;
-  background: #ffffff !important;
-  color: #1f2a3d !important;
-}
-
-/* ===== VISUAL BALANCE TUNE ===== */
+/* ===== NON-CYBER UX/UI REFRESH (DISABLED - Keeping dark theme for better visual impact) ===== *//* ===== VISUAL BALANCE TUNE ===== */
 .home-v2-main,
 .cred-main {
   width: min(1180px, calc(100% - 40px)) !important;
@@ -4769,6 +4490,61 @@ button,
   background: #fffaf5;
 }
 
+.proof-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.proof-gallery-grid-card {
+  border: 1px solid var(--ux-border);
+  border-radius: 16px;
+  background: var(--ux-surface);
+  box-shadow: 0 10px 24px rgba(29, 39, 56, 0.08);
+  overflow: hidden;
+  display: grid;
+  gap: 0;
+}
+
+.proof-gallery-grid-image {
+  border: 0;
+  background: #fffdfa;
+  cursor: zoom-in;
+  position: relative;
+  min-height: 200px;
+  padding: 10px;
+}
+
+.proof-gallery-grid-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid #ece6dd;
+}
+
+.proof-gallery-grid-copy {
+  padding: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.proof-gallery-grid-copy h3 {
+  color: #1f2a3d;
+  font-size: 20px;
+  margin: 0;
+}
+
+.proof-gallery-grid-copy p {
+  color: var(--ux-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+.proof-gallery-grid-card:hover {
+  border-color: rgba(198, 93, 26, 0.35);
+}
+
 .proof-lightbox {
   position: fixed;
   inset: 0;
@@ -4822,6 +4598,10 @@ button,
   }
 
   .proof-gallery-thumbs {
+    grid-template-columns: 1fr;
+  }
+
+  .proof-gallery-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -5194,3 +4974,4 @@ body {
     background: rgba(7, 18, 30, 0.97) !important;
   }
 }
+

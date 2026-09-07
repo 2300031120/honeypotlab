@@ -45,21 +45,21 @@ describe("Platform", () => {
     } as unknown as PublicTelemetrySnapshot);
   });
 
-  it("shows sample proof when live telemetry is empty", async () => {
+  it("shows captured telemetry when the live feed is empty", async () => {
     render(
       <MemoryRouter future={routerFuture}>
         <Platform />
       </MemoryRouter>
     );
 
-    expect(await screen.findByText(/sample proof/i)).toBeInTheDocument();
-    expect(screen.getByText(/sample incident:/i)).toBeInTheDocument();
+    expect(await screen.findByText(/telemetry capture/i)).toBeInTheDocument();
+    expect(screen.getByText(/incident in review:/i)).toBeInTheDocument();
     expect(screen.getAllByText(/\/admin\/login-shadow/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/waiting for live replay steps/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/no live ai summary yet/i)).not.toBeInTheDocument();
   });
 
-  it("labels the public snapshot as demo-safe instead of live telemetry", async () => {
+  it("labels telemetry from the public feed instead of live telemetry", async () => {
     const { fetchPublicTelemetrySnapshot } = await import("./utils/publicTelemetry");
     const mockedTelemetry = vi.mocked(fetchPublicTelemetrySnapshot);
     mockedTelemetry.mockResolvedValue({
@@ -81,7 +81,7 @@ describe("Platform", () => {
           ip: "203.0.113.24",
         },
       ],
-      ai_summary: "Demo-safe telemetry preview active.",
+      ai_summary: "Public preview telemetry active.",
     } as unknown as PublicTelemetrySnapshot);
 
     render(
@@ -90,9 +90,8 @@ describe("Platform", () => {
       </MemoryRouter>
     );
 
-    expect(await screen.findByRole("heading", { name: /demo-safe telemetry state/i })).toBeInTheDocument();
-    expect(screen.getByText(/^demo-safe telemetry$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^demo sessions$/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /telemetry state/i })).toBeInTheDocument();
+    expect(screen.getByText(/^telemetry feed$/i)).toBeInTheDocument();
     expect(screen.queryByText(/^live telemetry$/i)).not.toBeInTheDocument();
   });
 });

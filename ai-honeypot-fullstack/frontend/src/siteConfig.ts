@@ -15,6 +15,7 @@ type PublicSite = {
   demoBookingLabel: string;
   showStatusPill: boolean;
   hasCustomBranding: boolean;
+  establishedYear: number;
 };
 
 const trimTrailingSlash = (value?: string | null) => String(value || "").replace(/\/+$/, "");
@@ -60,6 +61,7 @@ export const PUBLIC_SITE: PublicSite = {
   demoBookingLabel,
   showStatusPill: boolFromEnv(env.VITE_PUBLIC_SHOW_STATUS_PILL, false),
   hasCustomBranding: Boolean(env.VITE_PUBLIC_SITE_NAME || env.VITE_PUBLIC_SHORT_NAME || env.VITE_PUBLIC_BRAND_TEXT),
+  establishedYear: 2026,
 };
 
 export function applyPublicBranding(value?: string | null) {

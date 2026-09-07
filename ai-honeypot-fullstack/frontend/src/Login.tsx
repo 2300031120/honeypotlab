@@ -10,7 +10,7 @@ import { requestGoogleCredential } from "./utils/googleAuth";
 import { PUBLIC_SITE } from "./siteConfig";
 import PublicAuthShell from "./components/PublicAuthShell";
 import {
-  Shield, Lock, User, Eye, EyeOff, Fingerprint, Smartphone, AlertTriangle,
+  Shield, Lock, User, Eye, EyeOff, AlertTriangle,
   Wifi, Activity, Cpu, Globe, Zap, CheckCircle, XCircle, Clock,
   ShieldCheck, Terminal, AlertCircle, Chrome
 } from "lucide-react";
@@ -55,13 +55,6 @@ function normalizeGoogleAuthError(err: unknown) {
 
 const PRODUCT_NAME = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
 
-type AuthStep = "login" | "mfa" | "biometric";
-
-type PendingLogin = {
-  username: string;
-  password: string;
-};
-
 type GoogleAuthStatus = {
   checked: boolean;
   googleEnabled: boolean | null;
@@ -92,9 +85,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [msg, setMsg] = useState("");
-  const [authStep, setAuthStep] = useState<AuthStep>("login"); // login, mfa, biometric
-  const [mfaCode, setMfaCode] = useState("");
-  const [pendingLogin, setPendingLogin] = useState<PendingLogin | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [googleAuthStatus, setGoogleAuthStatus] = useState<GoogleAuthStatus>({
     checked: false,
@@ -110,8 +100,6 @@ export default function Login() {
     suspiciousActivity: false,
     threatLevel: "low",
   });
-  const [biometricAvailable, setFingerprintAvailable] = useState(false);
-  const [biometricSupported, setFingerprintSupported] = useState(false);
   const [systemHealth, setSystemHealth] = useState<SystemHealth>({
     cpu: 0,
     memory: 0,
@@ -132,24 +120,6 @@ export default function Login() {
   const signupEnabled = googleAuthStatus.checked ? googleAuthStatus.signupEnabled !== false : true;
   const showDetailedGoogleDiagnostics =
     import.meta.env.VITE_SHOW_AUTH_DEBUG === "true" && Boolean(googleAuthStatus.warning);
-  const biometricLoginEnabled = import.meta.env.VITE_ENABLE_BIOMETRIC_LOGIN === 'true';
-
-  // Advanced security monitoring
-  useEffect(() => {
-    const checkFingerprintSupport = async () => {
-      try {
-        if (window.PublicKeyCredential) {
-          const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-          setFingerprintSupported(true);
-          setFingerprintAvailable(available);
-        }
-      } catch {
-        setFingerprintSupported(false);
-        setFingerprintAvailable(false);
-      }
-    };
-    checkFingerprintSupport();
-  }, []);
 
   // Auth provider preflight diagnostics
   useEffect(() => {
@@ -289,8 +259,6 @@ export default function Login() {
       });
       setMsg(`ACCESS GRANTED - WELCOME TO ${PRODUCT_NAME.toUpperCase()}`);
       controls.start({ scale: 1.05, transition: { duration: 0.3 } });
-      setPendingLogin(null);
-      setAuthStep('login');
       setLoginAttempts(0);
       navigate("/dashboard");
 
@@ -318,47 +286,6 @@ export default function Login() {
         threatLevel: attempts >= 3 ? 'high' : 'medium'
       }));
 
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleMfaSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!pendingLogin?.username || !pendingLogin?.password) {
-      setError("Start MFA flow from login step with username/email and password.");
-      setAuthStep('login');
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    setMsg("");
-    try {
-      const riskScore = calculateRiskScore(pendingLogin.username, loginAttempts);
-      const res = await axios.post(`${API_BASE}/auth/login`, {
-        username: pendingLogin.username,
-        password: pendingLogin.password
-      }, {
-        headers: {
-          'X-Risk-Score': riskScore,
-          'X-MFA-Code': mfaCode,
-          'X-MFA-Mode': 'otp'
-        }
-      });
-      setAuthSession(res.data.token, {
-        username: res.data.username || pendingLogin.username,
-        role: res.data.role || "analyst"
-      });
-      setMsg("MFA VERIFIED - ACCESS GRANTED");
-      setPendingLogin(null);
-      setMfaCode('');
-      setAuthStep('login');
-      setLoginAttempts(0);
-      setTimeout(() => navigate("/dashboard"), 500);
-    } catch (err: unknown) {
-      const mfaError = err as { response?: { data?: { detail?: string } } };
-      setError(mfaError.response?.data?.detail || "MFA verification failed.");
     } finally {
       setLoading(false);
     }
@@ -394,43 +321,6 @@ export default function Login() {
       setError(normalizeGoogleAuthError(err));
     } finally {
       setGoogleLoading(false);
-    }
-  };
-
-  // Fingerprint authentication
-  const handleFingerprintAuth = async () => {
-    if (!biometricLoginEnabled) {
-      setError("Biometric login is disabled in this deployment.");
-      return;
-    }
-    try {
-      setLoading(true);
-      const credential = await navigator.credentials.get({
-        publicKey: {
-          challenge: new Uint8Array(32),
-          allowCredentials: [],
-          userVerification: 'required',
-          timeout: 60000
-        }
-      });
-
-      if (credential) {
-        const res = await axios.post(`${API_BASE}/auth/biometric-login`, {
-          credential: btoa(JSON.stringify(credential))
-        });
-
-        setAuthSession(res.data.token, {
-          username: username || "biometric_user",
-          role: res.data.role || "analyst"
-        });
-        setMsg("BIOMETRIC AUTHENTICATION SUCCESSFUL");
-        setTimeout(() => navigate("/dashboard"), 1000);
-      }
-    } catch (err: unknown) {
-      console.error("Biometric auth error:", err);
-      setError("Fingerprint authentication failed. Please use password login.");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -487,8 +377,8 @@ export default function Login() {
 
   const proofRouteCards = [
     {
-      title: "Review sample proof",
-      detail: "Start with the sample incident and see how the operator workflow is presented before a live demo.",
+      title: "Review product proof",
+      detail: "Start with the incident walkthrough and see how the operator workflow is presented before a live demo.",
       to: "/case-study",
       action: "View incident",
     },
@@ -500,7 +390,7 @@ export default function Login() {
     },
     {
       title: "Validate the operator UI",
-      detail: "Match the sample incident to real dashboard, threat, and forensics screens.",
+      detail: "Match the incident walkthrough to real dashboard, threat, and forensics screens.",
       to: "/screenshots",
       action: "See screenshots",
     },
@@ -545,7 +435,7 @@ export default function Login() {
         description:
           "Use login for existing workspaces and deployed operator access. If you are starting fresh, create a workspace from the signup flow, or use the demo path when you want a guided rollout review first.",
         actions: [
-          { label: "View Sample Incident", to: "/case-study", variant: "primary" },
+          { label: "View Incident Walkthrough", to: "/case-study", variant: "primary" },
           { label: "Request Demo", to: "/demo", variant: "secondary" },
         ],
         cards: storyCards,
@@ -567,9 +457,9 @@ export default function Login() {
           backLinkTo: "/",
         },
       }}
-      authCard={
+authCard={
         <AnimatePresence mode="wait">
-          {authStep === 'login' && (
+          {(
             <motion.div
               key="login"
               className="public-auth-card fade-in"
@@ -886,7 +776,7 @@ export default function Login() {
                     fontWeight: '700'
                   }}>
                     <Lock size={14} style={{ marginRight: '8px' }} />
-                    Access Key
+                    Password
                   </label>
                   <div style={{ position: 'relative' }}>
                     <Lock size={16} style={{
@@ -983,7 +873,7 @@ export default function Login() {
                     {googleLoading ? 'Google...' : googleButtonEnabled ? 'Google' : 'Google Off'}
                   </motion.button>
                   <div style={{ flexBasis: '100%', textAlign: 'center', color: '#7a8698', fontSize: '11px' }}>
-                    Password access and optional Google sign-in are supported here. Advanced MFA and biometric rollout are not exposed from this public login screen.
+                    Password access and optional Google sign-in are supported here for deployed workspaces.
                   </div>
                 </motion.div>
 
@@ -1081,88 +971,8 @@ export default function Login() {
                 )}
               </motion.div>
 
-              {/* Scanline effect */}
+{/* Scanline effect */}
               <div className="public-auth-scanline"></div>
-            </motion.div>
-          )}
-
-          {/* MFA Step */}
-          {authStep === 'mfa' && (
-            <motion.div
-              key="mfa"
-              className="public-auth-card fade-in"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.5 }}
-            >
-              <div style={{ textAlign: 'center', marginBottom: '30px' }}>
-                <Smartphone size={48} color="#c65d1a" />
-                <h2 style={{ color: '#1f2a3d', marginTop: '16px' }}>Multi-Factor Authentication</h2>
-                <p style={{ color: '#5f6b7f' }}>Enter your 6-digit verification code</p>
-              </div>
-
-              <form onSubmit={handleMfaSubmit}>
-                <div style={{ marginBottom: '28px' }}>
-                  <input
-                    type="text"
-                    value={mfaCode}
-                    onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="000000"
-                    maxLength={6}
-                    style={{
-                      width: '100%',
-                      padding: '16px',
-                      background: '#fffaf5',
-                      border: '1px solid #e5ddd1',
-                      color: '#1f2a3d',
-                      borderRadius: '8px',
-                      fontSize: '24px',
-                      textAlign: 'center',
-                      letterSpacing: '8px',
-                      fontFamily: 'monospace'
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading || mfaCode.length !== 6}
-                  style={{
-                    width: '100%',
-                    padding: '14px',
-                    border: 'none',
-                    borderRadius: '8px',
-                    background: loading ? '#21262d' : 'linear-gradient(135deg, #d86b1d, #d63763)',
-                    color: 'white',
-                    fontWeight: '700',
-                    fontSize: '14px',
-                    cursor: loading ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  {loading ? 'VERIFYING...' : 'VERIFY CODE'}
-                </button>
-              </form>
-
-              <button
-                onClick={() => {
-                  setAuthStep('login');
-                  setMfaCode('');
-                  setPendingLogin(null);
-                }}
-                style={{
-                  width: '100%',
-                  marginTop: '16px',
-                  padding: '12px',
-                  border: '1px solid #e5ddd1',
-                  borderRadius: '8px',
-                  background: 'transparent',
-                  color: '#5f6b7f',
-                  cursor: 'pointer'
-                }}
-              >
-                Back to Login
-              </button>
             </motion.div>
           )}
         </AnimatePresence>

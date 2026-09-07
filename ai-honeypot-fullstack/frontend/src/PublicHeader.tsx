@@ -42,7 +42,7 @@ const CORE_LINKS: NavLink[] = [
         items: [
           { label: "Architecture", to: "/architecture", description: "Understand trap, ingest, and evidence flow." },
           { label: "Security", to: "/security", description: "Read guardrails and disclosure policy." },
-          { label: "Sample Incident", to: "/case-study", description: "Open one attack path with proof." },
+          { label: "Incident Walkthrough", to: "/case-study", description: "Open one attack path with proof." },
         ],
       },
     ],
@@ -87,7 +87,7 @@ const CORE_LINKS: NavLink[] = [
       {
         title: "See proof",
         items: [
-          { label: "Sample Incident", to: "/case-study", description: "Follow one route from probe to analyst brief." },
+          { label: "Incident Walkthrough", to: "/case-study", description: "Follow one route from probe to analyst brief." },
           { label: "Screenshots", to: "/screenshots", description: "Review the UI before the demo." },
           { label: "Integrations", to: "/integrations", description: "Check the systems behind the workflow." },
         ],

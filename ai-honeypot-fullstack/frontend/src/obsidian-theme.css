@@ -1,0 +1,1903 @@
+/* ============================================================================
+   Obsidian Theme — high-contrast deception-command visual system
+   Base: deep obsidian (#05070A / #0B0F17). Accents: neon cyan (#00F0FF) +
+   terminal emerald (#00FF88). Frosted-glass surfaces, ambient glows, SOC-style
+   terminal proofs, persona tabs, sample-incident drawer.
+   Imported LAST so it wins the cascade for the public marketing shell.
+   ============================================================================ */
+
+:root {
+  /* Obsidian base */
+  --obs-bg: #05070a;
+  --obs-bg-2: #0b0f17;
+  --obs-bg-3: #101623;
+  --obs-panel: rgba(13, 19, 31, 0.62);
+  --obs-panel-strong: rgba(9, 14, 24, 0.92);
+  --obs-border: rgba(255, 255, 255, 0.08);
+  --obs-border-bright: rgba(255, 255, 255, 0.14);
+
+  /* Electric accents */
+  --obs-cyan: #00f0ff;
+  --obs-cyan-dim: rgba(0, 240, 255, 0.5);
+  --obs-cyan-soft: rgba(0, 240, 255, 0.14);
+  --obs-cyan-glow: rgba(0, 240, 255, 0.34);
+  --obs-emerald: #00ff88;
+  --obs-emerald-soft: rgba(0, 255, 136, 0.14);
+  --obs-emerald-glow: rgba(0, 255, 136, 0.3);
+  --obs-amber: #ffd166;
+  --obs-red: #ff4d6d;
+  --obs-red-soft: rgba(255, 77, 109, 0.16);
+
+  /* Text */
+  --obs-text: #f2f9fd;
+  --obs-text-dim: #b7c6d6;
+  --obs-muted: #7f96aa;
+  --obs-grad: linear-gradient(135deg, var(--obs-cyan), var(--obs-emerald));
+  --obs-grad-btn: linear-gradient(135deg, #00e0f0, #00ff88);
+}
+
+/* ---- Global obsidian membrane ---- */
+body {
+  background-color: var(--obs-bg);
+  background-image:
+    radial-gradient(1100px 520px at 10% -6%, rgba(0, 240, 255, 0.1), transparent 55%),
+    radial-gradient(900px 480px at 92% 4%, rgba(0, 255, 136, 0.08), transparent 55%),
+    linear-gradient(180deg, var(--obs-bg) 0%, var(--obs-bg-2) 42%, var(--obs-bg-3) 100%);
+  color: var(--obs-text);
+}
+
+.marketing-shell,
+.marketing-shell-home {
+  --mk-bg: var(--obs-bg);
+  --mk-surface: var(--obs-panel);
+  --mk-surface-strong: var(--obs-panel-strong);
+  --mk-border: var(--obs-border);
+  --mk-text: var(--obs-text);
+  --mk-muted: var(--obs-muted);
+  --mk-primary: var(--obs-cyan);
+  --mk-primary-soft: var(--obs-cyan-soft);
+  --mk-accent: var(--obs-emerald);
+  --mk-accent-soft: var(--obs-emerald-soft);
+  --mk-success: var(--obs-emerald);
+  --entry-gold: var(--obs-cyan);
+  --entry-gold-soft: var(--obs-cyan-soft);
+  --entry-red: var(--obs-emerald);
+  --entry-red-deep: var(--obs-cyan);
+  --entry-pink: var(--obs-emerald);
+  --entry-pink-soft: var(--obs-emerald-soft);
+  --entry-ink: #04080d;
+  background:
+    radial-gradient(1200px 620px at 16% 4%, rgba(0, 240, 255, 0.09), transparent 52%),
+    radial-gradient(980px 520px at 84% 8%, rgba(0, 255, 136, 0.07), transparent 52%),
+    linear-gradient(180deg, var(--obs-bg) 0%, var(--obs-bg-2) 40%, #0d1422 100%);
+  color: var(--obs-text);
+}
+
+/* ============================================================================
+   Glassmorphism surfaces
+   ============================================================================ */
+.marketing-shell .marketing-card,
+.marketing-shell .marketing-feature,
+.marketing-shell .marketing-showcase,
+.marketing-shell .mk-card,
+.marketing-shell .marketing-list-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 55%, rgba(0, 240, 255, 0.04));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border);
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+
+/* Frosted inner cells used widely across the home page */
+.marketing-home-signal-card,
+.marketing-home-proof-item,
+.marketing-platform-shortcut,
+.marketing-home-trust-stat,
+.marketing-impact-head .marketing-icon-box {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border);
+}
+
+.marketing-kicker,
+.marketing-section-head p,
+.marketing-home-kicker,
+.marketing-impact-signal {
+  color: var(--obs-cyan) !important;
+  text-shadow: 0 0 14px var(--obs-cyan-glow);
+}
+
+h1,
+h2,
+h3 {
+  color: var(--obs-text);
+  text-shadow: 0 1px 24px rgba(0, 240, 255, 0.08);
+}
+
+/* ============================================================================
+   Buttons — neon gradient + pulse glow
+   ============================================================================ */
+.marketing-shell .marketing-btn-primary,
+.marketing-shell-home .marketing-btn-primary {
+  background: var(--obs-grad-btn) !important;
+  background-size: 200% 200% !important;
+  color: #04080d !important;
+  border: 1px solid rgba(0, 240, 255, 0.6);
+  box-shadow:
+    0 0 0 1px rgba(0, 255, 136, 0.25),
+    0 0 24px rgba(0, 240, 255, 0.35),
+    0 18px 40px rgba(0, 240, 255, 0.25);
+  animation: obs-btn-pulse 2.6s ease-in-out infinite;
+}
+
+.marketing-shell .marketing-btn-primary:hover,
+.marketing-shell-home .marketing-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(0, 240, 255, 0.5),
+    0 0 34px rgba(0, 240, 255, 0.55),
+    0 22px 48px rgba(0, 255, 136, 0.3);
+}
+
+@keyframes obs-btn-pulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 255, 136, 0.2), 0 0 20px rgba(0, 240, 255, 0.3), 0 18px 40px rgba(0, 240, 255, 0.2); }
+  50% { box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.5), 0 0 40px rgba(0, 240, 255, 0.55), 0 18px 44px rgba(0, 255, 136, 0.28); }
+}
+
+.marketing-shell .marketing-btn-secondary {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border-bright);
+  color: var(--obs-text);
+}
+
+.marketing-shell .marketing-btn-secondary:hover {
+  border-color: rgba(0, 240, 255, 0.45);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.28);
+}
+
+/* ============================================================================
+   Header — obsidian glass + neon CTA
+   ============================================================================ */
+.public-nav-shell,
+.cred-nav,
+.cred-nav-actions .cred-btn-primary,
+.cred-nav-actions .cred-btn-ghost {
+  background: rgba(5, 8, 12, 0.72) !important;
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border-bottom: 1px solid var(--obs-border);
+}
+
+.cred-btn-primary {
+  background: var(--obs-grad-btn) !important;
+  color: #04080d !important;
+  border: 1px solid rgba(0, 240, 255, 0.55);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.3);
+  animation: obs-btn-pulse 2.6s ease-in-out infinite;
+}
+
+.cred-btn-primary:hover {
+  box-shadow: 0 0 30px rgba(0, 255, 136, 0.5);
+  transform: translateY(-2px);
+}
+
+.cred-nav-links a,
+.cred-nav-links a:hover,
+.cred-nav-links a.is-active {
+  color: var(--obs-text) !important;
+}
+
+.cred-nav-links a:hover {
+  color: var(--obs-cyan) !important;
+  text-shadow: 0 0 12px var(--obs-cyan-glow);
+}
+
+.cred-nav-links a.is-active {
+  color: var(--obs-cyan) !important;
+  border-bottom-color: var(--obs-cyan) !important;
+  text-shadow: 0 0 12px var(--obs-cyan-glow);
+}
+
+/* ============================================================================
+   Hero cinematic — obsidian stage + neon flow
+   ============================================================================ */
+.marketing-shell-home .marketing-home-cinematic {
+  background:
+    radial-gradient(560px 420px at 8% 90%, rgba(0, 240, 255, 0.16), transparent 55%),
+    radial-gradient(520px 400px at 86% 12%, rgba(0, 255, 136, 0.13), transparent 55%),
+    linear-gradient(120deg, #05070a 0%, #0b0f17 45%, #0e1625 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 50px 120px rgba(0, 0, 0, 0.6);
+}
+
+.marketing-shell-home .marketing-home-cinematic::before {
+  background:
+    radial-gradient(620px 340px at 74% 18%, rgba(0, 240, 255, 0.08), transparent 60%),
+    linear-gradient(90deg, transparent, transparent);
+}
+
+/* Kicker / display */
+.marketing-shell-home .marketing-home-kicker {
+  color: var(--obs-cyan);
+  text-shadow: 0 0 16px var(--obs-cyan-glow);
+}
+
+.marketing-shell-home .marketing-home-display {
+  color: var(--obs-text);
+  background: linear-gradient(120deg, #eafcff, #bfeaff 46%, #abffd8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+
+.marketing-shell-home .marketing-home-lead {
+  color: var(--obs-text-dim);
+}
+
+/* Flow SVG: neon lanes */
+.marketing-home-flow-line {
+  stroke: rgba(0, 240, 255, 0.22);
+}
+
+.marketing-home-flow-tracer {
+  stroke: var(--obs-cyan) !important;
+  filter: drop-shadow(0 0 6px var(--obs-cyan-glow));
+}
+
+.marketing-home-flow-node {
+  fill: var(--obs-emerald) !important;
+  filter: drop-shadow(0 0 6px var(--obs-emerald-glow));
+}
+
+.marketing-home-flow-node-halo {
+  fill: rgba(0, 240, 255, 0.18) !important;
+}
+
+.marketing-home-flow-chip {
+  border: 1px solid var(--obs-border-bright);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  color: var(--obs-cyan);
+}
+
+/* Float cards */
+.marketing-home-float-card {
+  background: rgba(8, 13, 22, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--obs-border-bright);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.marketing-home-float-card strong {
+  color: #eafbff;
+}
+
+.marketing-home-float-card-path {
+  border-color: rgba(0, 240, 255, 0.3);
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.marketing-home-float-card-score strong {
+  background: var(--obs-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 26px var(--obs-cyan-glow);
+}
+
+/* Announcement pill */
+.marketing-home-announcement {
+  background: rgba(0, 240, 255, 0.06) !important;
+  border-color: rgba(0, 240, 255, 0.22) !important;
+}
+
+.marketing-home-announcement a {
+  color: var(--obs-cyan) !important;
+}
+
+/* ============================================================================
+   SOC Terminal (Proof Panel)
+   ============================================================================ */
+.obs-soc-terminal {
+  --obs-term-bg: #04070c;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.3));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.1), 0 30px 80px rgba(0, 0, 0, 0.55);
+}
+
+.obs-soc-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid var(--obs-border);
+}
+
+.obs-soc-term-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--obs-emerald);
+  box-shadow: 0 0 8px var(--obs-emerald-glow);
+}
+
+.obs-soc-term-bar strong {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--obs-text-dim);
+  margin-left: 6px;
+  font-family: "Space Grotesk", ui-monospace, monospace;
+}
+
+.obs-soc-term-body {
+  padding: 4px 0 14px;
+  font-family: "Fira Code", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: #c6d9e8;
+  background: var(--obs-term-bg);
+}
+
+.obs-soc-term-row {
+  padding: 4px 16px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Fira Code", ui-monospace, Menlo, monospace;
+}
+
+.obs-soc-term-row .obs-ts {
+  color: var(--obs-muted);
+}
+
+.obs-soc-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  vertical-align: middle;
+  margin-left: 2px;
+  background: var(--obs-emerald);
+  box-shadow: 0 0 8px var(--obs-emerald-glow);
+  animation: obs-blink 0.9s steps(1) infinite;
+}
+
+@keyframes obs-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Glowing threat tags */
+.obs-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  margin-left: 6px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  border-radius: 4px;
+  vertical-align: middle;
+  font-family: "Space Grotesk", sans-serif;
+}
+
+.obs-tag-trapped {
+  color: var(--obs-red);
+  border: 1px solid rgba(255, 77, 109, 0.5);
+  background: rgba(255, 77, 109, 0.12);
+  box-shadow: 0 0 12px rgba(255, 77, 109, 0.3);
+}
+
+.obs-tag-captured {
+  color: var(--obs-emerald);
+  border: 1px solid rgba(0, 255, 136, 0.5);
+  background: rgba(0, 255, 136, 0.1);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.3);
+}
+
+.obs-tag-probe {
+  color: var(--obs-cyan);
+  border: 1px solid rgba(0, 240, 255, 0.5);
+  background: rgba(0, 240, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+}
+
+/* ============================================================================
+   Attack Simulation sandbox widget
+   ============================================================================ */
+.obs-sim {
+  margin-top: 26px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 136, 0.28);
+  background: linear-gradient(180deg, rgba(0, 255, 136, 0.05), rgba(0, 0, 0, 0.25));
+  backdrop-filter: blur(12px);
+}
+
+.obs-sim-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--obs-border);
+}
+
+.obs-sim-head span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--obs-emerald);
+  text-shadow: 0 0 12px var(--obs-emerald-glow);
+}
+
+.obs-sim-btn {
+  background: var(--obs-grad-btn);
+  color: #04080d;
+  font-weight: 800;
+  border: 1px solid rgba(0, 255, 136, 0.5);
+  padding: 9px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.25);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.obs-sim-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 30px rgba(0, 240, 255, 0.42);
+}
+
+.obs-sim-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+  transform: none;
+}
+
+.obs-sim-status {
+  font-size: 11px;
+  color: var(--obs-muted);
+  min-height: 16px;
+}
+
+.obs-sim-level {
+  display: none;
+  padding: 10px 16px 14px;
+  border-top: 1px solid var(--obs-border);
+  background: rgba(4, 7, 12, 0.55);
+  font-family: "Fira Code", ui-monospace, monospace;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  color: var(--obs-emerald);
+}
+
+.obs-sim-level.open {
+  display: block;
+}
+
+/* ============================================================================
+   Trust bar (below hero fold)
+   ============================================================================ */
+.obs-trust-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--obs-border);
+  backdrop-filter: blur(12px);
+}
+
+.obs-trust-bar-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  background: rgba(0, 240, 255, 0.06);
+  color: var(--obs-cyan);
+  font-size: 12px;
+  font-weight: 800;
+  box-shadow: inset 0 0 14px rgba(0, 240, 255, 0.06);
+}
+
+.obs-trust-bar-chip svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+
+/* ============================================================================
+   Persona tabs (CISO / SOC Analyst)
+   ============================================================================ */
+.obs-persona-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 480px;
+  margin-bottom: 22px;
+  padding: 6px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--obs-border);
+  backdrop-filter: blur(12px);
+}
+
+.obs-persona-tab {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--obs-muted);
+  font-weight: 800;
+  padding: 12px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 180ms ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+}
+
+.obs-persona-tab:hover {
+  color: var(--obs-text);
+}
+
+.obs-persona-tab.active {
+  background: var(--obs-grad-btn);
+  color: #04080d;
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.3);
+}
+
+.obs-persona-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.obs-persona-card {
+  padding: 22px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 60%);
+  border: 1px solid var(--obs-border);
+  backdrop-filter: blur(12px);
+}
+
+.obs-persona-card .obs-persona-card-ic {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  color: var(--obs-cyan);
+}
+
+.obs-persona-card h4 {
+  margin: 0 0 6px;
+  font-size: 1.02rem;
+  color: var(--obs-text);
+}
+
+.obs-persona-card p {
+  margin: 0;
+  color: var(--obs-text-dim);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+/* Persona tag styling */
+.obs-persona-card[data-tone="cyan"] .obs-persona-card-ic {
+  color: var(--obs-cyan);
+  background: rgba(0, 240, 255, 0.1);
+  border-color: rgba(0, 240, 255, 0.25);
+}
+
+.obs-persona-card[data-tone="emerald"] .obs-persona-card-ic {
+  color: var(--obs-emerald);
+  background: rgba(0, 255, 136, 0.1);
+  border-color: rgba(0, 255, 136, 0.25);
+}
+
+.obs-persona-card[data-tone="amber"] .obs-persona-card-ic {
+  color: var(--obs-amber);
+  background: rgba(255, 209, 102, 0.1);
+  border-color: rgba(255, 209, 102, 0.25);
+}
+
+/* ============================================================================
+   Sample Incident modal drawer
+   ============================================================================ */
+.obs-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(2, 4, 8, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-end;
+  animation: obs-fade 200ms ease;
+}
+
+.obs-drawer {
+  width: min(560px, 100%);
+  background: linear-gradient(180deg, #0b1120, #070b14);
+  border-left: 1px solid rgba(0, 240, 255, 0.28);
+  box-shadow: -30px 0 90px rgba(0, 0, 0, 0.6), inset 1px 0 0 rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  animation: obs-slide-in 320ms cubic-bezier(0.16, 1, 0.3, 1);
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.obs-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--obs-border);
+}
+
+.obs-drawer-head strong {
+  font-size: 1.05rem;
+  color: var(--obs-text);
+}
+
+.obs-drawer-close {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--obs-border-bright);
+  color: var(--obs-text);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 160ms ease;
+}
+
+.obs-drawer-close:hover {
+  border-color: rgba(255, 77, 109, 0.5);
+  color: var(--obs-red);
+  box-shadow: 0 0 16px rgba(255, 77, 109, 0.25);
+}
+
+.obs-drawer-body {
+  padding: 22px 24px;
+  display: grid;
+  gap: 16px;
+  color: var(--obs-text-dim);
+  font-size: 0.92rem;
+  line-height: 1.7;
+}
+
+.obs-drawer-kv {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.obs-drawer-kv > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--obs-border);
+}
+
+.obs-drawer-kv span {
+  color: var(--obs-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.obs-drawer-kv strong {
+  color: var(--obs-text);
+  font-size: 0.84rem;
+  text-align: right;
+}
+
+.obs-drawer-foot {
+  padding: 16px 24px 22px;
+  border-top: 1px solid var(--obs-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@keyframes obs-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes obs-slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* ============================================================================
+   Ambient glow helper
+   ============================================================================ */
+.obs-ambient-glow {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(70px);
+  opacity: 0.5;
+}
+
+.marketing-home-cinematic { position: relative; }
+
+/* ============================================================================
+   Header nav contrast — brighten trigger links on dark slate
+   ============================================================================ */
+.marketing-shell .public-nav-trigger,
+.marketing-shell-home .public-nav-trigger {
+  color: var(--obs-text);
+  font-weight: 900;
+}
+
+.marketing-shell .public-nav-trigger:hover,
+.marketing-shell .public-nav-trigger.is-open,
+.marketing-shell .public-nav-trigger.is-active-route,
+.marketing-shell-home .public-nav-trigger:hover,
+.marketing-shell-home .public-nav-trigger.is-open,
+.marketing-shell-home .public-nav-trigger.is-active-route {
+  color: var(--obs-cyan);
+  background: rgba(0, 240, 255, 0.08);
+  text-shadow: 0 0 12px var(--obs-cyan-glow);
+}
+
+/* ============================================================================
+   Lead form readability — light text + elevated inputs on dark glass
+   ============================================================================ */
+.marketing-shell .lead-form-head h2 {
+  color: #ffffff;
+}
+
+.marketing-shell .lead-form-head p {
+  color: #e2e8f0;
+}
+
+.marketing-shell .lead-field > span,
+.marketing-shell .lead-quick-starts > span {
+  color: #e2e8f0;
+}
+
+.marketing-shell .lead-field input,
+.marketing-shell .lead-field textarea,
+.marketing-shell .lead-challenge-row input {
+  background: rgba(5, 8, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--obs-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 0 14px rgba(0, 240, 255, 0.06);
+}
+
+.marketing-shell .lead-field input::placeholder,
+.marketing-shell .lead-field textarea::placeholder,
+.marketing-shell .lead-challenge-row input::placeholder {
+  color: var(--obs-muted);
+}
+
+.marketing-shell .lead-field input:focus,
+.marketing-shell .lead-field textarea:focus,
+.marketing-shell .lead-challenge-row input:focus {
+  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow:
+    0 0 0 4px rgba(0, 240, 255, 0.12),
+    0 0 22px rgba(0, 240, 255, 0.22);
+}
+
+/* ============================================================================
+   Responsive
+   ============================================================================ */
+@media (max-width: 900px) {
+  .obs-persona-panel {
+    grid-template-columns: 1fr;
+  }
+  .obs-sim-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+/* ============================================================================
+   Rainbow Mode — vibrant multi-hue gradient accents
+   ============================================================================ */
+:root {
+  --obs-rainbow: linear-gradient(
+    90deg,
+    #ff4d6d 0%,
+    #ffb85c 18%,
+    #ffe066 34%,
+    #2bff9e 52%,
+    #2fc4ff 70%,
+    #a678ff 86%,
+    #ff4d8d 100%
+  );
+  --obs-rainbow-rev: linear-gradient(
+    90deg,
+    #a678ff 0%,
+    #2fc4ff 20%,
+    #2bff9e 40%,
+    #ffe066 60%,
+    #ffb85c 80%,
+    #ff4d6d 100%
+  );
+}
+
+/* Rainbow gradient headings */
+.marketing-shell h1,
+.marketing-shell h2,
+.marketing-shell-home h1,
+.marketing-shell-home h2 {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+
+.marketing-shell h1:hover,
+.marketing-shell h2:hover {
+  background: var(--obs-rainbow-rev);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Rainbow kickers */
+.marketing-shell .marketing-kicker,
+.marketing-shell .marketing-section-head p,
+.marketing-shell-home .marketing-home-kicker,
+.marketing-shell .lead-form-head p {
+  background: var(--obs-rainbow) !important;
+  -webkit-background-clip: text !important;
+  background-clip: text !important;
+  color: transparent !important;
+  text-shadow: none !important;
+}
+
+/* Rainbow primary buttons */
+.marketing-shell .marketing-btn-primary,
+.marketing-shell-home .marketing-btn-primary,
+.marketing-shell .lead-btn.lead-btn-primary,
+.marketing-shell-home .lead-btn.lead-btn-primary {
+  background: var(--obs-rainbow) !important;
+  background-size: 250% 250% !important;
+  color: #0a0c12 !important;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 26px rgba(166, 120, 255, 0.45),
+    0 18px 40px rgba(255, 77, 109, 0.25);
+  animation: obs-rainbow-btn 3.2s linear infinite;
+}
+
+.marketing-shell .marketing-btn-primary:hover,
+.marketing-shell-home .marketing-btn-primary:hover,
+.marketing-shell .lead-btn.lead-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.45),
+    0 0 46px rgba(47, 196, 255, 0.62),
+    0 22px 50px rgba(255, 77, 109, 0.34);
+}
+
+@keyframes obs-rainbow-btn {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 250% 50%; }
+}
+
+/* Header CTA */
+.cred-btn-primary {
+  background: var(--obs-rainbow) !important;
+  background-size: 250% 250% !important;
+  animation: obs-rainbow-btn 3.2s linear infinite !important;
+}
+
+/* Rainbow icon boxes */
+.marketing-shell .marketing-icon-box,
+.marketing-shell-home .marketing-icon-box {
+  background: var(--obs-rainbow);
+  color: #0a0c12;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 22px rgba(166, 120, 255, 0.38);
+}
+
+/* Marketing badge */
+.marketing-shell .marketing-badge {
+  background: var(--obs-rainbow);
+  color: #0a0c12;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 0 20px rgba(166, 120, 255, 0.35);
+}
+
+/* Lead form panel — rainbow frame + top bar */
+.marketing-shell .lead-form-panel {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 0 0 1px rgba(255, 77, 109, 0.16),
+    0 0 38px rgba(166, 120, 255, 0.2),
+    0 30px 80px rgba(0, 0, 0, 0.5);
+}
+
+.marketing-shell .lead-form-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--obs-rainbow);
+  z-index: 1;
+}
+
+.marketing-shell .lead-form-panel::after {
+  content: "";
+  position: absolute;
+  top: -60%;
+  left: -60%;
+  width: 220%;
+  height: 220%;
+  background: radial-gradient(circle at 30% 20%, rgba(166, 120, 255, 0.12), transparent 42%),
+    radial-gradient(circle at 70% 60%, rgba(43, 255, 158, 0.1), transparent 42%),
+    radial-gradient(circle at 45% 85%, rgba(255, 77, 109, 0.1), transparent 42%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Rainbow focus states */
+.marketing-shell .lead-field input:focus,
+.marketing-shell .lead-field textarea:focus,
+.marketing-shell .lead-challenge-row input:focus {
+  border-color: rgba(166, 120, 255, 0.6);
+  box-shadow:
+    0 0 0 4px rgba(166, 120, 255, 0.14),
+    0 0 24px rgba(47, 196, 255, 0.3);
+}
+
+/* Rainbow proof strip values */
+.marketing-shell .lead-proof-item strong,
+.marketing-shell .marketing-stage-strip strong {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Rainbow checklist icons */
+.marketing-shell .marketing-checklist svg,
+.marketing-shell .marketing-list li svg,
+.marketing-shell .lead-form-assist svg {
+  color: transparent;
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  filter: drop-shadow(0 0 6px rgba(166, 120, 255, 0.4));
+}
+
+/* Rainbow live ribbon */
+.marketing-shell .marketing-live-ribbon {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(47, 196, 255, 0.15),
+    0 0 34px rgba(166, 120, 255, 0.18);
+}
+
+.marketing-shell .marketing-live-ribbon-head {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.marketing-shell .marketing-live-pill-item code {
+  color: #b6f2ff;
+}
+
+/* Rainbow demo booking panel */
+.marketing-shell .lead-booking-panel {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(166, 120, 255, 0.1);
+}
+
+/* ============================================================================
+   Light-theme remnant purge — force dark-glass surfaces + light text so the
+   old cream/pink marketing theme no longer leaks dark text onto obsidian.
+   ============================================================================ */
+
+/* Dark navy headings/strong/bold that were invisible on the dark shell */
+.marketing-shell :is(
+  .marketing-hero-story-head strong,
+  .marketing-hero-walkthrough-head strong,
+  .marketing-hero-walkthrough-tab strong,
+  .marketing-highlight span,
+  .marketing-highlight strong,
+  .marketing-panel-head h3,
+  .marketing-stat strong,
+  .marketing-plan-copy h3,
+  .marketing-plan-copy strong,
+  .marketing-screenshot-copy h3,
+  .marketing-product-step strong,
+  .marketing-proof-screen-copy h3,
+  .marketing-beneficiary-copy strong,
+  .marketing-impact-line strong,
+  .marketing-list strong,
+  .marketing-panel-mini-card strong,
+  .marketing-radar-box strong,
+  .marketing-proof-copy-card h3,
+  .marketing-authority-item p
+) {
+  color: var(--obs-text);
+}
+
+.marketing-shell-home :is(
+  .marketing-platform-flow-step strong,
+  .marketing-platform-shortcut strong
+) {
+  color: var(--obs-text);
+}
+
+/* Dark maroon/pink accents get bright cyan to keep the neon feel */
+.marketing-shell :is(
+  .marketing-hero-walkthrough-stats strong,
+  .marketing-stage-feed-list code,
+  .marketing-route-link,
+  .marketing-product-step-index,
+  .marketing-prompt-index,
+  .marketing-authority-item strong,
+  .marketing-panel-mini-card span,
+  .marketing-summary-head
+) {
+  color: var(--obs-cyan);
+}
+
+/* Cream/pink boxes -> dark glass */
+.marketing-shell :is(
+  .marketing-highlight,
+  .marketing-panel-mini-card,
+  .marketing-summary,
+  .marketing-authority-item
+) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 60%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border);
+}
+
+.marketing-shell .marketing-summary p {
+  color: var(--obs-text-dim);
+}
+
+.marketing-shell .marketing-summary-head svg {
+  color: var(--obs-cyan);
+}
+
+.marketing-shell .marketing-highlight:nth-child(1),
+.marketing-shell .marketing-highlight:nth-child(2),
+.marketing-shell .marketing-highlight:nth-child(3) {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 60%);
+}
+
+/* Mini pills -> dark glass with cyan text */
+.marketing-shell .marketing-mini-pill {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--obs-cyan);
+}
+
+/* Walkthrough stat chips -> neon glass */
+.marketing-shell .marketing-hero-walkthrough-stats strong {
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+}
+
+/* Ribbon pill code -> dark readable chips */
+.marketing-shell .marketing-live-pill-item code {
+  background: rgba(4, 7, 12, 0.6);
+  border: 1px solid var(--obs-border-bright);
+  color: var(--obs-text);
+}
+
+.marketing-shell .marketing-live-pill-item span {
+  color: var(--obs-cyan);
+}
+
+/* List number chips -> rainbow gradient */
+.marketing-shell .marketing-list-number {
+  background: var(--obs-rainbow);
+  color: #0a0c12;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 18px rgba(166, 120, 255, 0.35);
+}
+
+/* Header brand title stays bright on the obsidian nav */
+.cred-brand .public-brand-title,
+.home-v2-brand .public-brand-title,
+.public-nav-shell .public-brand-title {
+  color: #f3f9ff;
+}
+
+/* Ghost nav buttons: force light text on the dark glass (polish forces dark navy text) */
+.cred-nav-actions .cred-btn-ghost {
+  color: #dde9f7 !important;
+  border: 1px solid rgba(99, 215, 255, 0.25);
+}
+
+/* Cream list/timeline rows -> dark glass */
+.marketing-shell :is(.marketing-list li, .marketing-timeline li) {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--obs-border);
+}
+
+.marketing-shell :is(.marketing-list code, .marketing-timeline code, .marketing-timeline strong) {
+  color: var(--obs-cyan);
+}
+
+/* Proof gallery -> dark glass (was light --ux-surface card) */
+.marketing-shell {
+  --public-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015) 60%);
+  --public-border: rgba(255, 255, 255, 0.1);
+  --public-shadow: 0 18px 54px rgba(0, 0, 0, 0.5);
+  --public-text: var(--obs-text);
+  --public-muted: var(--obs-text-dim);
+}
+
+.marketing-shell .proof-gallery-stage {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 60%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.marketing-shell .proof-gallery-image-wrap {
+  background: rgba(4, 7, 12, 0.55) !important;
+}
+
+.marketing-shell .proof-gallery-image-wrap img {
+  border-color: var(--obs-border-bright);
+}
+
+.marketing-shell .proof-gallery-copy h3 {
+  color: var(--obs-text);
+}
+
+.marketing-shell .proof-gallery-copy p {
+  color: var(--obs-text-dim);
+}
+
+.marketing-shell .proof-list li {
+  color: var(--obs-text-dim);
+}
+
+.marketing-shell .proof-gallery-label {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.marketing-shell .proof-gallery-expand {
+  background: rgba(5, 8, 12, 0.8);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--obs-cyan);
+}
+
+.marketing-shell .proof-gallery-nav {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--obs-border-bright);
+  color: var(--obs-text);
+}
+
+.marketing-shell .proof-gallery-thumb {
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--obs-border);
+}
+
+.marketing-shell .proof-gallery-thumb.active {
+  border-color: rgba(0, 240, 255, 0.55) !important;
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.3) !important;
+  background: rgba(0, 240, 255, 0.08) !important;
+}
+
+.marketing-shell .proof-gallery-thumb img {
+  border-color: var(--obs-border-bright);
+}
+
+/* Proof gallery -> grid layout (all screenshots at once) */
+.marketing-shell .proof-gallery-grid-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015) 60%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--obs-border);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.marketing-shell .proof-gallery-grid-card:hover {
+  border-color: rgba(0, 240, 255, 0.4);
+  box-shadow: 0 0 22px rgba(0, 240, 255, 0.14);
+}
+
+.marketing-shell .proof-gallery-grid-image {
+  background: rgba(4, 7, 12, 0.55) !important;
+}
+
+.marketing-shell .proof-gallery-grid-image img {
+  border-color: var(--obs-border-bright);
+}
+
+.marketing-shell .proof-gallery-grid-copy h3 {
+  color: var(--obs-text);
+}
+
+.marketing-shell .proof-gallery-grid-copy p {
+  color: var(--obs-text-dim);
+}
+
+/* ============================================================================
+   Merged from visual-enhancement.css — marketing layout and component styles
+   (loaded before obsidian-theme base, but now consolidated here for one-file clarity)
+   ============================================================================ */
+
+/* Enhanced Hero Section */
+.marketing-home-cinematic {
+  position: relative;
+  background: linear-gradient(135deg, #010409 0%, #0d1117 50%, #161b22 100%);
+  overflow: hidden;
+}
+
+.marketing-home-cinematic::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(255, 191, 42, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 80% 30%, rgba(99, 215, 255, 0.08) 0%, transparent 50%),
+              radial-gradient(circle at 40% 80%, rgba(255, 92, 54, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Enhanced Announcement Bar */
+.marketing-home-announcement {
+  background: linear-gradient(90deg, rgba(255, 191, 42, 0.15) 0%, rgba(255, 92, 54, 0.15) 100%);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.1);
+}
+
+.marketing-home-announcement-label {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Enhanced Hero Typography */
+.marketing-home-display {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #e6edf3 0%, #8b949e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 40px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-home-kicker {
+  background: linear-gradient(90deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+}
+
+/* Enhanced Buttons */
+.marketing-btn-primary {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  border: none;
+  color: #010409;
+  font-weight: 700;
+  padding: 14px 32px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.4);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.marketing-btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transition: left 0.5s ease;
+}
+
+.marketing-btn-primary:hover::before {
+  left: 100%;
+}
+
+.marketing-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-btn-secondary {
+  background: rgba(13, 17, 23, 0.8);
+  border: 2px solid rgba(99, 215, 255, 0.5);
+  color: #63d7ff;
+  font-weight: 600;
+  padding: 12px 30px;
+  border-radius: 8px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(99, 215, 255, 0.1);
+}
+
+.marketing-btn-secondary:hover {
+  background: rgba(99, 215, 255, 0.1);
+  border-color: #63d7ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 215, 255, 0.2);
+}
+
+/* Enhanced Signal Cards */
+.marketing-home-signal-card {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-home-signal-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-home-signal-card strong {
+  color: #63d7ff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 0 20px rgba(99, 215, 255, 0.5);
+}
+
+/* Enhanced Float Cards */
+.marketing-home-float-card {
+  background: rgba(13, 17, 23, 0.9);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5),
+              0 0 60px rgba(255, 191, 42, 0.1);
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.marketing-home-float-card-path {
+  animation-delay: 0s;
+}
+
+.marketing-home-float-card-score {
+  animation-delay: 2s;
+}
+
+.marketing-home-float-card-brief {
+  animation-delay: 4s;
+}
+
+.marketing-home-float-card strong {
+  color: #ffbf2a;
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-summary-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #63d7ff;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+/* Enhanced Trust Section */
+.marketing-home-trust-rail {
+  background: linear-gradient(135deg, rgba(13, 17, 23, 0.8) 0%, rgba(22, 27, 34, 0.8) 100%);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+.marketing-home-trust-stat {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-trust-stat:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: scale(1.05);
+  box-shadow: 0 8px 30px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-home-trust-stat strong {
+  color: #ffbf2a;
+  font-size: 2rem;
+  font-weight: 800;
+  text-shadow: 0 0 20px rgba(255, 191, 42, 0.5);
+}
+
+.marketing-home-trust-badges span {
+  background: rgba(99, 215, 255, 0.1);
+  border: 1px solid rgba(99, 215, 255, 0.3);
+  color: #63d7ff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-trust-badges span:hover {
+  background: rgba(99, 215, 255, 0.2);
+  border-color: #63d7ff;
+  transform: scale(1.05);
+}
+
+/* Enhanced Platform Cards */
+.marketing-platform-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  padding: 24px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-platform-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-icon-box {
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.2) 0%, rgba(255, 92, 54, 0.2) 100%);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  color: #ffbf2a;
+  box-shadow: 0 4px 20px rgba(255, 191, 42, 0.2);
+}
+
+.marketing-impact-signal {
+  color: #63d7ff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 0.85rem;
+}
+
+/* Enhanced Feature Cards */
+.marketing-card.marketing-feature {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-card.marketing-feature:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-card.marketing-feature h3 {
+  color: #e6edf3;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.marketing-card.marketing-feature p {
+  color: #8b949e;
+  line-height: 1.6;
+}
+
+.marketing-card.marketing-feature p[style*="font-size"] {
+  color: #63d7ff;
+  text-shadow: 0 0 20px rgba(99, 215, 255, 0.5);
+}
+
+/* Enhanced Showcase Cards */
+.marketing-card.marketing-showcase {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-card.marketing-showcase:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15);
+}
+
+.marketing-card.marketing-showcase h3 {
+  color: #e6edf3;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.marketing-card.marketing-showcase p {
+  color: #8b949e;
+  line-height: 1.6;
+}
+
+/* Enhanced Screenshot Cards */
+.marketing-screenshot-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 16px;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-screenshot-card:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(99, 215, 255, 0.15);
+}
+
+.marketing-screenshot-frame {
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+}
+
+.marketing-screenshot-frame img {
+  width: 100%;
+  height: auto;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.marketing-screenshot-card:hover .marketing-screenshot-frame img {
+  transform: scale(1.05);
+}
+
+.marketing-screenshot-copy {
+  padding: 20px;
+}
+
+.marketing-screenshot-copy h3 {
+  color: #e6edf3;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.marketing-screenshot-copy p {
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+/* Enhanced Proof Asset Cards */
+.marketing-proof-asset-card {
+  background: rgba(13, 17, 23, 0.8);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 16px;
+  padding: 28px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.marketing-proof-asset-card:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateY(-5px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15);
+}
+
+.marketing-proof-asset-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.marketing-proof-asset-stats strong {
+  background: rgba(255, 191, 42, 0.1);
+  border: 1px solid rgba(255, 191, 42, 0.3);
+  color: #ffbf2a;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Enhanced CTA Section */
+.marketing-card.marketing-cta {
+  background: linear-gradient(135deg, rgba(255, 191, 42, 0.1) 0%, rgba(255, 92, 54, 0.1) 100%);
+  border: 2px solid rgba(255, 191, 42, 0.3);
+  border-radius: 20px;
+  padding: 48px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 8px 40px rgba(255, 191, 42, 0.15),
+              inset 0 0 60px rgba(255, 191, 42, 0.05);
+}
+
+.marketing-cta-copy h2 {
+  color: #e6edf3;
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.marketing-cta-copy p {
+  color: #8b949e;
+  line-height: 1.6;
+  font-size: 1.1rem;
+}
+
+/* Enhanced Section Headers */
+.marketing-section-head p {
+  color: #ffbf2a;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.marketing-section-head h2 {
+  color: #e6edf3;
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+/* Enhanced Checklist */
+.marketing-checklist li {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: all 0.3s ease;
+}
+
+.marketing-checklist li:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateX(5px);
+  background: rgba(99, 215, 255, 0.05);
+}
+
+.marketing-checklist li svg {
+  color: #63d7ff;
+  flex-shrink: 0;
+}
+
+.marketing-checklist li span {
+  color: #e6edf3;
+  font-weight: 500;
+}
+
+/* Enhanced Platform Flow */
+.marketing-platform-flow-step {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(255, 191, 42, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  transition: all 0.3s ease;
+}
+
+.marketing-platform-flow-step:hover {
+  border-color: rgba(255, 191, 42, 0.5);
+  transform: translateX(5px);
+  background: rgba(255, 191, 42, 0.05);
+}
+
+.marketing-platform-flow-step span {
+  background: linear-gradient(135deg, #ffbf2a 0%, #ff5c36 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 800;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.marketing-platform-flow-step strong {
+  color: #e6edf3;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.marketing-platform-flow-step small {
+  color: #8b949e;
+  line-height: 1.4;
+}
+
+/* Enhanced Proof Rail */
+.marketing-home-proof-item {
+  background: rgba(13, 17, 23, 0.6);
+  border: 1px solid rgba(99, 215, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px 20px;
+  transition: all 0.3s ease;
+}
+
+.marketing-home-proof-item:hover {
+  border-color: rgba(99, 215, 255, 0.5);
+  transform: translateX(5px);
+  background: rgba(99, 215, 255, 0.05);
+}
+
+.marketing-home-proof-item span {
+  color: #63d7ff;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.marketing-home-proof-item p {
+  color: #8b949e;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+/* Enhanced Visual Effects */
+.marketing-home-visual-glow-a {
+  background: radial-gradient(circle, rgba(255, 191, 42, 0.15) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite;
+}
+
+.marketing-home-visual-glow-b {
+  background: radial-gradient(circle, rgba(99, 215, 255, 0.15) 0%, transparent 70%);
+  animation: pulse-glow 4s ease-in-out infinite 2s;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* Scroll Animations */
+.marketing-lazy-section {
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.6s ease;
+}
+
+.marketing-lazy-section.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Enhanced Grid Layouts */
+.marketing-grid-3,
+.marketing-grid-2 {
+  display: grid;
+  gap: 24px;
+}
+
+.marketing-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.marketing-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+}
+
+@media (max-width: 768px) {
+  .marketing-home-display {
+    font-size: 2rem;
+  }
+
+  .marketing-card.marketing-cta {
+    padding: 32px 24px;
+  }
+
+  .marketing-cta-copy h2 {
+    font-size: 1.5rem;
+  }
+
+  .marketing-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================================
+   Merged from clarity-enhancement.css — text rendering and accessibility only
+   (light-themed utility classes omitted: .badge, .card, .btn-primary, scrollbar,
+    table, link, code — none used by the marketing pages)
+   ============================================================================ */
+
+* {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

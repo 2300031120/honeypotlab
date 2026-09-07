@@ -1,0 +1,358 @@
+/*
+ * Cyber theme override — replaces the Rainbow Mode accents from obsidian-theme.css
+ * with a refined dark cyber-red-brown-blue palette.
+ *
+ * Palette:
+ *   base     #0e1522 / #141d2d / #1a2436   (dark navy, NOT pitch black)
+ *   red      #e5484d
+ *   brown    #b0894b
+ *   blue     #4da3ff
+ *   text     #e8eef6 (ice blue-white, never pure white)
+ *
+ * Loaded LAST so it wins the cascade over the rainbow rules.
+ *
+ * Design goal: premium and quiet. No pulsing glows, no neon overdrive —
+ * accents are used sparingly so the layout reads professional and calm.
+ */
+
+:root {
+  /* ---- Base surfaces ---- */
+  --obs-bg: #0e1522;
+  --obs-bg-2: #141d2d;
+  --obs-bg-3: #1a2436;
+  --obs-panel: rgba(20, 29, 45, 0.8);
+  --obs-panel-strong: rgba(14, 21, 34, 0.94);
+  --obs-border: rgba(255, 255, 255, 0.08);
+  --obs-border-bright: rgba(255, 255, 255, 0.14);
+
+  /* ---- Accents: red / brown / blue ---- */
+  --obs-cyan: #4da3ff;
+  --obs-cyan-dim: rgba(77, 163, 255, 0.5);
+  --obs-cyan-soft: rgba(77, 163, 255, 0.12);
+  --obs-cyan-glow: rgba(77, 163, 255, 0.16);
+  --obs-emerald: #e5484d;
+  --obs-emerald-soft: rgba(229, 72, 77, 0.12);
+  --obs-emerald-glow: rgba(229, 72, 77, 0.14);
+  --obs-amber: #d9a95a;
+  --obs-red: #f2605f;
+  --obs-red-soft: rgba(242, 96, 95, 0.14);
+
+  /* ---- Text: ice blue-white, no pure white ---- */
+  --obs-text: #e8eef6;
+  --obs-text-dim: #b4c4d4;
+  --obs-muted: #8999ad;
+
+  /* ---- Gradients: red -> brown -> blue ---- */
+  --obs-grad: linear-gradient(135deg, #e5484d 0%, #b0894b 50%, #4da3ff 100%);
+  --obs-grad-btn: linear-gradient(135deg, #cf4146 0%, #ab8540 50%, #3f8ef0 100%);
+
+  /* Rainbow variables are now a red/brown/blue spectrum instead of 7 hues. */
+  --obs-rainbow: linear-gradient(
+    90deg,
+    #e5484d 0%,
+    #d08b4f 24%,
+    #b0894b 48%,
+    #6f8fd0 70%,
+    #4da3ff 88%,
+    #3b82f0 100%
+  );
+  --obs-rainbow-rev: linear-gradient(
+    90deg,
+    #3b82f0 0%,
+    #4da3ff 20%,
+    #6f8fd0 40%,
+    #b0894b 60%,
+    #d08b4f 80%,
+    #e5484d 100%
+  );
+}
+
+/* ============================================================================
+   Membrane — calm dark navy with a faint blue wash (no loud radials)
+   ============================================================================ */
+body {
+  background-color: var(--obs-bg);
+  background-image:
+    radial-gradient(1100px 520px at 12% -8%, rgba(77, 163, 255, 0.08), transparent 60%),
+    linear-gradient(180deg, var(--obs-bg) 0%, var(--obs-bg-2) 45%, var(--obs-bg-3) 100%);
+  color: var(--obs-text);
+}
+
+.marketing-shell,
+.marketing-shell-home {
+  background:
+    radial-gradient(1200px 620px at 18% 4%, rgba(77, 163, 255, 0.07), transparent 58%),
+    linear-gradient(180deg, var(--obs-bg) 0%, var(--obs-bg-2) 45%, var(--obs-bg-3) 100%);
+  color: var(--obs-text);
+}
+
+/* ============================================================================
+   Text — never pure white, always ice blue-white
+   ============================================================================ */
+.marketing-shell h1,
+.marketing-shell h2,
+.marketing-shell h3,
+.marketing-shell-home h1,
+.marketing-shell-home h2,
+.marketing-shell-home h3 {
+  color: var(--obs-text);
+}
+
+.marketing-shell .lead-form-head h2 {
+  color: var(--obs-text);
+}
+
+/* ============================================================================
+   Primary buttons — flat red, calm hover lift, no pulse animation
+   ============================================================================ */
+.marketing-shell .marketing-btn-primary,
+.marketing-shell-home .marketing-btn-primary,
+.marketing-shell .lead-btn.lead-btn-primary,
+.marketing-shell-home .lead-btn.lead-btn-primary,
+.cred-btn-primary {
+  background: var(--obs-grad-btn) !important;
+  color: #0a0f1a !important;
+  border: 1px solid rgba(77, 163, 255, 0.35);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.08) inset,
+    0 10px 26px rgba(10, 15, 26, 0.4);
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.marketing-shell .marketing-btn-primary:hover,
+.marketing-shell-home .marketing-btn-primary:hover,
+.marketing-shell .lead-btn.lead-btn-primary:hover,
+.cred-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.12) inset,
+    0 14px 30px rgba(10, 15, 26, 0.5);
+}
+
+/* Neutralize the old rainbow sweep keyframes that still reference 7 hues. */
+@keyframes obs-btn-pulse {
+  0%, 100% {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+  50% {
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+}
+
+@keyframes obs-rainbow-btn {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* ============================================================================
+   Icon boxes — quiet accent fill, fine ring
+   ============================================================================ */
+.marketing-shell .marketing-icon-box,
+.marketing-shell-home .marketing-icon-box {
+  background: var(--obs-cyan-soft);
+  color: #dbe9ff;
+  border: 1px solid rgba(77, 163, 255, 0.28);
+}
+
+/* Marketing badge */
+.marketing-shell .marketing-badge {
+  background: var(--obs-grad);
+  color: #0a0f1a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 14px rgba(10, 15, 26, 0.3);
+}
+
+/* Lead form panel — crisp frame + soft depth */
+.marketing-shell .lead-form-panel {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.marketing-shell .lead-form-panel::after {
+  background:
+    linear-gradient(135deg, rgba(229, 72, 77, 0.05), rgba(176, 137, 75, 0.05) 50%, rgba(77, 163, 255, 0.06));
+}
+
+/* Focus states */
+.marketing-shell .lead-field input:focus,
+.marketing-shell .lead-field textarea:focus,
+.marketing-shell .lead-challenge-row input:focus {
+  border-color: rgba(77, 163, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.1);
+}
+
+/* Kickers — solid accent blue */
+.marketing-shell .marketing-kicker,
+.marketing-shell .marketing-section-head p,
+.marketing-shell-home .marketing-home-kicker,
+.marketing-shell .lead-form-head p {
+  color: #4da3ff !important;
+}
+
+/* Checklist / list / assist icons -> cyber blue */
+.marketing-shell .marketing-checklist svg,
+.marketing-shell .marketing-list li svg,
+.marketing-shell .lead-form-assist svg {
+  color: #4da3ff;
+  background: none;
+}
+
+/* Proof strip + stage strip values -> quiet red/brown/blue gradient text */
+.marketing-shell .lead-proof-item strong,
+.marketing-shell .marketing-stage-strip strong {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Live ribbon */
+.marketing-shell .marketing-live-ribbon {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.marketing-shell .marketing-live-ribbon-head {
+  background: var(--obs-rainbow);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.marketing-shell .marketing-live-pill-item span {
+  color: #4da3ff;
+}
+
+.marketing-shell .marketing-live-pill-item code {
+  color: #c6d8ea;
+}
+
+/* Booking panel */
+.marketing-shell .lead-booking-panel {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* List number chips */
+.marketing-shell .marketing-list-number {
+  background: var(--obs-rainbow);
+  color: #0a0f1a;
+  border: 1px solid rgba(0, 0, 0, 0.25);
+}
+
+/* Header CTA + ghost */
+.cred-btn-primary {
+  background: var(--obs-grad-btn) !important;
+  border: 1px solid rgba(77, 163, 255, 0.35);
+}
+
+.cred-btn-primary:hover {
+  transform: translateY(-1px);
+}
+
+.cred-nav-actions .cred-btn-ghost {
+  color: #d5e2f2 !important;
+  border: 1px solid rgba(77, 163, 255, 0.28);
+}
+
+/* Nav active / hover — underline + color, no glow text */
+.cred-nav-links a:hover,
+.cred-nav-links a.is-active,
+.marketing-shell .public-nav-trigger:hover,
+.marketing-shell .public-nav-trigger.is-open,
+.marketing-shell .public-nav-trigger.is-active-route {
+  color: #4da3ff !important;
+  border-bottom-color: #4da3ff !important;
+}
+
+.cred-nav-links a:hover {
+  color: #4da3ff !important;
+}
+
+/* Field inputs */
+.marketing-shell .lead-field input,
+.marketing-shell .lead-field textarea,
+.marketing-shell .lead-challenge-row input {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Home cinematic */
+.marketing-shell-home .marketing-home-cinematic {
+  background:
+    radial-gradient(560px 420px at 8% 90%, rgba(77, 163, 255, 0.1), transparent 60%),
+    linear-gradient(120deg, #0e1522 0%, #141d2d 50%, #1a2436 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.marketing-shell-home .marketing-home-display {
+  background: linear-gradient(120deg, #ffe3df, #ffd9ad 46%, #a8cdff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+
+/* Announcement pill */
+.marketing-shell-home .marketing-home-announcement {
+  background: rgba(77, 163, 255, 0.05) !important;
+  border-color: rgba(77, 163, 255, 0.2) !important;
+}
+
+.marketing-home-announcement a {
+  color: #4da3ff !important;
+}
+
+/* Persona tabs */
+.obs-persona-tab.active {
+  background: var(--obs-grad-btn);
+  color: #0a0f1a;
+  border: 1px solid rgba(77, 163, 255, 0.35);
+}
+
+/* Trust bar chips */
+.obs-trust-bar-chip {
+  border: 1px solid rgba(77, 163, 255, 0.22);
+  background: rgba(77, 163, 255, 0.06);
+  color: #4da3ff;
+}
+
+/* SIM button */
+.obs-sim-btn {
+  background: var(--obs-grad-btn);
+  color: #0a0f1a;
+  border: 1px solid rgba(229, 72, 77, 0.4);
+}
+
+/* SOC terminal */
+.obs-soc-terminal {
+  border-color: rgba(77, 163, 255, 0.22);
+}
+
+.obs-drawer {
+  border-left: 1px solid rgba(77, 163, 255, 0.24);
+}
+
+.obs-soc-term-dot,
+.obs-soc-cursor {
+  background: #ff5c4d;
+}
+
+.obs-sim-level {
+  color: #ff7a6b;
+}
+
+/* ==== Embedded marketing content inside the app shell (e.g. /lab/architecture) ==== */
+.marketing-shell-embedded {
+  min-height: 0;
+}
+
+.marketing-shell-embedded .marketing-main {
+  padding-top: 28px;
+  padding-bottom: 48px;
+}
+
+.marketing-shell-embedded .marketing-cta {
+  margin: 24px auto;
+}

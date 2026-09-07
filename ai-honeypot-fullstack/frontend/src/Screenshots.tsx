@@ -9,7 +9,7 @@ import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
 import ProofGallery from "./ProofGallery";
 
-const SCREENSHOT_BADGES = ["Operator screenshots", "Sample-report companion", "No mock illustration"];
+const SCREENSHOT_BADGES = ["Operator screenshots", "Incident-report companion", "No mock illustration"];
 
 const SCREENSHOT_SIGNALS = ["Dashboard", "Threat intel", "Forensics", "Platform"];
 
@@ -41,15 +41,15 @@ const SHOTS = [
 ];
 
 const SCREENSHOT_NOTES = [
-  "Supports the sample incident report with real operator-facing screens",
+  "Supports the incident report with real operator-facing screens",
   "Shows logged-in views plus one public product screen for story continuity",
   "Useful when buyers want proof before a live walkthrough or pilot call",
 ];
 
 const PROOF_PATH = [
   {
-    title: "Read the sample incident",
-    detail: "Start with the sample report to understand the attacker path, analyst brief, and recommended actions.",
+    title: "Read the incident walkthrough",
+    detail: "Start with the report to understand the attacker path, analyst brief, and recommended actions.",
   },
   {
     title: "Match the screens to the workflow",
@@ -62,7 +62,7 @@ const PROOF_PATH = [
 ];
 
 const SCREENSHOT_TRUST = [
-  "Screenshots are paired with the sample incident, not shown as disconnected gallery pieces.",
+  "Screenshots are paired with the incident walkthrough, not shown as disconnected gallery pieces.",
   "Live demo can connect these same views to replay, AI brief, and integrity-backed final report output.",
   "The goal is buyer confidence before a pilot conversation, not UI theater for its own sake.",
 ];
@@ -72,9 +72,9 @@ export default function Screenshots() {
   const productName = PUBLIC_SITE.shortName || PUBLIC_SITE.siteName;
   useSeo({
     title: `Screenshots | ${PUBLIC_SITE.siteName}`,
-    description: `Browse real ${productName} screenshots that support the sample incident and operator workflow story.`,
+    description: `Browse real ${productName} screenshots that support the incident walkthrough and operator workflow story.`,
     ogTitle: `${PUBLIC_SITE.siteName} Screenshots`,
-    ogDescription: "Real dashboard, threat intel, forensics, and platform screens used to support the sample incident proof path.",
+    ogDescription: "Real dashboard, threat intel, forensics, and platform screens used to support the incident proof path.",
   });
 
   return (
@@ -89,9 +89,9 @@ export default function Screenshots() {
                 <span key={item}>{item}</span>
               ))}
             </div>
-            <h1 className="marketing-title">See the operator screens behind the sample incident story.</h1>
+            <h1 className="marketing-title">See the operator screens behind the incident walkthrough.</h1>
             <p className="marketing-subtitle">
-              Connect the sample incident report to the actual screens an operator uses for telemetry review, analyst
+              Connect the incident report to the actual screens an operator uses for telemetry review, analyst
               interpretation, and incident follow-up.
             </p>
             <div className="marketing-inline-points">
@@ -103,7 +103,7 @@ export default function Screenshots() {
               <Link to="/demo" className="marketing-btn marketing-btn-primary" onClick={() => trackCtaClick("request_demo", "/screenshots")}>
                 Request Demo <ArrowRight size={16} />
               </Link>
-              <a href="/sample-incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_sample_report", "/screenshots")}>
+              <a href="/incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("download_incident_report", "/screenshots")}>
                 Download Report <FileText size={16} />
               </a>
             </div>
@@ -142,7 +142,7 @@ export default function Screenshots() {
             <div className="marketing-panel-mini-grid">
               <div className="marketing-panel-mini-card">
                 <span>Best first step</span>
-                <strong>Read the sample report</strong>
+                <strong>Read the incident report</strong>
               </div>
               <div className="marketing-panel-mini-card">
                 <span>Best follow-up</span>
@@ -165,13 +165,14 @@ export default function Screenshots() {
             <h2>Real screens tied to the same incident story.</h2>
           </div>
           <ProofGallery
+            layout="grid"
             items={SHOTS.map((item) => ({
               src: item.image,
               alt: item.alt,
               title: item.title,
               description: item.detail,
               label: "Screenshot",
-              points: ["Real operator-facing screen", "Supports the sample incident story", "Useful before the live walkthrough"],
+              points: ["Real operator-facing screen", "Supports the incident walkthrough story", "Useful before the live walkthrough"],
             }))}
           />
         </section>
@@ -180,9 +181,9 @@ export default function Screenshots() {
           <div className="marketing-grid-2 marketing-split-proof">
             <article className="marketing-card marketing-proof-copy-card">
               <p className="marketing-kicker">Best next move</p>
-              <h3>Pair screenshots with the sample report for a stronger evaluation.</h3>
+              <h3>Pair screenshots with the incident report for a stronger evaluation.</h3>
               <p>
-                Screenshots help prove the product is real, but the stronger buyer sequence is: sample incident first, screenshots second, guided
+                Screenshots help prove the product is real, but the stronger buyer sequence is: incident walkthrough first, screenshots second, guided
                 walkthrough third. That gives the evaluator both story and evidence.
               </p>
             </article>
@@ -190,7 +191,7 @@ export default function Screenshots() {
               <ul className="marketing-checklist marketing-checklist-compact">
                 <li>
                   <CheckCircle2 size={16} />
-                  <span>Open the sample incident to understand the attacker path.</span>
+                  <span>Open the incident walkthrough to understand the attacker path.</span>
                 </li>
                 <li>
                   <CheckCircle2 size={16} />
@@ -237,7 +238,7 @@ export default function Screenshots() {
               Request Demo
             </Link>
             <Link to="/case-study" className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("view_case_study", "/screenshots")}>
-              View Sample Incident
+              View Incident Walkthrough
             </Link>
           </div>
         </section>

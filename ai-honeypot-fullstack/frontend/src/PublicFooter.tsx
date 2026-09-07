@@ -20,7 +20,7 @@ export default function PublicFooter() {
           <span>AI-enhanced deception for exposed login, admin, and API routes, with operational proof teams can validate before a rollout.</span>
         </div>
         <div className="public-footer-cta">
-          <Link to={toCampaignPath("/case-study")} onClick={() => trackCtaClick("footer_case_study_cta", pagePath)}>Sample Incident</Link>
+          <Link to={toCampaignPath("/case-study")} onClick={() => trackCtaClick("footer_case_study_cta", pagePath)}>Incident Walkthrough</Link>
           <Link to={toCampaignPath("/integrations")} onClick={() => trackCtaClick("footer_integrations_cta", pagePath)}>Integrations</Link>
           <Link to={toCampaignPath("/pricing")} onClick={() => trackCtaClick("footer_pricing_cta", pagePath)}>Pricing</Link>
           <Link to={toCampaignPath("/demo")} onClick={() => trackCtaClick("footer_demo", pagePath)}>Request Demo</Link>
@@ -29,7 +29,7 @@ export default function PublicFooter() {
       <div className="public-footer-grid">
         <div className="public-footer-column">
           <span className="public-footer-label">Evaluate</span>
-          <Link to={toCampaignPath("/case-study")} onClick={() => trackCtaClick("footer_case_study", pagePath)}>Sample Incident</Link>
+          <Link to={toCampaignPath("/case-study")} onClick={() => trackCtaClick("footer_case_study", pagePath)}>Incident Walkthrough</Link>
           <Link to={toCampaignPath("/screenshots")} onClick={() => trackCtaClick("footer_screenshots", pagePath)}>Screenshots</Link>
           <Link to={toCampaignPath("/pricing")} onClick={() => trackCtaClick("footer_pricing", pagePath)}>Pricing</Link>
           <Link to={toCampaignPath("/demo")} onClick={() => trackCtaClick("footer_demo_start", pagePath)}>Request Demo</Link>
@@ -45,7 +45,7 @@ export default function PublicFooter() {
           <Link to={toCampaignPath("/contact")} onClick={() => trackCtaClick("footer_contact", pagePath)}>Contact Team</Link>
           <Link to={toCampaignPath("/privacy")} onClick={() => trackCtaClick("footer_privacy", pagePath)}>Privacy Policy</Link>
           <Link to={toCampaignPath("/terms")} onClick={() => trackCtaClick("footer_terms", pagePath)}>Terms</Link>
-          <a href="/sample-incident-report.md" download onClick={() => trackCtaClick("footer_sample_report", pagePath)}>Sample Report</a>
+          <a href="/incident-report.md" download onClick={() => trackCtaClick("footer_incident_report", pagePath)}>Incident Report</a>
           <div className="public-footer-note">
             <strong>Startup-ready positioning, not generic cyber noise.</strong>
             <span>Believable exposed-route traps, readable evidence, and one clear pilot path for real buyer conversations.</span>
@@ -57,6 +57,14 @@ export default function PublicFooter() {
         {PUBLIC_SITE.securityEmail ? <a href={securityHref}>Security: {PUBLIC_SITE.securityEmail}</a> : null}
         {PUBLIC_SITE.privacyEmail ? <a href={privacyHref}>Privacy: {PUBLIC_SITE.privacyEmail}</a> : null}
         {PUBLIC_SITE.companyName ? <span>Company: {PUBLIC_SITE.companyName}</span> : null}
+      </div>
+      <div className="public-footer-bottom">
+        <span className="public-footer-copyright">
+          &copy; {PUBLIC_SITE.establishedYear}&ndash;{new Date().getFullYear()} {PUBLIC_SITE.companyName}. All rights reserved.
+        </span>
+        <span className="public-footer-est">
+          Est. {PUBLIC_SITE.establishedYear}
+        </span>
       </div>
     </footer>
   );

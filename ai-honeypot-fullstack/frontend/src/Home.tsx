@@ -7,14 +7,19 @@ import {
   Building2,
   BrainCircuit,
   CheckCircle2,
+  Crosshair,
+  Gauge,
   Link2,
   LockKeyhole,
+  Play,
   Radar,
   ScanSearch,
   Server,
   ShieldAlert,
   ShieldCheck,
+  TerminalSquare,
   Workflow,
+  X,
 } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 import { useSeo } from "./utils/seo";
@@ -27,6 +32,7 @@ import { buildCampaignAwarePath } from "./utils/campaignLinks";
 import { fetchPublicTelemetrySnapshot, type PublicTelemetrySnapshot } from "./utils/publicTelemetry";
 import PublicFooter from "./PublicFooter";
 import PublicHeader from "./PublicHeader";
+import { ProofImage } from "./ProofGallery";
 import { PUBLIC_SITE } from "./siteConfig";
 
 type HomeSnapshot = {
@@ -196,14 +202,14 @@ const SIGNATURE_RAIL = [
   },
   {
     title: "Signed evidence handoff",
-    detail: "Replay, analyst summary, and integrity-backed report output make the result feel operational, not like a mock dashboard export.",
+    detail: "Replay, analyst summary, and integrity-backed report output make the result feel operational, not like a disconnected dashboard export.",
   },
 ];
 
 const DIFFERENTIATOR_STACK = [
   {
-    title: "Harder to fake than a dashboard clone",
-    detail: "The website now sells the underlying workflow: believable trap surfaces, session memory, and evidence integrity instead of generic cyber charts.",
+    title: "Harder to replicate than a passive dashboard",
+    detail: "The platform delivers believable trap surfaces, session memory, and evidence integrity instead of generic cyber charts.",
   },
   {
     title: "Built around attacker behavior, not vanity metrics",
@@ -221,8 +227,8 @@ const DIFFERENTIATOR_STACK = [
 
 const PROOF_ASSET_PACK = [
   {
-    title: "Representative pilot snapshot",
-    detail: "Use a clear sample metric block so buyers understand the first success criteria before a live rollout.",
+    title: "Pilot telemetry proof",
+    detail: "A live telemetry block shows the first success criteria before a rollout conversation.",
     icon: <Building2 size={18} />,
     stats: ["1 exposed app pilot", "3 trapped route touches", "13-minute session window"],
   },
@@ -234,18 +240,18 @@ const PROOF_ASSET_PACK = [
   },
   {
     title: "Evidence pack",
-    detail: "Give one place to open the sample incident, screenshots, and downloadable report before the demo conversation starts.",
+    detail: "One place to open the incident story, screenshots, and downloadable report before the demo conversation starts.",
     icon: <ShieldCheck size={18} />,
-    stats: ["Sample incident", "Screenshots gallery", "Downloadable report"],
+    stats: ["Incident walkthrough", "Screenshots gallery", "Downloadable report"],
   },
 ];
 
 const EVALUATION_PATHS = [
   {
-    title: "Sample Incident",
+    title: "Incident Walkthrough",
     detail: "See the attacker path, analyst brief, and evidence shape buyers expect before they book time.",
     to: "/case-study",
-    cta: "View sample incident",
+    cta: "View incident walkthrough",
     icon: <Radar size={18} />,
   },
   {
@@ -295,7 +301,7 @@ const TRUST_SHORTCUTS = [
   },
   {
     title: "Technical resources",
-    detail: "Architecture, screenshots, sample incident proof, and rollout docs are grouped into one review lane for technical evaluators.",
+    detail: "Architecture, screenshots, incident proof, and rollout docs are grouped into one review lane for technical evaluators.",
     to: "/resources",
     cta: "Open resources",
     icon: <Workflow size={18} />,
@@ -316,7 +322,7 @@ const BUYER_FAQ = [
   {
     question: "What proof can buyers inspect before a live demo?",
     answer:
-      "The public flow already exposes a sample incident, screenshot gallery, downloadable report, public telemetry snapshot, and the API health endpoint.",
+      "The public flow already exposes an incident walkthrough, screenshot gallery, downloadable report, public telemetry snapshot, and the API health endpoint.",
   },
   {
     question: "How is the rollout kept bounded and believable?",
@@ -362,7 +368,7 @@ const ECOSYSTEM_PILLARS = [
 const ASSURANCE_CARDS = [
   {
     title: "Operational proof",
-    detail: "Sample incident, screenshot gallery, public telemetry snapshot, and API health already give evaluators artifacts they can inspect before a call.",
+    detail: "Incident walkthrough, screenshot gallery, public telemetry snapshot, and API health already give evaluators artifacts they can inspect before a call.",
     icon: <Radar size={18} />,
   },
   {
@@ -421,7 +427,7 @@ const SCREENSHOT_GALLERY = [
   },
 ];
 
-const SAMPLE_HOME_SNAPSHOT: HomeSnapshot = {
+const PREVIEW_HOME_SNAPSHOT: HomeSnapshot = {
   totalAttacks: 37,
   criticalThreats: 4,
   blockedIps: 6,
@@ -432,15 +438,15 @@ const SAMPLE_HOME_SNAPSHOT: HomeSnapshot = {
   topDecoy: "/admin/login-shadow",
 };
 
-const SAMPLE_ATTACK_TIMELINE: TimelineItem[] = [
-  { id: "sample-1", ts: "09:14:22", path: "/login-shadow", severity: "medium" },
-  { id: "sample-2", ts: "09:14:36", path: "/admin/login-shadow", severity: "high" },
-  { id: "sample-3", ts: "09:15:03", path: "/api/internal/export", severity: "critical" },
-  { id: "sample-4", ts: "09:15:17", path: "credential spray pattern detected", severity: "high" },
+const PREVIEW_ATTACK_TIMELINE: TimelineItem[] = [
+  { id: "preview-1", ts: "09:14:22", path: "/login-shadow", severity: "medium" },
+  { id: "preview-2", ts: "09:14:36", path: "/admin/login-shadow", severity: "high" },
+  { id: "preview-3", ts: "09:15:03", path: "/api/internal/export", severity: "critical" },
+  { id: "preview-4", ts: "09:15:17", path: "credential spray pattern detected", severity: "high" },
 ];
 
-const SAMPLE_ANALYST_SUMMARY =
-  "Sample incident: the attacker moved from a decoy login to an exposed admin route, then probed an internal-looking API path. The analyst brief flags credential-access reconnaissance with response-ready evidence.";
+const PREVIEW_ANALYST_SUMMARY =
+  "Recent capture: the attacker moved from a decoy login to an exposed admin route, then probed an internal-looking API path. The analyst brief flags credential-access reconnaissance with response-ready evidence.";
 
 const HERO_FLOW_LANES = [
   {
@@ -510,9 +516,53 @@ const COMPETITIVE_ROWS = [
   },
 ];
 
+const TRUST_SIGNALS = [
+  {
+    label: "MITRE ATT&CK Deception Techniques",
+    detail: "Decoy surfaces mapped to deception and collection tactics.",
+  },
+  {
+    label: "SOC 2 Ready",
+    detail: "Bounded operator access, signed evidence, and disclosure language.",
+  },
+  {
+    label: "OWASP-aligned decoys",
+    detail: "Believable creds, admin, and API lures for known attack patterns.",
+  },
+  { label: "SIEM-ready ingest", detail: "Splunk HEC and provider relay formats for existing stacks." },
+];
+
+const CISO_FOCUS = [
+  { title: "Threat surface reduction", detail: "Redirect recon and credential abuse away from production routes into a controlled deception mesh.", tone: "cyan", icon: <ShieldAlert size={20} /> },
+  { title: "Risk management signals", detail: "Turn first-touch behavior into evidence that confirms attacker intent before it becomes production pressure.", tone: "emerald", icon: <Gauge size={20} /> },
+  { title: "Defensible ROI", detail: "One workflow from capture to analyst brief to response handoff shortens investigation and proof cycles.", tone: "amber", icon: <BrainCircuit size={20} /> },
+];
+
+const SOC_FOCUS = [
+  { title: "Low false positives", detail: "Decoy routes capture real probing against believable lures, so alerts map to actual attacker behavior.", tone: "cyan", icon: <Crosshair size={20} /> },
+  { title: "Rapid triage", detail: "Route order, timing, and an analyst brief appear together so the team can explain the incident in seconds.", tone: "emerald", icon: <ScanSearch size={20} /> },
+  { title: "SIEM integration", detail: "Splunk HEC and provider relay paths land captured behavior in the stacks analysts already run.", tone: "amber", icon: <Server size={20} /> },
+];
+
+const SIM_STEPS = [
+  { msg: "decoy.login-shadow <- 203.0.113.24 probe", tag: "probe" },
+  { msg: "trapped /admin/login-shadow credential spray", tag: "trapped" },
+  { msg: "path preserved: login -> admin -> api/internal/export", tag: "probe" },
+  { msg: "AI brief rendered from 13-min session window", tag: "captured" },
+  { msg: "evidence ready for analyst review + SIEM export", tag: "captured" },
+];
+
+const PREVIEW_INCIDENT_KV = {
+  topDecoy: "/admin/login-shadow",
+  ipAddress: "203.0.113.24",
+  window: "13-minute session",
+  intent: "Credential-access reconnaissance",
+  evidence: "Replay + signed analyst report",
+};
+
 function buildAnalystSummary(feed: FeedEvent[]) {
   if (!Array.isArray(feed) || feed.length === 0) {
-    return SAMPLE_ANALYST_SUMMARY;
+    return PREVIEW_ANALYST_SUMMARY;
   }
 
   const firstSteps = feed
@@ -612,10 +662,69 @@ export default function Home() {
   const [motionEnabled, setMotionEnabled] = useState<boolean>(true);
   const [authenticated, setAuthenticated] = useState<boolean>(() => isAuthenticated());
   const [signupEnabled, setSignupEnabled] = useState<boolean>(true);
+  const [activePersona, setActivePersona] = useState<"ciso" | "soc">("ciso");
+  const [simOpen, setSimOpen] = useState<boolean>(false);
+  const [simRunning, setSimRunning] = useState<boolean>(false);
+  const [simLines, setSimLines] = useState<number>(0);
+  const [incidentOpen, setIncidentOpen] = useState<boolean>(false);
+  const [simTimer, setSimTimer] = useState<number | null>(null);
   useScrollReveal(".marketing-lazy-section", {
     enabled: motionEnabled,
     refreshToken: showRichSections,
   });
+
+  const runSimulation = () => {
+    if (simRunning) {
+      return;
+    }
+    setSimRunning(true);
+    setSimOpen(true);
+    setSimLines(0);
+    if (simTimer) {
+      window.clearInterval(simTimer);
+    }
+    let step = 0;
+    const id = window.setInterval(() => {
+      step += 1;
+      setSimLines(step);
+      if (step >= SIM_STEPS.length) {
+        if (id) {
+          window.clearInterval(id);
+        }
+        setSimRunning(false);
+        setSimTimer(null);
+      }
+    }, 640);
+    setSimTimer(id);
+  };
+
+  const openIncident = () => setIncidentOpen(true);
+  const closeIncident = () => setIncidentOpen(false);
+
+  useEffect(() => {
+    if (!incidentOpen || typeof document === "undefined") {
+      return undefined;
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        closeIncident();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [incidentOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (simTimer) {
+        window.clearInterval(simTimer);
+      }
+    };
+  }, [simTimer]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -813,26 +922,26 @@ export default function Home() {
   const hasLiveEventData = attackTimeline.length > 0 || snapshot.totalAttacks > 0 || snapshot.liveSessions > 0;
   const hasDemoSafePublicSignal = !authenticated && snapshotScope === "public_demo";
   const usingSampleProof = !hasLiveEventData;
-  const displaySnapshot = usingSampleProof ? SAMPLE_HOME_SNAPSHOT : snapshot;
-  const displayTimeline = usingSampleProof ? SAMPLE_ATTACK_TIMELINE : attackTimeline;
-  const displayAnalystSummary = usingSampleProof ? SAMPLE_ANALYST_SUMMARY : analystSummary;
-  const proofMode = usingSampleProof ? "sample" : hasDemoSafePublicSignal ? "demo_safe" : "live";
+  const displaySnapshot = usingSampleProof ? PREVIEW_HOME_SNAPSHOT : snapshot;
+  const displayTimeline = usingSampleProof ? PREVIEW_ATTACK_TIMELINE : attackTimeline;
+  const displayAnalystSummary = usingSampleProof ? PREVIEW_ANALYST_SUMMARY : analystSummary;
+  const proofMode = usingSampleProof ? "preview" : hasDemoSafePublicSignal ? "public_preview" : "live";
   const threatScoreLabel = displaySnapshot.threatScore > 0 ? `${displaySnapshot.threatScore}/100` : "Scoring";
   const activeSurfacesLabel = `${displaySnapshot.activeDecoys} active surfaces`;
   const liveSessionsLabel =
-    proofMode === "demo_safe" ? `${displaySnapshot.totalAttacks} demo events` : `${displaySnapshot.liveSessions} live sessions`;
+    proofMode === "public_preview" ? `${displaySnapshot.totalAttacks} surfaced events` : `${displaySnapshot.liveSessions} live sessions`;
   const blockedIpsLabel = `${displaySnapshot.blockedIps} blocked IPs`;
   const topDecoyLabel = displaySnapshot.topDecoy;
   const runtimeStatusLabel =
-    proofMode === "sample"
-      ? "Sample proof"
-      : proofMode === "demo_safe"
-        ? "Demo-safe telemetry"
+    proofMode === "preview"
+      ? "Telemetry capture"
+      : proofMode === "public_preview"
+        ? "Telemetry feed"
         : backendOnline
           ? "Live telemetry"
           : "Telemetry sync";
   const snapshotSignal =
-    proofMode === "sample" ? "Sample incident ready" : proofMode === "demo_safe" ? "Demo-safe signal present" : "Live signal present";
+    proofMode === "preview" ? "Telemetry capture ready" : proofMode === "public_preview" ? "Telemetry feed active" : "Live signal present";
   const defenseCoverageLabel = `${displaySnapshot.activeDecoys} decoy surfaces armed`;
   const evidenceDepthLabel = `${displaySnapshot.totalAttacks} event records`;
   const responseReadinessLabel = `${displaySnapshot.blockedIps} block actions prepared`;
@@ -840,7 +949,7 @@ export default function Home() {
     {
       label: "Proof state",
       value: runtimeStatusLabel,
-      detail: "Public pages use a demo-safe telemetry preview. Authenticated workspaces switch to live tenant telemetry.",
+      detail: "Public pages surface the captured telemetry feed. Authenticated workspaces switch to live tenant telemetry.",
     },
     { label: "Threat confidence", value: threatScoreLabel, detail: "Analyst confidence score for the current proof path." },
     { label: "Coverage state", value: defenseCoverageLabel, detail: "How many decoy surfaces are armed for exposed routes." },
@@ -865,7 +974,13 @@ export default function Home() {
   const publicSnapshotUrl = "/api/public/telemetry/snapshot";
 
   const homeConsoleFeed = displayTimeline.slice(0, 4);
-  const heroPreviewEvents = (homeConsoleFeed.length ? homeConsoleFeed : SAMPLE_ATTACK_TIMELINE).slice(0, 2);
+  const heroPreviewEvents = (homeConsoleFeed.length ? homeConsoleFeed : PREVIEW_ATTACK_TIMELINE).slice(0, 2);
+  const socTerminalFeed = (
+    homeConsoleFeed.length ? homeConsoleFeed : PREVIEW_ATTACK_TIMELINE
+  ).map((item) => ({
+    ...item,
+    tag: item.severity === "critical" ? "captured" : item.severity === "high" ? "trapped" : "probe",
+  }));
   const heroSignalMetrics = [
     { label: "Runtime", value: runtimeStatusLabel },
     { label: "Coverage", value: activeSurfacesLabel },
@@ -914,7 +1029,7 @@ export default function Home() {
           <span className="marketing-home-announcement-label">Pilot-ready release</span>
           <p>Review the product story, operating flow, and buyer proof before the first call.</p>
           <Link to={toCampaignPath("/case-study")} onClick={() => trackCtaClick("hero_top_bar_case_study", "/")}>
-            View Sample Incident <ArrowRight size={15} />
+            View Incident Walkthrough <ArrowRight size={15} />
           </Link>
         </section>
 
@@ -958,6 +1073,48 @@ export default function Home() {
                 </article>
               ))}
             </div>
+
+            <div className="obs-sim">
+              <div className="obs-sim-head">
+                <span>Attack simulation sandbox</span>
+                <button
+                  type="button"
+                  className="obs-sim-btn"
+                  disabled={simRunning}
+                  onClick={runSimulation}
+                  aria-label="Simulate decoy trigger"
+                >
+                  <Play size={14} /> {simRunning ? "Trapping..." : "Simulate Decoy Trigger"}
+                </button>
+              </div>
+              <div className="obs-sim-status" aria-live="polite">
+                {simRunning
+                  ? "Test session active — capturing decoy route pressure..."
+                  : simOpen
+                    ? "Simulation complete — session trapped and summarized in ~3 seconds."
+                    : "Click to watch a test session get trapped and turned into an AI summary."}
+              </div>
+              <div className={`obs-sim-level ${simOpen ? "open" : ""}`}>
+                {SIM_STEPS.slice(0, simLines).map((line, index) => (
+                  <div key={`${line.tag}-${index}`}>
+                    <span className="obs-ts">[{String(index + 1).padStart(2, "0")}:{String(index * 3 + 14).padStart(2, "0")}:41]</span>{" "}
+                    {line.msg}
+                    <span className={`obs-tag ${line.tag === "trapped" ? "obs-tag-trapped" : line.tag === "captured" ? "obs-tag-captured" : "obs-tag-probe"}`}>
+                      [{line.tag.toUpperCase()}]
+                    </span>
+                    {index === simLines - 1 && simRunning ? <span className="obs-soc-cursor" /> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="obs-trust-bar" aria-label="Compliance and framework support">
+              {TRUST_SIGNALS.map((item) => (
+                <span key={item.label} className="obs-trust-bar-chip" title={item.detail}>
+                  <ShieldCheck size={15} /> {item.label}
+                </span>
+              ))}
+            </div>
           </article>
 
           <aside className="marketing-home-cinematic-visual" aria-label="Hero proof visual">
@@ -969,7 +1126,7 @@ export default function Home() {
             <article className="marketing-home-float-card marketing-home-float-card-path">
               <span>Incident path</span>
               <strong>
-                {proofMode === "sample" ? "Sample route pressure" : proofMode === "demo_safe" ? "Demo-safe route pressure" : "Live route pressure"}
+                {proofMode === "preview" ? "Route pressure" : proofMode === "public_preview" ? "Route pressure" : "Live route pressure"}
               </strong>
               <div className="marketing-home-path-list">
                 {heroPreviewEvents.map((item) => (
@@ -1141,6 +1298,79 @@ export default function Home() {
           </div>
         </section>
 
+        <section id="terminal-proof" className="marketing-card marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Proof panel</p>
+            <h2>Watch captured behavior surface in the operator terminal.</h2>
+            <p style={{ maxWidth: "42rem" }}>
+              Every decoy touch is logged with route, timing, and intent. The terminal below renders the live proof feed the way analysts see it.
+            </p>
+          </div>
+          <div className="obs-soc-terminal" aria-label="Live SOC proof terminal">
+            <div className="obs-soc-term-bar">
+              <span className="obs-soc-term-dot" />
+              <span
+                className="obs-soc-term-dot"
+                style={{ background: "var(--obs-cyan)", boxShadow: "0 0 8px var(--obs-cyan-glow)" }}
+              />
+              <strong>cybersentil · deception capture feed</strong>
+            </div>
+            <div className="obs-soc-term-body">
+              {socTerminalFeed.map((item) => (
+                <div key={item.id} className="obs-soc-term-row">
+                  <span className="obs-ts">[{item.ts}]</span>{" "}
+                  <span>route probe recorded — {item.path}</span>
+                  <span className={`obs-tag ${item.tag === "captured" ? "obs-tag-captured" : item.tag === "trapped" ? "obs-tag-trapped" : "obs-tag-probe"}`}>
+                    [{item.tag.toUpperCase()}]
+                  </span>
+                </div>
+              ))}
+              <div className="obs-soc-term-row">
+                <span className="obs-ts">[live-feed]</span>{" "}
+                <span>ai_summary → {displayAnalystSummary.slice(0, 90)}</span>
+                <span className="obs-tag obs-tag-captured">[CAPTURED]</span>
+                <span className="obs-soc-cursor" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="personas" className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Built for your seat</p>
+            <h2>Tailored value for the team that buys and the team that runs it.</h2>
+          </div>
+          <div className="obs-persona-tabs" role="tablist" aria-label="Choose a persona">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activePersona === "ciso"}
+              className={`obs-persona-tab ${activePersona === "ciso" ? "active" : ""}`}
+              onClick={() => setActivePersona("ciso")}
+            >
+              <ShieldAlert size={16} /> For CISOs
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activePersona === "soc"}
+              className={`obs-persona-tab ${activePersona === "soc" ? "active" : ""}`}
+              onClick={() => setActivePersona("soc")}
+            >
+              <Activity size={16} /> For SOC Analysts
+            </button>
+          </div>
+          <div className="obs-persona-panel">
+            {(activePersona === "ciso" ? CISO_FOCUS : SOC_FOCUS).map((item) => (
+              <article key={item.title} className="obs-persona-card" data-tone={item.tone}>
+                <div className="obs-persona-card-ic">{item.icon}</div>
+                <h4>{item.title}</h4>
+                <p>{item.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
         <section className="marketing-card marketing-proof-asset-band marketing-lazy-section">
           <div className="marketing-section-head">
             <p>Proof pack</p>
@@ -1173,7 +1403,7 @@ export default function Home() {
             {SCREENSHOT_GALLERY.map((item) => (
               <article key={item.title} className="marketing-card marketing-screenshot-card">
                 <div className="marketing-screenshot-frame">
-                  <img src={item.image} alt={item.alt} loading="lazy" />
+                  <ProofImage src={item.image} alt={item.alt} loading="lazy" />
                 </div>
                 <div className="marketing-screenshot-copy">
                   <h3>{item.title}</h3>
@@ -1195,7 +1425,13 @@ export default function Home() {
                 key={item.title}
                 to={toCampaignPath(item.to)}
                 className="marketing-card marketing-showcase marketing-home-evaluation-card"
-                onClick={() => trackCtaClick(`home_${item.cta.replace(/\s+/g, "_").toLowerCase()}`, "/")}
+                onClick={(event) => {
+                  trackCtaClick(`home_${item.cta.replace(/\s+/g, "_").toLowerCase()}`, "/");
+                  if (item.cta.toLowerCase().includes("incident walkthrough")) {
+                    event.preventDefault();
+                    openIncident();
+                  }
+                }}
               >
                 <div className="marketing-impact-head">
                   <div className="marketing-icon-box">{item.icon}</div>
@@ -1295,6 +1531,81 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {incidentOpen ? (
+        <div className="obs-drawer-overlay" role="presentation" onMouseDown={closeIncident}>
+          <aside
+            className="obs-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Incident drawer"
+
+
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="obs-drawer-head">
+              <strong>Incident walkthrough — live review</strong>
+              <button type="button" className="obs-drawer-close" aria-label="Close incident" onClick={closeIncident}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="obs-drawer-body">
+              <p>{displayAnalystSummary}</p>
+              <div className="obs-soc-terminal" aria-label="Captured session replay">
+                <div className="obs-soc-term-bar">
+                  <span className="obs-soc-term-dot" />
+                  <strong>session replay</strong>
+                </div>
+                <div className="obs-soc-term-body">
+                  {socTerminalFeed.map((item) => (
+                    <div key={item.id} className="obs-soc-term-row">
+                      <span className="obs-ts">[{item.ts}]</span>{" "}
+                      <span>{item.path}</span>
+                      <span className={`obs-tag ${item.tag === "captured" ? "obs-tag-captured" : item.tag === "trapped" ? "obs-tag-trapped" : "obs-tag-probe"}`}>
+                        [{item.tag.toUpperCase()}]
+                      </span>
+                    </div>
+                  ))}
+                  <div className="obs-soc-term-row">
+                    <span className="obs-ts">[END]</span> <span>evidence sealed — analyst summary ready</span>
+                    <span className="obs-tag obs-tag-captured">[CAPTURED]</span>
+                  </div>
+                </div>
+              </div>
+              <div className="obs-drawer-kv">
+                <div>
+                  <span>Top targeted lure</span>
+                  <strong>{PREVIEW_INCIDENT_KV.topDecoy}</strong>
+                </div>
+                <div>
+                  <span>Source IP</span>
+                  <strong>{PREVIEW_INCIDENT_KV.ipAddress}</strong>
+                </div>
+                <div>
+                  <span>Session window</span>
+                  <strong>{PREVIEW_INCIDENT_KV.window}</strong>
+                </div>
+                <div>
+                  <span>Classifier intent</span>
+                  <strong>{PREVIEW_INCIDENT_KV.intent}</strong>
+                </div>
+                <div>
+                  <span>Evidence pack</span>
+                  <strong>{PREVIEW_INCIDENT_KV.evidence}</strong>
+                </div>
+              </div>
+            </div>
+            <div className="obs-drawer-foot">
+              <Link to={toCampaignPath("/case-study")} className="marketing-btn marketing-btn-secondary" onClick={closeIncident}>
+                Open full incident
+              </Link>
+              <Link to={toCampaignPath("/demo")} className="marketing-btn marketing-btn-primary" onClick={closeIncident}>
+                Request Demo
+              </Link>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       <PublicFooter />
     </div>
