@@ -390,19 +390,19 @@ const ASSURANCE_CARDS = [
 
 const COMPARISON_LANES = [
   {
-    title: "Passive dashboards",
-    ours: "Believable route traps, attacker path capture, and an operator brief in one workflow.",
-    other: "Alert views without controlled first-touch capture or replayable evidence.",
+    title: "Token and canary lures",
+    ours: "Web-route traps capture a multi-step session: which login, admin, or API path an attacker touched, in what order, over time.",
+    other: "Canary tokens (DNS, file, URL) flag a single first touch but stop there — no route path or behavioral narrative.",
   },
   {
-    title: "Generic honeypot demos",
-    ours: "Focused on exposed login, admin, and API routes that public-facing teams actually defend.",
-    other: "Broader lab-style decoys with weaker rollout context for customer-facing SaaS teams.",
+    title: "Protocol and SSH honeypots",
+    ours: "Targets the login, admin, and API surface a public SaaS app exposes, and turns the captured path into an analyst brief and replay.",
+    other: "Cowrie and Honeynet-style emulators go deep on SSH/Telnet protocol shells but offer thin coverage of modern web routes.",
   },
   {
-    title: "AI on top of logs",
-    ours: "Summaries built from captured route order, session behavior, and incident artifacts.",
-    other: "Narratives built from disconnected logs or prompt-only interpretation.",
+    title: "Enterprise network and AD deception",
+    ours: "Ships a bounded, production-adjacent pilot for a single exposed app: Docker and PostgreSQL path, security preflight, and evidence handoff.",
+    other: "Full AD/endpoint/network deception platforms are broad and powerful, but heavyweight and enterprise-only by design.",
   },
 ];
 
@@ -495,24 +495,24 @@ const HERO_FLOW_LANES = [
 
 const COMPETITIVE_ROWS = [
   {
-    label: "Telemetry depth",
-    ours: "Live session timeline + decoy path + severity context",
-    generic: "Mostly static dashboards or delayed alert paths",
+    label: "Session depth",
+    ours: "Live route path, timing, and repeated probes preserved as a readable incident narrative",
+    generic: "Canary tokens and many honeypots capture a single touch or raw shell logs",
   },
   {
-    label: "Operator workflow",
-    ours: "Capture -> AI brief -> replay -> response handoff",
-    generic: "Multiple tools and manual analyst correlation",
+    label: "Analyst output",
+    ours: "Capture -> analyst brief -> replay -> SIEM-ready evidence handoff",
+    generic: "Alert queues or protocol logs that need manual correlation",
   },
   {
-    label: "Deployment readiness",
-    ours: "Docker, PostgreSQL path, security preflight, edge response hooks",
-    generic: "Demo-first setup with limited launch guardrails",
+    label: "Deployment guardrails",
+    ours: "Docker and PostgreSQL path, security preflight, trusted hosts, HTTPS checks, no attack-back",
+    generic: "Package-level or enterprise-fleet setups with weaker SaaS-route guardrails",
   },
   {
-    label: "Public trust",
-    ours: "Security disclosure, real screenshots, API-backed public snapshot",
-    generic: "Positioning claims with limited operational proof",
+    label: "Verifiable proof",
+    ours: "Security disclosure, real screenshots, and a live API-backed public snapshot you can open now",
+    generic: "Positioning claims without inspectable operational proof",
   },
 ];
 
@@ -1462,8 +1462,8 @@ export default function Home() {
 
         <section id="why-us" className="marketing-section marketing-lazy-section">
           <div className="marketing-section-head">
-            <p>Why this path</p>
-            <h2>Choose behavior capture over passive dashboards, lab demos, or log-only summaries.</h2>
+            <p>The deception category</p>
+            <h2>Where CyberSentil fits against canary, protocol, and enterprise deception approaches.</h2>
           </div>
           <div className="marketing-grid-3">
             {COMPARISON_LANES.map((item) => (

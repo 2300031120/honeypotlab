@@ -70,7 +70,7 @@ describe("Home", () => {
     expect(screen.getAllByRole("link", { name: /view incident walkthrough/i }).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: /see the platform from armed decoy routes to analyst-ready evidence/i })).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /view integrations/i }).length).toBeGreaterThan(0);
-    expect(screen.getByRole("heading", { name: /choose behavior capture over passive dashboards, lab demos, or log-only summaries/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /where cybersentil fits against canary, protocol, and enterprise deception approaches/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /answers buyers usually need before they commit to a pilot/i })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /open public snapshot/i })).toHaveAttribute(
       "href",
