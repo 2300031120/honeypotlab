@@ -186,3 +186,11 @@ for (const item of routeMetadata) {
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, finalHtml, "utf8");
 }
+
+const fallbackHtml = applySeo(html, "/", {
+  title: `Page Not Found | ${siteName}`,
+  description: "The page you requested could not be found.",
+})
+  .replace(/<meta name="robots"[^>]*>/i, '<meta name="robots" content="noindex" />')
+  .replace(/<meta name="googlebot"[^>]*>/i, '<meta name="googlebot" content="noindex" />');
+await writeFile(resolve(cwd, "dist", "fallback.html"), fallbackHtml, "utf8");
