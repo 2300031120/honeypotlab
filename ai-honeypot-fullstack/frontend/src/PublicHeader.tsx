@@ -166,7 +166,7 @@ export default function PublicHeader({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [mobileMenu, setMobileMenu] = useState<string | null>(null);
-  const [authenticated, setAuthenticated] = useState<boolean>(() => isAuthenticated());
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [signupEnabled, setSignupEnabled] = useState<boolean>(true);
   const headerRef = useRef<HTMLElement | null>(null);
 

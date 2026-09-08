@@ -660,7 +660,7 @@ export default function Home() {
   const [showRichSections, setShowRichSections] = useState<boolean>(true);
   const [telemetryEnabled, setTelemetryEnabled] = useState<boolean>(true);
   const [motionEnabled, setMotionEnabled] = useState<boolean>(true);
-  const [authenticated, setAuthenticated] = useState<boolean>(() => isAuthenticated());
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [signupEnabled, setSignupEnabled] = useState<boolean>(true);
   const [activePersona, setActivePersona] = useState<"ciso" | "soc">("ciso");
   const [simOpen, setSimOpen] = useState<boolean>(false);
@@ -735,6 +735,7 @@ export default function Home() {
     };
     window.addEventListener(AUTH_CHANGED_EVENT, syncAuthState);
     window.addEventListener("storage", syncAuthState);
+    syncAuthState();
     return () => {
       window.removeEventListener(AUTH_CHANGED_EVENT, syncAuthState);
       window.removeEventListener("storage", syncAuthState);
