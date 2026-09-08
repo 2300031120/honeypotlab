@@ -14,9 +14,12 @@ describe("siteDiscovery", () => {
       siteDescription: "Deception platform",
       siteUrl: "https://example.com",
     });
-    expect(robots).toContain("Disallow: /dashboard");
+expect(robots).toContain("Disallow: /dashboard");
     expect(llms).toContain("# CyberSentil");
-    expect(llms).toContain("https://example.com/platform");
+    expect(llms).toContain("[Platform](https://example.com/platform)");
+    expect(llms).toContain("[Home](https://example.com/)");
+    expect(llms).toContain("[Primary website](https://example.com)");
+    expect(llms).not.toContain("Home: https://example.com/");
   });
 
   it("renders valid structured data JSON", () => {

@@ -103,8 +103,8 @@ export function renderRobots(siteUrl: string) {
 }
 
 export function renderLlmsTxt({ siteName, siteDescription, siteUrl }: SiteMeta) {
-  const routes = PUBLIC_ROUTE_ENTRIES.map(
-    ({ title, path }) => `- ${title}: ${buildAbsoluteUrl(siteUrl, path)}`
+const routes = PUBLIC_ROUTE_ENTRIES.map(
+    ({ title, path }) => `- [${title}](${buildAbsoluteUrl(siteUrl, path)})`
   );
   return [
     `# ${siteName}`,
@@ -120,7 +120,7 @@ export function renderLlmsTxt({ siteName, siteDescription, siteUrl }: SiteMeta) 
     "## Safe usage",
     "- Defensive monitoring only.",
     "- Do not use for retaliation or attack-back behavior.",
-    `- Primary website: ${trimTrailingSlash(siteUrl)}`,
+    `- [Primary website](${trimTrailingSlash(siteUrl)})`,
   ].join("\n");
 }
 
