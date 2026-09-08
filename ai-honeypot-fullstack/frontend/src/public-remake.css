@@ -2834,6 +2834,61 @@ body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  perspective: 1400px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .marketing-screenshot-card {
+    transform-style: preserve-3d;
+    transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.3, 1), box-shadow 0.4s ease;
+  }
+  .marketing-screenshot-card:nth-child(1):hover {
+    transform: translateY(-6px) rotateX(4deg) rotateY(-4deg);
+    box-shadow: 0 32px 58px rgba(75, 33, 48, 0.22);
+  }
+  .marketing-screenshot-card:nth-child(2):hover {
+    transform: translateY(-6px) rotateX(4deg);
+    box-shadow: 0 32px 58px rgba(75, 33, 48, 0.22);
+  }
+  .marketing-screenshot-card:nth-child(3):hover {
+    transform: translateY(-6px) rotateX(4deg) rotateY(4deg);
+    box-shadow: 0 32px 58px rgba(75, 33, 48, 0.22);
+  }
+}
+
+.marketing-home-hero-screenshot {
+  position: absolute;
+  left: 10%;
+  bottom: 7%;
+  width: min(330px, 52%);
+  z-index: 2;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 30px 58px rgba(4, 9, 16, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+  transform: perspective(1200px) rotateY(-10deg) rotateX(7deg);
+  transform-origin: left center;
+}
+
+.marketing-home-hero-screenshot img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.marketing-home-hero-shot-tag {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #ffd9a8;
+  background: rgba(7, 14, 22, 0.72);
+  border: 1px solid rgba(255, 191, 42, 0.28);
+  backdrop-filter: blur(8px);
 }
 
 .marketing-screenshot-card {

@@ -1124,6 +1124,16 @@ export default function Home() {
             <div className="marketing-home-visual-line-grid" />
             <HeroFlowField />
 
+            <div className="marketing-home-hero-screenshot">
+              <ProofImage
+                src="/screenshots/threat-intel.png"
+                alt="CyberSentil threat-intel view: attacker routes, bot hits, and evidence rules on one screen"
+                loading="eager"
+                decoding="async"
+              />
+              <span className="marketing-home-hero-shot-tag">Live operator view</span>
+            </div>
+
             <article className="marketing-home-float-card marketing-home-float-card-path">
               <span>Incident path</span>
               <strong>
