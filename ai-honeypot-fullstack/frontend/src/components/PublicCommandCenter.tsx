@@ -261,11 +261,14 @@ export default function PublicCommandCenter({ open, onClose, analyticsPath = "/"
           const statsPayload =
             authenticated && rawStats && typeof rawStats === "object" && "data" in rawStats
               ? (rawStats as AxiosResponse).data || {}
-              : rawStats || {};
+: rawStats || {};
+          const summary = statsPayload?.summary || {};
+          const attacksValue = summary.total ?? summary.total_events ?? summary.totalAttacks;
+          const criticalValue = summary.critical ?? summary.critical_events ?? summary.criticalThreats;
           nextState = {
             ...nextState,
-            totalAttacks: Number(statsPayload?.summary?.total ?? statsPayload?.summary?.total_events ?? 0),
-            criticalThreats: Number(statsPayload?.summary?.critical ?? statsPayload?.summary?.critical_events ?? 0),
+            totalAttacks: Number(attacksValue || 0),
+            criticalThreats: Number(criticalValue || 0),
           };
         }
 

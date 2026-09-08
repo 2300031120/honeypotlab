@@ -26,6 +26,7 @@ const MainLayout = lazy(() => import("./MainLayout"));
 const ProtectedPageOutlet = lazy(() => import("./ProtectedPageOutlet"));
 const NotFound = lazy(() => import("./NotFound"));
 const CookieConsent = lazy(() => import("./components/CookieConsent"));
+const CommandCenterLauncher = lazy(() => import("./components/CommandCenterLauncher"));
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -192,6 +193,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
       </Suspense>
       <Suspense fallback={null}>{isSsr ? null : <AIAssistant />}</Suspense>
       <Suspense fallback={null}>{isSsr ? null : <CookieConsent />}</Suspense>
+      <Suspense fallback={null}>{isSsr ? null : <CommandCenterLauncher />}</Suspense>
     </ErrorBoundary>
   );
 }

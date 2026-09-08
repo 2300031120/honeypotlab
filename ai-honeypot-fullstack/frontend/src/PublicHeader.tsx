@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ArrowRight, ChevronDown, Menu, X } from "lucide-react";
+import { ArrowRight, ChevronDown, Command, Menu, X } from "lucide-react";
 import { PUBLIC_SITE, resolvePublicBrandText } from "./siteConfig";
 import { trackCtaClick } from "./utils/analytics";
 import { AUTH_CHANGED_EVENT, isAuthenticated } from "./utils/auth";
 import { loadAuthProviders } from "./utils/authProviders";
 import { buildCampaignAwarePath } from "./utils/campaignLinks";
+import { openCommandCenter } from "./components/CommandCenterLauncher";
 
 type MegaMenuEntry = { label: string; to: string; description: string };
 type MegaMenuSection = { title: string; items: MegaMenuEntry[] };
@@ -341,7 +342,21 @@ export default function PublicHeader({
         })}
       </nav>
 
-      <div className={actionsClass}>
+<div className={actionsClass}>
+        <button
+          type="button"
+          className={`${ghostBtnClass} public-command-trigger`}
+          title="Open command center (Ctrl/Cmd + K)"
+          aria-haspopup="dialog"
+          onClick={() => {
+            handleTrackedClick("command_center");
+            openCommandCenter();
+          }}
+        >
+          <Command size={13} />
+          <span>Command Center</span>
+          <kbd>Ctrl K</kbd>
+        </button>
         {showLoginLink ? (
           <a href={loginHref} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
             Login
@@ -460,10 +475,20 @@ export default function PublicHeader({
             return null;
           })}
         </div>
-        <div className="public-nav-mobile-actions">
+<div className="public-nav-mobile-actions">
           <Link to={toCampaignPath("/")} className={ghostBtnClass} onClick={() => handleTrackedClick("mobile_home")}>
             Home
           </Link>
+          <button
+            type="button"
+            className={ghostBtnClass}
+            onClick={() => {
+              handleTrackedClick("command_center");
+              openCommandCenter();
+            }}
+          >
+            <Command size={14} /> Command Center
+          </button>
           {showLoginLink ? (
             <a href={loginHref} className={ghostBtnClass} onClick={() => handleTrackedClick("login")}>
               Login

@@ -6,6 +6,7 @@ import "./public-polish.css";
 import "./obsidian-theme.css";
 import "./lead-responsive.css";
 import "./cyber-theme-override.css";
+import "./command-center.css";
 
 function toErrorMessage(value: unknown): string {
   if (!value) {
