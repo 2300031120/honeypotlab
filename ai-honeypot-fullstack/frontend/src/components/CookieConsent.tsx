@@ -122,7 +122,7 @@ export default function CookieConsent() {
               <p style={{ margin: 0, fontSize: "14px", color: "#8b949e", lineHeight: "1.5" }}>
                 We use cookies to enhance your experience. By continuing to visit this site you agree to our use of cookies.{" "}
                 <a href="/privacy" style={{ color: "#58a6ff", textDecoration: "none" }}>
-                  Learn more
+                  Read the cookie policy
                 </a>
               </p>
             </div>
