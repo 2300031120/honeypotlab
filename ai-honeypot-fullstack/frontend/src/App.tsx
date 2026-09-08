@@ -221,6 +221,11 @@ function App() {
     };
     const syncAuth = async () => {
       try {
+        if (!getUserProfile()) {
+          clearAuthSession();
+          setAuthenticated(false);
+          return;
+        }
         const response = await axios.get(`${API_BASE}/auth/me`, {
           withCredentials: true,
           headers: { "X-Skip-Auth-Redirect": "1" },
