@@ -724,7 +724,7 @@ def test_internal_telemetry_surfaces_use_sample_incident_when_tenant_has_no_even
         assert summary.status_code == 200
         summary_payload = summary.json()
         assert summary_payload["demo_mode"] is True
-        assert "Sample incident mode is active" in summary_payload["ai_summary"]
+        assert "Incident walkthrough is active" in summary_payload["ai_summary"]
 
         events = client.get("/admin/telemetry/events", headers=headers)
         assert events.status_code == 200

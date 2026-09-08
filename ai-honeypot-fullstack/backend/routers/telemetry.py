@@ -3530,6 +3530,55 @@ def _public_demo_feed(limit: int) -> list[dict[str, Any]]:
     return feed
 
 
+def _grounded_demo_summary(
+    *,
+    total_events: int,
+    critical_events: int,
+    medium_events: int,
+    low_events: int,
+    unique_ips: int,
+    top_target: str,
+    risk_level: str,
+    threat_score: int,
+    dominant_behavior: str,
+    active_decoys: int,
+) -> str:
+    posture = (
+        "elevated"
+        if risk_level == "high"
+        else ("watchful" if risk_level == "medium" else "stable")
+    )
+    posture_article = "an" if posture == "elevated" else "a"
+    sentences = [
+        f"Across the last window {active_decoys} adaptive decoy surfaces engaged "
+        f"{total_events} events from {unique_ips} distinct source IPs, "
+        f"with {posture_article} {posture} posture (threat index {threat_score})."
+    ]
+    if critical_events:
+        sentences.append(
+            f"{critical_events} high-severity event"
+            f"{'s' if critical_events != 1 else ''} recorded"
+            f"{'—' + dominant_behavior + ' behavior most frequent' if dominant_behavior else ''}."
+        )
+    if medium_events:
+        sentences.append(
+            f"{medium_events} medium-severity contact"
+            f"{'s' if medium_events != 1 else ''} "
+            f"{'indicate' if medium_events != 1 else 'indicates'} active probing."
+        )
+    if top_target and top_target != "none":
+        sentences.append(
+            f"Primary target observed: {top_target}. "
+            f"{low_events} low-severity event"
+            f"{'s' if low_events != 1 else ''} round out the trace."
+        )
+    sentences.append(
+        "This summary is computed from live decoy telemetry; no tenant events are exposed "
+        "through the public surface."
+    )
+    return " ".join(sentences)
+
+
 def _public_demo_snapshot(
     conn, *, limit: int = 8, hours: int = 24, include_training: bool = False
 ) -> dict[str, Any]:
@@ -3608,7 +3657,18 @@ def _public_demo_snapshot(
             "dominant_behavior": dominant_behavior.replace("_", " "),
             "recommended_action": "Public snapshot is the operational preview. Use the operator dashboard for real tenant telemetry and active incident review.",
         },
-        "ai_summary": "Operational telemetry feed active. Adaptive decoys are staged without exposing live tenant events in the public surface.",
+        "ai_summary": _grounded_demo_summary(
+            total_events=len(feed),
+            critical_events=critical_events,
+            medium_events=medium_events,
+            low_events=low_events,
+            unique_ips=len(source_counts),
+            top_target=top_target,
+            risk_level=risk_level,
+            threat_score=threat_score,
+            dominant_behavior=dominant_behavior.replace("_", " "),
+            active_decoys=len(DEFAULT_HONEYTOKEN_PATHS) + runtime["summary"]["enabled"],
+        ),
         "generated_at": iso_now(),
         "window_hours": max(1, int(hours or 24)),
         "include_training": bool(include_training),

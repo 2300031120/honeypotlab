@@ -36,7 +36,7 @@ Every existing AI-related component is classified as one of:
 | Event capture | `backend/routers/telemetry.py` (many `capture_*` helpers) | **REAL** | raw decoy/HTTP/SSH hit | insert row into `events` | All lures (phpMyAdmin, WP, admin login, XML-RPC, ssh-decoy, cowrie, terminal) normalize & INSERT into `events`. |
 | Event normalization | `core/database.py` `normalize_event` | **REAL** | DB row dict | canonical event dict | Applied everywhere; cleans text, computes defaults (severity/score/mitre). |
 | Summary/threat parse | `telemetry.py:2420-2448, 3557-3563` | **REAL** (deterministic) | event rows | `summary`, `threat_score` | Pure arithmetic aggregations (`critical*11 + medium*5 + unhealthy*4`). No language model. |
-| Public `ai_summary` | `telemetry.py:3611` | **TEMPLATE** | — | constant string | Hardcoded: "Operational telemetry feed active…". Presented as "AI" but static. |
+| Public `ai_summary` | `telemetry.py:3658` | **REAL** (deterministic) | — | grounded string | Now computed by `_grounded_demo_summary(...)` from the live snapshot's `total_events`, severity buckets, unique IPs, top target, risk level, threat score, and dominant behavior. No longer a hardcoded constant. |
 | AI Assistant UI | `frontend/src/AIAssistant.tsx` | **REAL** (link) | auth | FAB → `/ai-companion` | Only visible when authenticated. Backed by `/ai/expert-advisor`. |
 
 ### A.2 What the pipeline actually does today (no LLM)
@@ -63,6 +63,7 @@ The "AI" label currently maps to: (1) keyword-matched persona fallback text, (2)
 ## B. Missing AI Components
 
 1. **LLM activation** — `AI_LLM_ENABLED` never set true; no `AI_LLM_API_KEY` anywhere; no local model host. The entire LLM path is dead code at runtime.
+1b. **Grounded public summary (DONE)** — the public `ai_summary` is now computed from live snapshot telemetry (`_grounded_demo_summary`), so the public surface is genuinely data-driven rather than a hardcoded string.
 2. **Grounded AI Security Brief** — the AI incident brief is a hardcoded string; it is not generated from the normalized event stream of a real tenant, session, or IP.
 3. **AI-driven attacker profiling beyond rules** — `adaptive_decoy.py` classifies by counters only; there is no feature vector, no cross-session correlation, no intent estimation fed by telemetry.
 4. **LLM-nudged adaptive decoy response** — decoy responses are `random.choice` templates; nothing reads the actor profile + session telemetry to tailor the lure.
