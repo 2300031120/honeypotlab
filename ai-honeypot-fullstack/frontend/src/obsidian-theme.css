@@ -587,6 +587,7 @@ h3 {
   color: var(--obs-cyan);
 }
 
+.obs-persona-card h3,
 .obs-persona-card h4 {
   margin: 0 0 6px;
   font-size: 1.02rem;

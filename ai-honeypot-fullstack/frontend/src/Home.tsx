@@ -1364,7 +1364,7 @@ export default function Home() {
             {(activePersona === "ciso" ? CISO_FOCUS : SOC_FOCUS).map((item) => (
               <article key={item.title} className="obs-persona-card" data-tone={item.tone}>
                 <div className="obs-persona-card-ic">{item.icon}</div>
-                <h4>{item.title}</h4>
+                <h3>{item.title}</h3>
                 <p>{item.detail}</p>
               </article>
             ))}
