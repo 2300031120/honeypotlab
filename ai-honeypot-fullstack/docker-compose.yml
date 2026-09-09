@@ -316,6 +316,10 @@ services:
       - SENTINEL_SHARED_KEY=${SENTINEL_SHARED_KEY:-}
       - SENTINEL_LOG_TYPE=${SENTINEL_LOG_TYPE:-DeceptionEvents}
       - SENTINEL_TIMEOUT_SECONDS=${SENTINEL_TIMEOUT_SECONDS:-10}
+    # containers must resolve external APIs (Groq/Gemini/OpenAI); host resolv.conf is local-only
+    dns:
+      - 8.8.8.8
+      - 1.1.1.1
     volumes:
       - backend_data:/data
 
