@@ -246,6 +246,14 @@ def http_json(
         payload = json.dumps(body).encode("utf-8")
         request_headers.setdefault("Content-Type", "application/json")
 
+    # The backend AI-protection middleware blocks urllib/python/curl UAs,
+    # so present the deploy client with a plain browser UA by default.
+    request_headers.setdefault(
+        "User-Agent",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    )
+
     req = Request(url=url, method=method.upper(), data=payload, headers=request_headers)
 
     context = None
