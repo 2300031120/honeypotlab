@@ -2538,6 +2538,45 @@ def test_ai_expert_advisor_is_telemetry_grounded(monkeypatch, tmp_path):
         assert ai_status.json()["response_mode"] == "grounded_telemetry"
 
 
+def test_ai_advisor_aura_knowledge_answers(monkeypatch, tmp_path):
+    """AURA must answer general security questions from built-in knowledge."""
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        tenant = create_tenant(client, username="aurakb", email="aurakb@example.com", domain="aurakb.example.com")
+        headers = tenant["headers"]
+
+        honeypot = client.post(
+            "/ai/expert-advisor",
+            headers=headers,
+            json={"query": "What is a honeypot?", "persona": "GENERAL_SENTINEL"},
+        )
+        assert honeypot.status_code == 200
+        hp = honeypot.json()
+        assert hp["response_source"] == "grounded_telemetry"
+        assert "honeypot" in hp["response"].lower()
+        assert "deceptions" in hp["response"].lower() or "decoy" in hp["response"].lower()
+        assert "Try next:" in hp["response"]
+
+        sqli = client.post(
+            "/ai/expert-advisor",
+            headers=headers,
+            json={"query": "How do I stop SQL injection?", "persona": "ARCHITECT"},
+        )
+        assert sqli.status_code == 200
+        body = sqli.json()
+        assert "parameterized queries" in body["response"].lower()
+
+        fallback = client.post(
+            "/ai/expert-advisor",
+            headers=headers,
+            json={"query": "Tell me about bananas", "persona": "GENERAL_SENTINEL"},
+        )
+        assert fallback.status_code == 200
+        fb = fallback.json()
+        assert "AURA" in fb["response"]
+        assert "Try next:" in fb["response"]
+
+
 def test_frontend_endpoint_inventory_smoke(monkeypatch, tmp_path):
     main = load_main(monkeypatch, tmp_path)
     with TestClient(main.app) as client:

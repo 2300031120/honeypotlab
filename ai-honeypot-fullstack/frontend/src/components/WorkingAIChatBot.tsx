@@ -17,6 +17,7 @@ type ChatMessage = {
   content: string;
   source?: string;
   persona?: PersonaId | string;
+  suggestions?: string[];
 };
 
 type AdvisorResponse = {
@@ -33,7 +34,7 @@ const PERSONAS: PersonaOption[] = [
 ];
 
 const INITIAL_MESSAGE =
-  "AI companion online. Select a persona and ask any tech or security question.";
+  "AURA online — your on-platform security companion. Ask me about your live telemetry (attackers, canaries, priorities) or any security topic (honeypots, phishing, SQL injection, MITRE ATT&CK, incident response).";
 
 function normalizeResponseSource(raw: unknown) {
   const source = String(raw || "").trim().toLowerCase();
@@ -46,7 +47,7 @@ function normalizeResponseSource(raw: unknown) {
 function sourceBadgeMeta(source: string) {
   if (source === "llm") {
     return {
-      label: "LLM",
+      label: "AURA · LLM",
       bg: "rgba(31, 111, 235, 0.14)",
       border: "rgba(88, 166, 255, 0.55)",
       color: "#58a6ff",
@@ -54,7 +55,7 @@ function sourceBadgeMeta(source: string) {
   }
   if (source === "local" || source.startsWith("local")) {
     return {
-      label: "LOCAL FALLBACK",
+      label: "AURA · LOCAL",
       bg: "rgba(248, 81, 73, 0.14)",
       border: "rgba(248, 81, 73, 0.45)",
       color: "#f85149",
@@ -62,19 +63,39 @@ function sourceBadgeMeta(source: string) {
   }
   if (source.startsWith("grounded")) {
     return {
-      label: "LIVE TELEMETRY",
+      label: "AURA · LIVE TELEMETRY",
       bg: "rgba(46, 160, 67, 0.14)",
       border: "rgba(63, 185, 80, 0.55)",
       color: "#3fb950",
     };
   }
   return {
-    label: "UNKNOWN",
+    label: "AURA",
     bg: "rgba(139, 148, 158, 0.12)",
     border: "rgba(139, 148, 158, 0.45)",
     color: "#8b949e",
   };
 }
+
+function parseSuggestions(text: string): string[] {
+  const line = String(text || "")
+    .split("\n")
+    .find((l) => l.startsWith("Try next:"));
+  if (!line) return [];
+  return line
+    .slice("Try next:".length)
+    .split("|")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .slice(0, 4);
+}
+
+const QUICK_STARTS = [
+  "Which attacker IPs are most active?",
+  "What is a honeypot?",
+  "How do I set up my first canary token?",
+  "Recommended priorities",
+];
 
 const isAxiosError = (error: unknown): error is AxiosError => axios.isAxiosError(error);
 
@@ -187,6 +208,7 @@ const WorkingAIChatBot = () => {
           content: assistantText,
           persona: String(response?.data?.persona_active || persona),
           source: normalizeResponseSource(response?.data?.response_source),
+          suggestions: parseSuggestions(assistantText),
         },
       ]);
     } catch (error) {
@@ -216,9 +238,10 @@ const WorkingAIChatBot = () => {
         ...prev,
         {
           role: "assistant",
-          content: `LLM probe complete (${String(response?.data?.response_source || "unknown")}).\n\n${String(response?.data?.response || "")}`,
+          content: `AURA probe complete (${String(response?.data?.response_source || "unknown")}).\n\n${String(response?.data?.response || "")}`,
           persona: String(response?.data?.persona_active || "GENERAL_SENTINEL"),
           source: normalizeResponseSource(response?.data?.response_source),
+          suggestions: parseSuggestions(String(response?.data?.response || "")),
         },
       ]);
     } catch (error) {
@@ -277,11 +300,43 @@ const WorkingAIChatBot = () => {
           background: "#0d1117",
         }}
       >
-        <div style={{ fontWeight: 800, marginBottom: "8px" }}>AI Companion</div>
+        <div style={{ fontWeight: 800, marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: "10px",
+              height: "10px",
+              borderRadius: "50%",
+              background: connectionStatus === "connected" ? "#3fb950" : connectionStatus === "failed" ? "#f85149" : "#9e6a03",
+            }}
+          />
+          AURA — AI Security Companion
+        </div>
         <div style={{ fontSize: "12px", color: "#8b949e" }}>API Base: {API_BASE}</div>
         <div style={{ fontSize: "12px", color: connectionStatus === "connected" ? "#3fb950" : "#f85149" }}>
           Backend: {connectionStatus}
         </div>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "12px" }}>
+        {QUICK_STARTS.map((q) => (
+          <button
+            key={q}
+            onClick={() => setInput(q)}
+            disabled={isLoading}
+            style={{
+              background: "#161b22",
+              border: "1px solid #30363d",
+              color: "#8b949e",
+              borderRadius: "999px",
+              padding: "6px 12px",
+              fontSize: "12px",
+              cursor: "pointer",
+            }}
+          >
+            {q}
+          </button>
+        ))}
       </div>
 
       <div style={{ marginBottom: "12px", display: "flex", gap: "10px", alignItems: "center" }}>
@@ -390,6 +445,28 @@ const WorkingAIChatBot = () => {
               </div>
             )}
             {msg.content}
+            {msg.role === "assistant" && msg.suggestions && msg.suggestions.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
+                {msg.suggestions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setInput(s)}
+                    disabled={isLoading}
+                    style={{
+                      background: "rgba(63,185,80,0.1)",
+                      border: "1px solid rgba(63,185,80,0.35)",
+                      color: "#3fb950",
+                      borderRadius: "999px",
+                      padding: "4px 10px",
+                      fontSize: "11px",
+                      cursor: "pointer",
+                    }}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           );
         })}
@@ -405,7 +482,7 @@ const WorkingAIChatBot = () => {
               handleSend();
             }
           }}
-          placeholder="Ask any tech or security question..."
+          placeholder="Ask AURA about attackers, canaries, or any security topic..."
           style={{
             flex: 1,
             border: "1px solid #30363d",

@@ -91,7 +91,7 @@ const MainLayout = () => {
                         <NavItem to="/admin/leads" icon={<MessageSquare size={18} />} label="Lead Inbox" active={location.pathname === '/admin/leads'} />
                         <NavItem to="/terminal" icon={<TerminalIcon size={18} />} label="Live Shell" active={location.pathname === '/terminal'} />
                         <NavItem to="/forensics/detail" icon={<FileSearch size={18} />} label="Forensics Lab" active={location.pathname === '/forensics/detail'} />
-                        <NavItem to="/ai-companion" icon={<Bot size={18} />} label="AI Companion" active={location.pathname === '/ai-companion'} />
+                        <NavItem to="/ai-companion" icon={<Bot size={18} />} label="AURA Companion" active={location.pathname === '/ai-companion'} />
                     </NavSection>
 
                     <NavSection label="Research Modules">
