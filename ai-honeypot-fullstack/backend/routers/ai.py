@@ -47,8 +47,10 @@ ai_rate_limit = build_rate_limit_dependency(
 
 # AI API cost tracking (estimated costs per 1K tokens)
 AI_COST_PER_1K_TOKENS = {
-    "openai": {"gpt-4": 0.03, "gpt-3.5-turbo": 0.002},
+    "openai": {"gpt-4": 0.03, "gpt-3.5-turbo": 0.002, "gpt-4o-mini": 0.00015},
     "anthropic": {"claude-3-opus": 0.015, "claude-3-sonnet": 0.003},
+    "gemini": {"gemini-2.5-flash": 0.0, "gemini-2.5-flash-lite": 0.0, "gemini-2.5-pro": 0.0},
+    "groq": {"openai/gpt-oss-120b": 0.0, "openai/gpt-oss-20b": 0.0, "qwen/qwen3.8-27b": 0.0, "allam-2-7b": 0.0},
 }
 
 # Monthly cost tracking (in-memory, reset on restart)
@@ -1033,6 +1035,10 @@ def _generate_llm_response(query: str, persona: str, history: List[dict],
         return _call_openai_api(messages)
     if AI_LLM_PROVIDER == "anthropic":
         return _call_anthropic_api(messages)
+    if AI_LLM_PROVIDER == "gemini":
+        return _call_gemini_api(messages)
+    if AI_LLM_PROVIDER == "groq":
+        return _call_groq_api(messages)
     raise ValueError(f"Unsupported LLM provider: {AI_LLM_PROVIDER}")
 
 
@@ -1110,6 +1116,85 @@ def _call_anthropic_api(messages: List[dict]) -> str:
         raise HTTPException(status_code=e.response.status_code, detail=f"Anthropic API error: {e.response.text}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to call Anthropic API: {str(e)}")
+
+
+def _call_gemini_api(messages: List[dict]) -> str:
+    """Call the free-tier Google Gemini API (no credit card required)."""
+    global _monthly_cost, _monthly_requests
+
+    system_text = ""
+    contents: List[dict] = []
+    for msg in messages:
+        role = msg["role"]
+        if role == "system":
+            system_text = msg["content"]
+        else:
+            contents.append({"role": "model" if role == "assistant" else "user", "parts": [{"text": msg["content"]}]})
+
+    body: dict = {
+        "contents": contents,
+        "generationConfig": {
+            "maxOutputTokens": AI_LLM_MAX_TOKENS,
+            "temperature": 0.3,
+        },
+    }
+    if system_text:
+        body["systemInstruction"] = {"parts": [{"text": system_text}]}
+
+    try:
+        with httpx.Client(timeout=45.0) as client:
+            response = client.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/{AI_LLM_MODEL}:generateContent",
+                headers={
+                    "x-goog-api-key": AI_LLM_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                json=body,
+            )
+            response.raise_for_status()
+            data = response.json()
+            text = data["candidates"][0]["content"]["parts"][0]["text"]
+            _monthly_requests += 1
+            if "usageMetadata" in data:
+                total_tokens = int(data["usageMetadata"].get("totalTokenCount", 0) or 0)
+                cost_per_1k = AI_COST_PER_1K_TOKENS.get("gemini", {}).get(AI_LLM_MODEL, 0.0)
+                _monthly_cost += (total_tokens / 1000) * cost_per_1k
+            return text
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"Gemini API error: {e.response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to call Gemini API: {str(e)}")
+
+
+def _call_groq_api(messages: List[dict]) -> str:
+    """Call Groq (free fast-inference models like llama-3.3-70b, no credit card required)."""
+    global _monthly_cost, _monthly_requests
+
+    try:
+        with httpx.Client(timeout=45.0) as client:
+            response = client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {AI_LLM_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": AI_LLM_MODEL,
+                    "messages": messages,
+                    "max_tokens": AI_LLM_MAX_TOKENS,
+                    "temperature": 0.3,
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+            total_tokens = int(data.get("usage", {}).get("total_tokens", 0) or 0)
+            _monthly_cost += (total_tokens / 1000) * AI_COST_PER_1K_TOKENS.get("groq", {}).get(AI_LLM_MODEL, 0.0)
+            _monthly_requests += 1
+            return data["choices"][0]["message"]["content"]
+    except httpx.HTTPStatusError as e:
+        raise HTTPException(status_code=e.response.status_code, detail=f"Groq API error: {e.response.text}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to call Groq API: {str(e)}")
 
 
 @router.get("/ai/status")
