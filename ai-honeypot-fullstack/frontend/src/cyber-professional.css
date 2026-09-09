@@ -1,0 +1,406 @@
+/*
+ * CyberProfessional — final design layer
+ * Loaded LAST (after cyber-theme-override) so it wins the cascade.
+ *
+ * Goals for 2026 cybersecurity-company parity:
+ *   1. WCAG 2.1 AA accessibility surface (visible focus, skip links, motion reduction)
+ *   2. Scarce color signal — blue is the single accent; red/green are status-only
+ *   3. Clear visual hierarchy with progressive disclosure (marketing + dashboard)
+ *   4. Mobile-first: touch targets >= 44px, single-column transforms
+ *   5. Calm "premium and quiet" feel — no pulsing glows, no neon overdrive
+ */
+
+:root {
+  /* ---- Refined palette (overrides older tokens, keeps inherited vars) ---- */
+  --cp-bg-0: #070c14;
+  --cp-bg-1: #0b1220;
+  --cp-bg-2: #101a2b;
+  --cp-bg-3: #16233a;
+
+  --cp-text: #eef4fb;
+  --cp-text-2: #b9c8da;
+  --cp-muted: #8297ad;
+  --cp-faint: #4d5f75;
+
+  --cp-accent: #4da3ff;
+  --cp-accent-soft: rgba(77, 163, 255, 0.14);
+  --cp-accent-border: rgba(77, 163, 255, 0.32);
+
+  /* Status colors are scarce and only used for meaning */
+  --cp-danger: #ff5c57;
+  --cp-success: #3dd68c;
+  --cp-warning: #f0b95b;
+
+  --cp-border: rgba(255, 255, 255, 0.07);
+  --cp-border-2: rgba(255, 255, 255, 0.13);
+
+  --cp-focus: 2px solid rgba(77, 163, 255, 0.9);
+  --cp-focus-offset: 2px;
+
+  --cp-card-shadow: 0 24px 60px rgba(3, 8, 16, 0.5);
+  --cp-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ============================================================================
+   1. Accessibility — visible focus everywhere (WCAG 2.1 AA 2.4.7)
+   ============================================================================ */
+:where(a, button, input, textarea, select, summary, [role="button"], [tabindex]:not([tabindex="-1"])) {
+  outline: none;
+}
+
+:where(a, button, input, textarea, select, summary, [role="button"], [tabindex]:not([tabindex="-1"])):focus-visible {
+  outline: var(--cp-focus);
+  outline-offset: var(--cp-focus-offset);
+  border-radius: 4px;
+}
+
+/* Skip link — visually hidden until focused */
+.skip-link {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 9999;
+  padding: 12px 18px;
+  background: var(--cp-bg-2);
+  color: var(--cp-text);
+  border: 1px solid var(--cp-accent-border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  box-shadow: var(--cp-card-shadow);
+  transition: top 160ms var(--cp-ease);
+}
+
+.skip-link:focus-visible {
+  top: 12px;
+}
+
+/* Respect reduced-motion for every animation on the site */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================================
+   2. Global polish — premium, quiet, professional
+   ============================================================================ */
+::selection {
+  background: rgba(77, 163, 255, 0.28);
+  color: var(--cp-text);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Scrollable main regions keep a subtle custom scrollbar */
+.marketing-main,
+.premium-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(77, 163, 255, 0.35) rgba(255, 255, 255, 0.04);
+}
+
+/* ============================================================================
+   3. Public marketing — hero hierarchy, cards, trust
+   ============================================================================ */
+.marketing-shell-home .marketing-home-display {
+  letter-spacing: -0.02em;
+  max-width: 15ch;
+}
+
+.marketing-shell-home .marketing-home-lead {
+  max-width: 58ch;
+  color: var(--cp-text-2);
+}
+
+/* CTA row — primary first, clear affordance */
+.marketing-home-cinematic-actions .marketing-btn-primary {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 14px 30px rgba(10, 20, 40, 0.5);
+}
+
+.marketing-home-cinematic-actions .marketing-btn-secondary {
+  background: rgba(10, 18, 31, 0.82);
+  border: 1px solid var(--cp-border-2);
+  color: var(--cp-text-2);
+}
+
+.marketing-home-cinematic-actions .marketing-btn-secondary:hover {
+  color: var(--cp-text);
+  border-color: var(--cp-accent-border);
+}
+
+/* Hero display — calm, cool, professional */
+.marketing-shell-home .marketing-home-display {
+  background: linear-gradient(120deg, #eef4fb 0%, #cfe3ff 46%, #7fb8ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: none;
+}
+
+/* Signal cards — calm, bounded */
+.marketing-home-signal-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--cp-border);
+  border-radius: 12px;
+}
+
+.marketing-home-signal-card strong {
+  color: var(--cp-text);
+  font-weight: 800;
+}
+
+.marketing-home-signal-card span {
+  color: var(--cp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+}
+
+/* Trust rail — clear hierarchy, proof badges */
+.marketing-home-trust-copy h2 {
+  letter-spacing: -0.01em;
+}
+
+.marketing-home-trust-badges span,
+.marketing-home-trust-badges.is-ecosystem span {
+  border: 1px solid var(--cp-border-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cp-text-2);
+}
+
+.marketing-home-trust-stat {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+}
+
+.marketing-home-trust-stat strong {
+  color: var(--cp-text);
+}
+
+/* Platform cards — clickable affordance, restrained hover */
+.marketing-platform-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--cp-border);
+  border-radius: 16px;
+  transition: transform 200ms var(--cp-ease), border-color 200ms var(--cp-ease);
+}
+
+.marketing-platform-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--cp-accent-border);
+}
+
+.marketing-icon-box {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Kicker labels — single accent, not gradient */
+.marketing-shell .marketing-kicker,
+.marketing-shell-home .marketing-home-kicker {
+  color: var(--cp-accent) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-weight: 700;
+}
+
+/* ============================================================================
+   4. Dashboard — opinionated hierarchy (KPIs -> incidents -> graphs)
+   ============================================================================ */
+.glass-card {
+  background: rgba(12, 18, 30, 0.72) !important;
+  border: 1px solid var(--cp-border) !important;
+  box-shadow: var(--cp-card-shadow);
+}
+
+.glass-card:hover {
+  border-color: var(--cp-accent-border) !important;
+}
+
+.stats-value {
+  letter-spacing: -0.02em;
+}
+
+/* Keep status colors semantic and scarce:
+   - info/neutral   -> blue accent
+   - danger/critical -> red
+   - ok/healthy      -> green
+   - warn            -> amber  */
+.neon-border-blue { border-left: 4px solid #4da3ff !important; }
+.neon-border-green { border-left: 4px solid var(--cp-success) !important; }
+.neon-border-red { border-left: 4px solid var(--cp-danger) !important; }
+.neon-border-orange { border-left: 4px solid var(--cp-warning) !important; }
+
+/* Buttons inside the dashboard app — larger hit areas */
+.logout-btn,
+button[class*="btn"] {
+  transition: background 160ms var(--cp-ease), border-color 160ms var(--cp-ease);
+}
+
+/* ============================================================================
+   5. Mobile-first — touch targets, single-column, legible type
+   ============================================================================ */
+@media (max-width: 768px) {
+  .marketing-shell-home .marketing-main {
+    width: min(100% - 32px, 1240px);
+    padding: 20px 0 64px;
+  }
+
+  .marketing-home-signal-card,
+  .marketing-home-trust-stat,
+  .marketing-platform-card {
+    border-radius: 12px;
+  }
+
+  /* 44px touch targets for primary actions */
+  .marketing-btn,
+  .marketing-btn-primary,
+  .marketing-btn-secondary,
+  .lead-btn,
+  .lead-btn-primary,
+  button,
+  .obs-sim-btn {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .marketing-shell-home .marketing-home-display {
+    font-size: clamp(1.9rem, 9vw, 2.6rem);
+    line-height: 1.05;
+  }
+
+  .marketing-shell-home .marketing-home-lead {
+    font-size: 15px;
+    line-height: 1.65;
+  }
+
+  /* Reduce giant horizontal padding on very small screens */
+  .marketing-intro-shell {
+    width: min(100% - 24px, 1380px);
+    padding: 20px 0;
+  }
+}
+
+/* Short screens should not push key info below the fold */
+@media (max-height: 760px) and (min-width: 769px) {
+  .marketing-shell-home .marketing-home-cinematic-copy {
+    padding-block: 34px;
+  }
+}
+
+/* ============================================================================
+   6. Public navigation — quiet, readable, accessible
+   ============================================================================ */
+.marketing-shell .public-nav-shell,
+.marketing-shell-home .public-nav-shell {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(7, 12, 21, 0.86);
+}
+
+.cred-nav-links a,
+.home-v2-nav-links a {
+  letter-spacing: 0.01em;
+}
+
+.cred-nav-links a:focus-visible,
+.home-v2-nav-links a:focus-visible,
+.public-nav-mobile-trigger:focus-visible {
+  outline: var(--cp-focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ============================================================================
+   7. Footer trust architecture
+   ============================================================================ */
+.marketing-shell .marketing-footer a:focus-visible,
+.public-footer a:focus-visible {
+  outline: var(--cp-focus);
+  outline-offset: 2px;
+}
+
+/* Compliance badge strip — professional trust signals */
+.public-footer-trust {
+  margin-top: 8px;
+  padding: 14px 0;
+  border-top: 1px solid var(--cp-border);
+  display: grid;
+  gap: 10px;
+}
+
+.public-footer-trust .public-footer-label {
+  color: var(--cp-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.public-footer-trust-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.public-footer-trust-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--cp-border-2);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--cp-text-2);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.public-footer-trust-badge::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--cp-accent);
+  opacity: 0.9;
+}
+
+@media (max-width: 480px) {
+  .public-footer-trust-badges {
+    gap: 6px;
+  }
+  .public-footer-trust-badge {
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+}
+
+/* Brand mark — calm single accent instead of rainbow gradient */
+.marketing-shell .public-brand-mark,
+.marketing-shell-home .public-brand-mark {
+  background: linear-gradient(135deg, #3f8ef0 0%, #4da3ff 55%, #79bdff 100%);
+  color: #06121f;
+  box-shadow: 0 8px 20px rgba(77, 163, 255, 0.22);
+}
+
+.marketing-shell .public-brand-subtitle,
+.marketing-shell-home .public-brand-subtitle {
+  color: var(--cp-text-2);
+}
+
+@media (prefers-color-scheme: light) {
+  /* The site ships dark-first; a light mode is intentionally NOT forced. */
+}

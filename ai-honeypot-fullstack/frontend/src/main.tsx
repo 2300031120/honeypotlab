@@ -7,6 +7,7 @@ import "./obsidian-theme.css";
 import "./lead-responsive.css";
 import "./cyber-theme-override.css";
 import "./command-center.css";
+import "./cyber-professional.css";
 
 function toErrorMessage(value: unknown): string {
   if (!value) {

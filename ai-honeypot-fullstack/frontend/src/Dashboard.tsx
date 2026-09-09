@@ -732,10 +732,10 @@ const Dashboard = () => {
         </div>
       </motion.div>
 
-      {/* KPI Grid */}
+      {/* KPI Grid — opinionated: critical threats lead, everything else supports */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '24px', marginBottom: '40px' }}>
+        <KPICard label="CRITICAL THREATS" value={stats.summary.critical} color="#f85149" icon={<AlertTriangle size={20} />} trend="WARNING" border="neon-border-red" dominant={stats.summary.critical > 0} />
         <KPICard label="TOTAL INTERACTIONS" value={stats.summary.total} color="#3fb950" icon={<Activity size={20} />} trend="+12.4%" border="neon-border-green" />
-        <KPICard label="CRITICAL THREATS" value={stats.summary.critical} color="#f85149" icon={<AlertTriangle size={20} />} trend="WARNING" border="neon-border-red" />
         <KPICard label="SIEM SYNC RATE" value={siemSyncRate} color="#0ea5e9" icon={<Wifi size={20} />} trend="LIVE" border="neon-border-blue" />
         <KPICard label="ADAPTIVE RISK" value={avgPolicyRisk.toFixed(1)} color="#ff7b72" icon={<BrainCircuit size={20} />} trend={policyRiskTrend} border="neon-border-red" />
         <KPICard label="AUTO-BLOCKED" value={stats.summary.blocked} color="#d29922" icon={<Shield size={20} />} trend="AUTONOMOUS" border="neon-border-orange" />
@@ -1300,20 +1300,42 @@ type KPICardProps = {
   icon: React.ReactNode;
   trend: string;
   border?: string;
+  dominant?: boolean;
 };
 
-const KPICard = ({ label, value, color, icon, trend, border }: KPICardProps) => (
+const KPICard = ({ label, value, color, icon, trend, border, dominant }: KPICardProps) => (
   <motion.div
     whileHover={{ y: -5 }}
     className={`glass-card ${border}`}
-    style={{ padding: '28px', borderRadius: '16px', position: 'relative', overflow: 'hidden' }}
+    style={{
+      padding: dominant ? '28px 28px 30px' : '28px',
+      borderRadius: '16px',
+      position: 'relative',
+      overflow: 'hidden',
+      gridColumn: dominant ? 'span 2' : undefined,
+      background: dominant && color === '#f85149'
+        ? 'linear-gradient(135deg, rgba(68,20,22,0.55), rgba(13,17,23,0.8))'
+        : undefined,
+      borderColor: dominant && color === '#f85149' ? 'rgba(248,81,73,0.4)' : undefined,
+    }}
   >
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
       <div style={{ color: color }}>{icon}</div>
-      <span style={{ color: '#8b949e', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>{label}</span>
+      <span style={{ color: '#8b949e', fontSize: dominant ? '12px' : '11px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>{label}</span>
+      {dominant && (
+        <span style={{
+          marginLeft: 'auto',
+          fontSize: '10px',
+          fontWeight: '900',
+          color,
+          background: `${color}15`,
+          padding: '3px 10px',
+          borderRadius: '999px',
+        }}>PRIORITY</span>
+      )}
     </div>
     <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px' }}>
-      <div className="stats-value" style={{ fontSize: '2.5rem', fontWeight: '950', color: '#fff' }}>{value}</div>
+      <div className="stats-value" style={{ fontSize: dominant ? '3rem' : '2.5rem', fontWeight: '950', color: '#fff' }}>{value}</div>
       <div style={{ fontSize: '10px', fontWeight: '900', color: color, background: `${color}15`, padding: '2px 8px', borderRadius: '4px' }}>{trend}</div>
     </div>
   </motion.div>

@@ -1025,7 +1025,7 @@ export default function Home() {
     <div className={`marketing-shell marketing-shell-home ${motionEnabled ? "marketing-motion-on" : "marketing-motion-paused"}`}>
       <PublicHeader variant="cred" pagePath="/" />
 
-      <main className="marketing-main">
+      <main className="marketing-main" id="main-content" tabIndex={-1}>
         <section className="marketing-home-announcement">
           <span className="marketing-home-announcement-label">Pilot-ready release</span>
           <p>Review the product story, operating flow, and buyer proof before the first call.</p>

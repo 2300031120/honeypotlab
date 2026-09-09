@@ -994,7 +994,7 @@ export default function ContactDemo({ mode = "contact" }: ContactDemoProps) {
     <div className="marketing-shell lead-marketing-shell">
       <PublicHeader variant="cred" pagePath={pagePath} />
 
-      <main className="marketing-main">
+      <main className="marketing-main" id="main-content" tabIndex={-1}>
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy lead-hero-copy-premium">
             <Link to="/" className="lead-back-link">

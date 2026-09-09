@@ -125,6 +125,7 @@ function RouteLifecycleEffects() {
 export function AppShell({ authChecked, authenticated, isSsr = false }: AppShellProps) {
   return (
     <ErrorBoundary FallbackComponent={AppErrorFallback}>
+      <a href="#main-content" className="skip-link" tabIndex={isSsr ? -1 : 0}>Skip to main content</a>
       <Suspense fallback={<RouteFallback />}>
         <RouteLifecycleEffects />
         <Routes>

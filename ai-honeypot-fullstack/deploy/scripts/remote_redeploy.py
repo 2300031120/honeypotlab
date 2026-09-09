@@ -220,8 +220,8 @@ def restart_services(*, client: paramiko.SSHClient, remote_root: str) -> None:
     print("[deploy] Rebuilding backend container")
     exec_remote(client, f"cd {remote_root} && docker compose up -d --build backend")
 
-    print("[deploy] Restarting frontend container")
-    exec_remote(client, f"cd {remote_root} && docker compose restart frontend")
+    print("[deploy] Rebuilding frontend container")
+    exec_remote(client, f"cd {remote_root} && docker compose up -d --build --force-recreate frontend")
 
     print("[deploy] Waiting for startup stabilization")
     time.sleep(4)

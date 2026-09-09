@@ -42,6 +42,7 @@ from core.observability import RequestIdMiddleware, configure_logging, init_sent
 from core.request_logging import log_request
 from core.request_security import SecurityHeadersMiddleware
 from core.time_utils import utc_now
+from core.metrics import metrics_collector
 from routers.auth import router as auth_router
 from routers.leads import router as leads_router
 from routers.sites import router as sites_router
@@ -67,7 +68,15 @@ async def lifespan(_: FastAPI):
     yield
 
 
-app = FastAPI(title=APP_TITLE, lifespan=lifespan)
+app = FastAPI(
+    title=APP_TITLE,
+    version="2.0.0",
+    description="CyberSentil AI-Enhanced Honeypot & Deception System",
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    openapi_url="/api/openapi.json",
+    lifespan=lifespan,
+)
 app.state.limiter = limiter
 
 
@@ -262,10 +271,28 @@ def health_detailed(request: Request) -> JSONResponse:
     return JSONResponse(content=payload, status_code=status_code)
 
 
-app.include_router(auth_router)
-app.include_router(sites_router)
-app.include_router(telemetry_router)
-app.include_router(leads_router)
-app.include_router(consent_router)
-app.include_router(ai_router)
-app.include_router(decoy_router)
+API_V1_PREFIX = "/api/v1"
+
+app.include_router(auth_router, prefix=API_V1_PREFIX, tags=["v1-auth"])
+app.include_router(sites_router, prefix=API_V1_PREFIX, tags=["v1-sites"])
+app.include_router(telemetry_router, prefix=API_V1_PREFIX, tags=["v1-telemetry"])
+app.include_router(leads_router, prefix=API_V1_PREFIX, tags=["v1-leads"])
+app.include_router(consent_router, prefix=API_V1_PREFIX, tags=["v1-consent"])
+app.include_router(ai_router, prefix=API_V1_PREFIX, tags=["v1-ai"])
+app.include_router(decoy_router, prefix=API_V1_PREFIX, tags=["v1-decoy"])
+
+
+@app.get("/metrics")
+def metrics():
+    """Prometheus-compatible metrics endpoint"""
+    from starlette.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=metrics_collector.export_metrics(),
+        media_type="text/plain; charset=utf-8",
+    )
+
+
+@app.get("/metrics/json")
+def metrics_json():
+    """Metrics endpoint in JSON format"""
+    return metrics_collector.export_json()

@@ -135,7 +135,7 @@ const MainLayout = () => {
             </aside>
 
             {/* Main Content Area */}
-            <main className="premium-scroll" style={{ flex: 1, overflowY: 'auto', zIndex: 1, position: 'relative' }}>
+            <main id="main-content" tabIndex={-1} className="premium-scroll" style={{ flex: 1, overflowY: 'auto', zIndex: 1, position: 'relative' }}>
                 <Outlet />
             </main>
         </div>

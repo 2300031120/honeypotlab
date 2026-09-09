@@ -52,6 +52,17 @@ export default function PublicFooter() {
           </div>
         </div>
       </div>
+      <div className="public-footer-trust" role="list" aria-label="Compliance and framework alignment">
+        <span className="public-footer-label">Trust &amp; alignment</span>
+        <div className="public-footer-trust-badges">
+          <span className="public-footer-trust-badge">SOC 2 Ready</span>
+          <span className="public-footer-trust-badge">ISO/IEC 27001-aligned controls</span>
+          <span className="public-footer-trust-badge">MITRE ATT&CK Deception</span>
+          <span className="public-footer-trust-badge">OWASP-aligned decoys</span>
+          <span className="public-footer-trust-badge">GDPR-ready evidence handling</span>
+          <span className="public-footer-trust-badge">SIEM-ready ingest</span>
+        </div>
+      </div>
       <div className="public-footer-contact">
         {PUBLIC_SITE.contactEmail ? <a href={contactHref}>Email: {PUBLIC_SITE.contactEmail}</a> : null}
         {PUBLIC_SITE.securityEmail ? <a href={securityHref}>Security: {PUBLIC_SITE.securityEmail}</a> : null}

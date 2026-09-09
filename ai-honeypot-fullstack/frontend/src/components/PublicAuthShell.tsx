@@ -70,7 +70,7 @@ export default function PublicAuthShell({
   return (
     <div className="public-auth-page">
       <PublicHeader variant="cred" pagePath={pagePath} showLoginAction={showLoginAction} />
-      <main className="public-auth-main">
+      <main className="public-auth-main" id="main-content" tabIndex={-1}>
         <div className="public-auth-shell">
           <div className="public-auth-main-column">
             <section className="public-auth-story-panel">

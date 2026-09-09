@@ -15,7 +15,7 @@ export default function TermsOfService() {
   return (
     <div className="cred-page">
       <PublicHeader variant="cred" pagePath="/terms" />
-      <main className="cred-main">
+      <main className="cred-main" id="main-content" tabIndex={-1}>
         <section className="legal-card">
           <h1>Terms of Service</h1>
           <p>Last updated: April 10, 2026</p>

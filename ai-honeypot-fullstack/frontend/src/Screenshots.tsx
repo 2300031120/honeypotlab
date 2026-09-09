@@ -80,7 +80,7 @@ export default function Screenshots() {
   return (
     <div className="marketing-shell">
       <PublicHeader variant="cred" pagePath="/screenshots" />
-      <main className="marketing-main">
+      <main className="marketing-main" id="main-content" tabIndex={-1}>
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
             <div className="marketing-badge">Product screenshots</div>

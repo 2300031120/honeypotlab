@@ -161,7 +161,7 @@ export default function Pricing() {
   return (
     <div className="marketing-shell pricing-marketing-shell">
       <PublicHeader variant="cred" pagePath="/pricing" />
-      <main className="marketing-main">
+      <main className="marketing-main" id="main-content" tabIndex={-1}>
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
             <div className="marketing-badge">Plans and packaging</div>

@@ -15,7 +15,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="cred-page">
       <PublicHeader variant="cred" pagePath="/privacy" />
-      <main className="cred-main">
+      <main className="cred-main" id="main-content" tabIndex={-1}>
         <section className="legal-card">
           <h1>Privacy Policy</h1>
           <p>Last updated: April 10, 2026</p>

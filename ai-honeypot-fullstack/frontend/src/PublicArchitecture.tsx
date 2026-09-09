@@ -103,7 +103,7 @@ export default function PublicArchitecture({ embedded = false }: PublicArchitect
   return (
     <div className={embedded ? "marketing-shell marketing-shell-embedded" : "marketing-shell"}>
       {!embedded && <PublicHeader variant="cred" pagePath="/architecture" />}
-      <main className="marketing-main">
+      <main className="marketing-main" id="main-content" tabIndex={-1}>
         <section className="marketing-hero">
           <article className="marketing-card marketing-hero-copy">
             <div className="marketing-badge">Architecture</div>
