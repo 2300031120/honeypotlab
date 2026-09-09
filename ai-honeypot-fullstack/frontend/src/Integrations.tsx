@@ -36,7 +36,7 @@ const INTEGRATION_CHECKLIST = [
 const CONNECTORS = [
   {
     title: "Customer websites and APIs",
-    detail: "Send suspicious requests, auth failures, edge hits, and custom app telemetry to POST /api/ingest using the per-site API key.",
+    detail: "Send suspicious requests, auth failures, edge hits, and custom app telemetry to POST /api/v1/ingest using the per-site API key.",
     icon: <Link2 size={18} />,
   },
   {
@@ -162,7 +162,7 @@ export default function Integrations() {
             <div className="marketing-panel-mini-grid">
               <div className="marketing-panel-mini-card">
                 <span>Primary intake</span>
-                <strong>POST /api/ingest + X-API-Key</strong>
+                <strong>POST /api/v1/ingest + X-API-Key</strong>
               </div>
               <div className="marketing-panel-mini-card">
                 <span>Verification path</span>

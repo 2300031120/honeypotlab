@@ -5,9 +5,9 @@ const trimTrailingSlash = (value?: string | null) => String(value || "").replace
 
 const defaultApiBase = (() => {
   if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}/api`;
+    return `${window.location.origin}/api/v1`;
   }
-  return "/api";
+  return "/api/v1";
 })();
 
 const defaultWsBase = (() => {

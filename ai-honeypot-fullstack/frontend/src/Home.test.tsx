@@ -74,7 +74,7 @@ describe("Home", () => {
     expect(screen.getByRole("heading", { name: /answers buyers usually need before they commit to a pilot/i })).toBeInTheDocument();
     expect(await screen.findByRole("link", { name: /open public snapshot/i })).toHaveAttribute(
       "href",
-      "/api/public/telemetry/snapshot"
+      "/api/v1/public/telemetry/snapshot"
     );
     expect(screen.getAllByText(/cloudflare worker relay/i).length).toBeGreaterThan(0);
     expect(screen.queryByText(/waiting for live attacker events/i)).not.toBeInTheDocument();

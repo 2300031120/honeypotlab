@@ -972,7 +972,7 @@ export default function Home() {
     `Unique source IPs: ${displaySnapshot.uniqueIps}`,
   ];
   const publicHealthUrl = "/api/health";
-  const publicSnapshotUrl = "/api/public/telemetry/snapshot";
+  const publicSnapshotUrl = "/api/v1/public/telemetry/snapshot";
 
   const homeConsoleFeed = displayTimeline.slice(0, 4);
   const heroPreviewEvents = (homeConsoleFeed.length ? homeConsoleFeed : PREVIEW_ATTACK_TIMELINE).slice(0, 2);

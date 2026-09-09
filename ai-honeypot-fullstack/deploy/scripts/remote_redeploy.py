@@ -299,10 +299,12 @@ def run_smoke(
     site_name: str,
     site_domain: str,
 ) -> None:
+    versioned_base = f"{api_base}/v1"
+
     print("[smoke] Login")
     status, _, login_payload = http_json(
         method="POST",
-        url=f"{api_base}/auth/login",
+        url=f"{versioned_base}/auth/login",
         body={"username": username, "password": password},
         insecure=insecure,
     )
@@ -313,12 +315,12 @@ def run_smoke(
     auth_headers = {"Authorization": f"Bearer {token}"}
 
     print("[smoke] Auth profile")
-    status, _, me = http_json(method="GET", url=f"{api_base}/auth/me", headers=auth_headers, insecure=insecure)
+    status, _, me = http_json(method="GET", url=f"{versioned_base}/auth/me", headers=auth_headers, insecure=insecure)
     if status != 200 or not isinstance(me, dict):
         raise RuntimeError(f"/auth/me failed ({status}): {me}")
 
     print("[smoke] Site key (create/rotate)")
-    status, _, sites_payload = http_json(method="GET", url=f"{api_base}/sites", headers=auth_headers, insecure=insecure)
+    status, _, sites_payload = http_json(method="GET", url=f"{versioned_base}/sites", headers=auth_headers, insecure=insecure)
     if status != 200:
         raise RuntimeError(f"/sites failed ({status}): {sites_payload}")
     sites: list[dict[str, Any]] = []
@@ -335,7 +337,7 @@ def run_smoke(
     if target_site is None:
         status, _, created = http_json(
             method="POST",
-            url=f"{api_base}/sites",
+            url=f"{versioned_base}/sites",
             headers=auth_headers,
             body={"name": site_name, "domain": site_domain},
             insecure=insecure,
@@ -347,7 +349,7 @@ def run_smoke(
         site_id = int(target_site["id"])
         status, _, rotated = http_json(
             method="POST",
-            url=f"{api_base}/sites/{site_id}/rotate-key",
+            url=f"{versioned_base}/sites/{site_id}/rotate-key",
             headers=auth_headers,
             insecure=insecure,
         )
@@ -362,7 +364,7 @@ def run_smoke(
     session_id = f"remote-redeploy-{int(time.time())}"
     status, _, ingest = http_json(
         method="POST",
-        url=f"{api_base}/ingest",
+        url=f"{versioned_base}/ingest",
         headers={"X-API-Key": api_key},
         body={
             "event_type": "smoke_test",
@@ -379,7 +381,7 @@ def run_smoke(
     print("[smoke] Dashboard")
     status, _, dashboard = http_json(
         method="GET",
-        url=f"{api_base}/dashboard/stats",
+        url=f"{versioned_base}/dashboard/stats",
         headers=auth_headers,
         insecure=insecure,
     )
@@ -391,7 +393,7 @@ def run_smoke(
         raise RuntimeError("Dashboard total events is 0 after ingest.")
 
     print("[smoke] Public snapshot")
-    status, _, snapshot = http_json(method="GET", url=f"{api_base}/public/telemetry/snapshot", insecure=insecure)
+    status, _, snapshot = http_json(method="GET", url=f"{versioned_base}/public/telemetry/snapshot", insecure=insecure)
     if status != 200 or not isinstance(snapshot, dict):
         raise RuntimeError(f"/public/telemetry/snapshot failed ({status}): {snapshot}")
     if snapshot.get("summary") is None:

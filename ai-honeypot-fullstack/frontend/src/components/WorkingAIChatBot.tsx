@@ -102,7 +102,7 @@ const isAxiosError = (error: unknown): error is AxiosError => axios.isAxiosError
 function shouldRetryWithoutApiPrefix(error: unknown) {
   const status = isAxiosError(error) ? error.response?.status : undefined;
   const hasResponse = isAxiosError(error) && !!error.response;
-  return String(API_BASE).endsWith("/api") && (!hasResponse || status === 404 || status === 405);
+  return String(API_BASE).endsWith("/api/v1") && (!hasResponse || status === 404 || status === 405);
 }
 
 async function pingBackend(timeoutMs = 20000) {

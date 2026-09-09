@@ -194,7 +194,7 @@ const API_RESOURCES = [
   {
     title: "Public API health",
     detail: "Check live status through the public telemetry snapshot and confirm the runtime is answering before you depend on it.",
-    href: "/api/public/telemetry/snapshot",
+    href: "/api/v1/public/telemetry/snapshot",
     cta: "Open public snapshot",
     icon: <Activity size={18} />,
   },
