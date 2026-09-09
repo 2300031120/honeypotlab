@@ -35,6 +35,7 @@ from fastapi.responses import (
     JSONResponse,
     PlainTextResponse,
     RedirectResponse,
+    Response,
     StreamingResponse,
 )
 
@@ -6748,6 +6749,41 @@ async def ws_system(websocket: WebSocket) -> None:
         await cleanup_websocket(websocket)
 
 
+@router.get("/canary/{token}/qr")
+def canary_qr(token: str, request: Request) -> Response:
+    """QR code for a canary token. Scanning it opens the canary URL and fires a trigger."""
+    with db() as conn:
+        row = conn.execute(
+            "select * from canary_tokens where token = ?", (token,)
+        ).fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail="Canary token not found.")
+    base = str(PUBLIC_BASE_URL or "").rstrip("/") or str(request.base_url).rstrip("/")
+    target = f"{base}{row.get('relative_path') or f'/canary/{token}'}?ref=qr"
+    import io
+    import qrcode
+    from qrcode.image.svg import SvgPathImage
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(target)
+    qr.make(fit=True)
+    buffer = io.BytesIO()
+    qr.make_image(image_factory=SvgPathImage).save(buffer)
+    return Response(
+        content=buffer.getvalue(),
+        media_type="image/svg+xml",
+        headers={
+            "Cache-Control": "no-store",
+            "Content-Disposition": f'inline; filename="canary-{token}.svg"',
+        },
+    )
+
+
 @router.get("/canary/{token}", response_class=PlainTextResponse)
 def trigger_canary(token: str, request: Request) -> str:
     with db() as conn:
@@ -6778,7 +6814,11 @@ def trigger_canary(token: str, request: Request) -> str:
         mitre_technique="T1552",
         policy_strategy="aggressive_containment",
         policy_risk_score=95,
-        captured_data={"headers": dict(request.headers)},
+        captured_data={
+            "channel": "qr" if request.query_params.get("ref") == "qr" else "url",
+            **({"q": request.query_params.get("q")} if request.query_params.get("q") else {}),
+            "headers": {key: value for key, value in request.headers.items() if key.lower() in {"user-agent", "referer", "x-forwarded-for"}},
+        },
     )
     return "ok"
 

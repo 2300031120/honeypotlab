@@ -392,7 +392,7 @@ const COMPARISON_LANES = [
   {
     title: "Token and canary lures",
     ours: "Web-route traps capture a multi-step session: which login, admin, or API path an attacker touched, in what order, over time.",
-    other: "Canary tokens (DNS, file, URL) flag a single first touch but stop there — no route path or behavioral narrative.",
+    other: "Canary tokens (DNS, file, URL, QR) flag a single first touch but stop there — no route path or behavioral narrative.",
   },
   {
     title: "Protocol and SSH honeypots",

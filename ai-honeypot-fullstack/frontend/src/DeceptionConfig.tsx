@@ -5,7 +5,7 @@ import {
     Shield, Zap, Activity, Layers, Brain, Target,
     CheckCircle2, AlertTriangle, RefreshCw, Play,
     Eye, Crosshair, Lock, Globe, Server, Database,
-    Copy, ExternalLink, AlertCircle, Clock
+    Copy, ExternalLink, AlertCircle, Clock, QrCode, Download, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from './utils/motionLite';
 import { isSyntheticEvent } from './utils/eventUtils';
@@ -187,8 +187,9 @@ const DeceptionConfig = () => {
     const [protocolMetrics, setProtocolMetrics] = useState<ProtocolMetricsState | null>(null);
     const [protocolAlerts, setProtocolAlerts] = useState<ProtocolAlert[]>([]);
     const [runtimeToggleBusy, setRuntimeToggleBusy] = useState<Record<string, boolean>>({});
-    const [generating, setGenerating] = useState(false);
+const [generating, setGenerating] = useState(false);
     const [newTokenLabel, setNewTokenLabel] = useState('');
+    const [qrToken, setQrToken] = useState<CanaryToken | null>(null);
     const [loading, setLoading] = useState(true);
     const [activeTab, setActiveTab] = useState<'overview' | 'honeytokens' | 'canary-tokens' | 'live-feed'>('overview');
 
@@ -793,7 +794,7 @@ const DeceptionConfig = () => {
                     </div>
                     <div style={{ background: '#0d1117', border: '1px solid #21262d', borderRadius: '10px', padding: '12px 16px', marginBottom: '20px', color: '#8b949e', fontSize: '12px' }}>
                         <AlertCircle size={13} style={{ color: '#d29922', marginRight: '8px', verticalAlign: 'middle' }} />
-                        <strong style={{ color: '#d29922' }}>How it works:</strong> Generate unique URLs and embed them in decoy documents, emails, or config files. When an attacker accesses the URL, you get an alert with their IP, User-Agent, and timestamp.
+                        <strong style={{ color: '#d29922' }}>How it works:</strong> Generate unique URLs and embed them in decoy documents, emails, config files, or print them as QR codes. When an attacker accesses the URL, you get an alert with their IP, User-Agent, and timestamp.
                     </div>
                     {canaryTokens.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '60px', color: '#484f58' }}>
@@ -813,8 +814,11 @@ const DeceptionConfig = () => {
                                         <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>{t.label}</div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                             <code style={{ color: '#58a6ff', fontSize: '12px', background: '#161b22', padding: '3px 8px', borderRadius: '4px' }}>{t.url}</code>
-                                            <button onClick={() => navigator.clipboard.writeText(t.url)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b949e' }}>
+                                            <button onClick={() => navigator.clipboard.writeText(t.url)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b949e' }} title="Copy canary URL">
                                                 <Copy size={13} />
+                                            </button>
+                                            <button onClick={() => setQrToken(t)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b949e', display: 'inline-flex', alignItems: 'center', gap: '4px' }} title="Show QR code">
+                                                <QrCode size={13} /> <span style={{ fontSize: '11px' }}>QR</span>
                                             </button>
                                         </div>
                                     </div>
@@ -836,6 +840,55 @@ const DeceptionConfig = () => {
                                 </div>
                             ))}
                         </div>
+                    )}
+                    {qrToken && (
+                        <>
+                            <div
+                                onClick={() => setQrToken(null)}
+                                style={{ position: 'fixed', inset: 0, background: 'rgba(1,4,9,0.72)', zIndex: 999, backdropFilter: 'blur(4px)' }}
+                            />
+                            <div style={{ position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', zIndex: 1000, background: '#11161d', border: '1px solid #30363d', borderRadius: '16px', padding: '24px', width: 'min(440px, calc(100vw - 40px))', maxHeight: 'calc(100vh - 40px)', overflowY: 'auto' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '700' }}>
+                                        <QrCode size={18} color="#58a6ff" /> QR Canary
+                                    </div>
+                                    <button onClick={() => setQrToken(null)} style={{ background: 'none', border: 'none', color: '#8b949e', cursor: 'pointer' }}>
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                                <div style={{ background: '#ffffff', padding: '14px', borderRadius: '12px', display: 'flex', justifyContent: 'center', marginBottom: '14px' }}>
+                                    <img
+                                        src={`${window.location.origin}${qrToken.url}/qr`}
+                                        alt={`QR code for ${qrToken.label}`}
+                                        style={{ width: '280px', height: '280px', display: 'block' }}
+                                    />
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#8b949e', marginBottom: '6px' }}>{qrToken.label}</div>
+                                <code style={{ display: 'block', color: '#58a6ff', fontSize: '12px', background: '#161b22', padding: '8px 10px', borderRadius: '8px', wordBreak: 'break-all', marginBottom: '14px' }}>
+                                    {`${window.location.origin}${qrToken.url}`}
+                                </code>
+                                <div style={{ fontSize: '12px', color: '#8b949e', marginBottom: '16px', lineHeight: 1.5 }}>
+                                    Print or post this QR where an attacker would look. Anyone who scans it lands on the canary URL and triggers an alert with their IP, User-Agent, and timestamp in the live feed.
+                                </div>
+                                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    <a
+                                        href={`${window.location.origin}${qrToken.url}/qr`}
+                                        download={`canary-${(qrToken.label || '').replace(/\s+/g, '-').toLowerCase()}.svg`}
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: '#238636', border: '1px solid #3fb950', color: '#fff', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', textDecoration: 'none' }}
+                                    >
+                                        <Download size={14} /> Download SVG
+                                    </a>
+                                    <a
+                                        href={`${window.location.origin}${qrToken.url}?ref=qr`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'transparent', border: '1px solid #30363d', color: '#8b949e', padding: '10px 16px', borderRadius: '8px', fontWeight: '700', fontSize: '13px', textDecoration: 'none' }}
+                                    >
+                                        <ExternalLink size={14} /> Test the canary
+                                    </a>
+                                </div>
+                            </div>
+                        </>
                     )}
                 </div>
             )}
