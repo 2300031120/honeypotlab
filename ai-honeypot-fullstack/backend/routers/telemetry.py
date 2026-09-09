@@ -54,8 +54,6 @@ from core.websocket_security import (
 )
 from core.config import (
     ALLOW_SIGNUP,
-    AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS,
-    AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS,
     APP_ENV,
     DATABASE_BACKEND,
     DECOY_COOKIE_SAMESITE,
@@ -108,7 +106,6 @@ from dependencies import (
     optional_user,
 )
 from schemas import (
-    AdvisorPayload,
     AutoModePayload,
     BlockIpPayload,
     CanaryTokenCreatePayload,
@@ -155,11 +152,6 @@ terminal_cmd_rate_limit = _build_operator_rate_limit_dependency(
     "terminal-cmd",
     TERMINAL_CMD_RATE_LIMIT_MAX_ATTEMPTS,
     TERMINAL_CMD_RATE_LIMIT_WINDOW_SECONDS,
-)
-ai_advisor_rate_limit = _build_operator_rate_limit_dependency(
-    "ai-expert-advisor",
-    AI_ADVISOR_RATE_LIMIT_MAX_ATTEMPTS,
-    AI_ADVISOR_RATE_LIMIT_WINDOW_SECONDS,
 )
 url_scan_rate_limit = _build_operator_rate_limit_dependency(
     "intel-url-scan",
@@ -6311,25 +6303,6 @@ def terminal_cmd(
             "explanation": assessment["explanation"],
             "vulnerabilities": assessment["vulnerabilities"],
         },
-    }
-
-
-@router.post("/ai/expert-advisor")
-def ai_expert_advisor(
-    payload: AdvisorPayload, _: dict[str, Any] = Depends(ai_advisor_rate_limit)
-) -> dict[str, Any]:
-    query = payload.query.strip().lower()
-    if query == "status":
-        answer = "Platform healthy. Telemetry ingestion is active, adaptive decoys are armed, and analyst dashboard data is available."
-    else:
-        answer = (
-            f"[{payload.persona}] Focus on telemetry quality, believable decoys, clean auth flows, and operator response speed. "
-            f"Query received: {payload.query}"
-        )
-    return {
-        "response": answer,
-        "response_source": "local_model",
-        "persona_active": payload.persona,
     }
 
 

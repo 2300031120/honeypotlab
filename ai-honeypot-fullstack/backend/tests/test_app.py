@@ -63,6 +63,7 @@ def load_main(monkeypatch, tmp_path):
         "routers.leads",
         "routers.sites",
         "routers.telemetry",
+        "routers.ai",
         "schemas",
     ]:
         sys.modules.pop(module_name, None)
@@ -2491,6 +2492,50 @@ def test_deception_status_and_canary_flow(monkeypatch, tmp_path):
         canary_list = client.get("/deception/canary-tokens", headers=auth_headers)
         assert canary_list.status_code == 200
         assert canary_list.json()[0]["triggered"] is True
+
+
+def test_ai_expert_advisor_is_telemetry_grounded(monkeypatch, tmp_path):
+    """AI Companion must answer from live telemetry, not a canned echo."""
+    main = load_main(monkeypatch, tmp_path)
+    with TestClient(main.app) as client:
+        domain = "aiground.example.com"
+        tenant = create_tenant(client, username="aiground", email="aiground@example.com", domain=domain)
+        headers = tenant["headers"]
+        host = domain
+
+        touch = client.get(
+            "/.env",
+            headers={
+                "Host": host,
+                "X-Forwarded-For": "203.0.113.77",
+                "User-Agent": "advisor-test/1.0",
+            },
+        )
+        assert touch.status_code == 200
+
+        advisor = client.post(
+            "/ai/expert-advisor",
+            headers=headers,
+            json={"query": "Which attacker IPs are most active?", "persona": "INTEL"},
+        )
+        assert advisor.status_code == 200
+        body = advisor.json()
+        assert body["response_source"] == "grounded_telemetry"
+        assert "203.0.113.77" in body["response"]
+
+        status_advisor = client.post(
+            "/ai/expert-advisor",
+            headers=headers,
+            json={"query": "status", "persona": "GENERAL_SENTINEL"},
+        )
+        assert status_advisor.status_code == 200
+        status_body = status_advisor.json()
+        assert status_body["response_source"] == "grounded_telemetry"
+        assert "Grounded in" in status_body["response"]
+
+        ai_status = client.get("/ai/status", headers=headers)
+        assert ai_status.status_code == 200
+        assert ai_status.json()["response_mode"] == "grounded_telemetry"
 
 
 def test_frontend_endpoint_inventory_smoke(monkeypatch, tmp_path):

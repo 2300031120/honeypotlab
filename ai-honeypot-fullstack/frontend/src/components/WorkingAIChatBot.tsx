@@ -39,7 +39,7 @@ function normalizeResponseSource(raw: unknown) {
   const source = String(raw || "").trim().toLowerCase();
   if (!source) return "unknown";
   if (source === "llm") return "llm";
-  if (source.startsWith("local")) return "local";
+  if (source.startsWith("local") || source.startsWith("grounded")) return source;
   return source;
 }
 
@@ -52,12 +52,20 @@ function sourceBadgeMeta(source: string) {
       color: "#58a6ff",
     };
   }
-  if (source === "local") {
+  if (source === "local" || source.startsWith("local")) {
     return {
       label: "LOCAL FALLBACK",
       bg: "rgba(248, 81, 73, 0.14)",
       border: "rgba(248, 81, 73, 0.45)",
       color: "#f85149",
+    };
+  }
+  if (source.startsWith("grounded")) {
+    return {
+      label: "LIVE TELEMETRY",
+      bg: "rgba(46, 160, 67, 0.14)",
+      border: "rgba(63, 185, 80, 0.55)",
+      color: "#3fb950",
     };
   }
   return {
@@ -308,7 +316,7 @@ const WorkingAIChatBot = () => {
             cursor: "pointer",
           }}
         >
-          LLM Test
+          AI Test
         </button>
         <button
           onClick={fetchSystemSnapshot}
