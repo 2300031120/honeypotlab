@@ -81,6 +81,11 @@ const routeMetadata = [
     description: `See where ${shortName} fits SaaS, lean SOC, and MSSP exposed-route detection workflows.`,
   },
   {
+    route: "/comparison",
+    title: `Comparison | ${siteName}`,
+    description: `See how ${shortName} compares to canary tokens, protocol honeypots, and enterprise deception platforms.`,
+  },
+  {
     route: "/security",
     title: `Security | ${siteName}`,
     description: `Read the ${shortName} security posture, disclosure policy, and rollout guardrails.`,
