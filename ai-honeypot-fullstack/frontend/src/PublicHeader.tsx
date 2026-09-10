@@ -62,6 +62,7 @@ const CORE_LINKS: NavLink[] = [
         title: "Choose your path",
         items: [
           { label: "Use cases", to: "/use-cases", description: "Find the best fit for SaaS, SOC, and MSSP teams." },
+          { label: "Comparison", to: "/comparison", description: "See how CyberSentil stacks up against alternatives." },
           { label: "Pricing", to: "/pricing", description: "Compare pilot, rollout, and MSSP plans." },
           { label: "Request Demo", to: "/demo", description: "Book a live walkthrough." },
         ],

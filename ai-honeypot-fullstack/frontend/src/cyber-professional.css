@@ -216,7 +216,146 @@ body {
 }
 
 /* ============================================================================
-   4. Dashboard — opinionated hierarchy (KPIs -> incidents -> graphs)
+   4. Hero "How it Works" steps — prominent, scannable
+   ============================================================================ */
+.marketing-hero-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 18px 0 20px;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--cp-border);
+  border-radius: 14px;
+}
+
+.marketing-hero-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.marketing-hero-step-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--cp-accent-soft);
+  color: var(--cp-accent);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.marketing-hero-step strong {
+  display: block;
+  color: var(--cp-text);
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.marketing-hero-step small {
+  display: block;
+  color: var(--cp-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Hero video placeholder */
+.marketing-hero-video {
+  margin-top: 16px;
+}
+
+.marketing-hero-video-frame {
+  border: 1px solid var(--cp-border-2);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.marketing-hero-video-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: background 200ms var(--cp-ease);
+}
+
+.marketing-hero-video-placeholder:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.marketing-hero-video-placeholder svg {
+  color: var(--cp-accent);
+  opacity: 0.9;
+}
+
+.marketing-hero-video-placeholder span {
+  color: var(--cp-text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.marketing-hero-video-placeholder small {
+  color: var(--cp-muted);
+  font-size: 12px;
+}
+
+/* Social proof stats strip */
+.marketing-home-social-proof {
+  padding: 18px 0;
+}
+
+.marketing-home-social-proof-inner {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.marketing-home-social-proof-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.marketing-home-social-proof-stat strong {
+  color: var(--cp-accent);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.marketing-home-social-proof-stat span {
+  color: var(--cp-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 768px) {
+  .marketing-hero-steps {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .marketing-home-social-proof-inner {
+    gap: 20px;
+  }
+
+  .marketing-home-social-proof-stat strong {
+    font-size: 1.2rem;
+  }
+}
+
+/* ============================================================================
+   5. Dashboard — opinionated hierarchy (KPIs -> incidents -> graphs)
    ============================================================================ */
 .glass-card {
   background: rgba(12, 18, 30, 0.72) !important;

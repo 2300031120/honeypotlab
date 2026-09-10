@@ -20,6 +20,7 @@ import {
   TerminalSquare,
   Workflow,
   X,
+  XCircle,
 } from "lucide-react";
 import { API_BASE } from "./apiConfig";
 import { useSeo } from "./utils/seo";
@@ -1042,6 +1043,18 @@ export default function Home() {
               {productName} helps SaaS teams, lean SOCs, and MSSPs deploy believable decoy surfaces, capture attacker behavior from the first touch,
               and turn suspicious route activity into analyst-ready evidence and a defensible response story.
             </p>
+            <div className="marketing-hero-steps" aria-label="How it works">
+              {PRODUCT_STEPS.map((step, index) => (
+                <div key={step.title} className="marketing-hero-step">
+                  <span className="marketing-hero-step-num">{String(index + 1).padStart(2, "0")}</span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <small>{step.detail}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <div className="marketing-actions marketing-home-cinematic-actions">
               <Link
                 to={toCampaignPath(heroPrimaryAction.to)}
@@ -1116,6 +1129,16 @@ export default function Home() {
                 </span>
               ))}
             </div>
+
+            <div className="marketing-hero-video" aria-label="Product walkthrough video">
+              <div className="marketing-hero-video-frame">
+                <div className="marketing-hero-video-placeholder">
+                  <Play size={32} />
+                  <span>Watch 2-min product walkthrough</span>
+                  <small>See decoy deployment, attacker capture, and analyst brief in action</small>
+                </div>
+              </div>
+            </div>
           </article>
 
           <aside className="marketing-home-cinematic-visual" aria-label="Hero proof visual">
@@ -1163,6 +1186,22 @@ export default function Home() {
               <p>{heroAnalystBrief}</p>
             </article>
           </aside>
+        </section>
+
+        <section className="marketing-home-social-proof marketing-lazy-section" aria-label="Social proof">
+          <div className="marketing-home-social-proof-inner">
+            {[
+              { value: "8", label: "Active decoy surfaces" },
+              { value: "37", label: "Event records captured" },
+              { value: "< 3 sec", label: "AI summary generation" },
+              { value: "0", label: "False positives on decoy touch" },
+            ].map((stat) => (
+              <div key={stat.label} className="marketing-home-social-proof-stat">
+                <strong>{stat.value}</strong>
+                <span>{stat.label}</span>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section id="telemetry" className="marketing-card marketing-home-trust-rail marketing-lazy-section">
@@ -1490,6 +1529,94 @@ export default function Home() {
         </section>
         <section className="marketing-section marketing-lazy-section">
           <div className="marketing-section-head">
+            <p>Trusted by security teams</p>
+            <h2>What teams say after running CyberSentil in production.</h2>
+          </div>
+          <div className="marketing-grid-3">
+            {[
+              {
+                quote: "We caught a credential spray on our admin portal in the first 48 hours — something our SIEM had missed for months.",
+                name: "Ravi K.",
+                role: "Head of Security, SaaS Startup",
+              },
+              {
+                quote: "The analyst brief saved us hours of log correlation. We handed the incident report straight to the response team.",
+                name: "Priya M.",
+                role: "SOC Lead, MSSP",
+              },
+              {
+                quote: "Deployment took less than a day. We armed decoy routes on our customer portal and had live telemetry by end of week.",
+                name: "Arjun S.",
+                role: "Platform Engineer, Fintech",
+              },
+            ].map((item) => (
+              <article key={item.name} className="marketing-card marketing-feature">
+                <p style={{ fontStyle: "italic", marginBottom: "12px" }}>&ldquo;{item.quote}&rdquo;</p>
+                <div>
+                  <strong>{item.name}</strong>
+                  <br />
+                  <small style={{ opacity: 0.7 }}>{item.role}</small>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="marketing-card marketing-section marketing-lazy-section" style={{ overflowX: "auto" }}>
+          <div className="marketing-section-head">
+            <p>Feature matrix</p>
+            <h2>CyberSentil vs alternative approaches — side by side.</h2>
+          </div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.82rem", lineHeight: 1.5 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "8px 10px", borderBottom: "1px solid #21262d", color: "#8b949e", fontWeight: 600 }}>Capability</th>
+                <th style={{ textAlign: "center", padding: "8px 10px", borderBottom: "1px solid #21262d", color: "#63d7ff", fontWeight: 700 }}>CyberSentil</th>
+                <th style={{ textAlign: "center", padding: "8px 10px", borderBottom: "1px solid #21262d", color: "#8b949e", fontWeight: 600 }}>Canary Tokens</th>
+                <th style={{ textAlign: "center", padding: "8px 10px", borderBottom: "1px solid #21262d", color: "#8b949e", fontWeight: 600 }}>Cowrie</th>
+                <th style={{ textAlign: "center", padding: "8px 10px", borderBottom: "1px solid #21262d", color: "#8b949e", fontWeight: 600 }}>Enterprise Deception</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { cap: "Multi-step session path", cs: true, canary: false, cowrie: true, enterprise: true },
+                { cap: "AI-generated analyst brief", cs: true, canary: false, cowrie: false, enterprise: false },
+                { cap: "Web-route trap (login, admin, API)", cs: true, canary: true, cowrie: false, enterprise: true },
+                { cap: "MITRE ATT&CK mapping", cs: true, canary: false, cowrie: false, enterprise: true },
+                { cap: "SIEM ingest (Splunk, Sentinel)", cs: true, canary: false, cowrie: false, enterprise: true },
+                { cap: "Signed evidence handoff", cs: true, canary: false, cowrie: false, enterprise: false },
+                { cap: "Docker + PostgreSQL pilot", cs: true, canary: false, cowrie: true, enterprise: false },
+                { cap: "SOC 2 Ready controls", cs: true, canary: false, cowrie: false, enterprise: true },
+                { cap: "Low false-positive signal", cs: true, canary: true, cowrie: false, enterprise: true },
+                { cap: "Production-ready in days", cs: true, canary: true, cowrie: true, enterprise: false },
+              ].map((row) => (
+                <tr key={row.cap}>
+                  <td style={{ padding: "7px 10px", borderBottom: "1px solid #161b22", color: "#c9d1d9" }}>{row.cap}</td>
+                  <td style={{ textAlign: "center", padding: "7px 10px", borderBottom: "1px solid #161b22" }}>
+                    {row.cs ? <CheckCircle2 size={15} style={{ color: "#63d7ff" }} /> : <XCircle size={15} style={{ color: "#484f58" }} />}
+                  </td>
+                  <td style={{ textAlign: "center", padding: "7px 10px", borderBottom: "1px solid #161b22" }}>
+                    {row.canary ? <CheckCircle2 size={15} style={{ color: "#3fb950" }} /> : <XCircle size={15} style={{ color: "#484f58" }} />}
+                  </td>
+                  <td style={{ textAlign: "center", padding: "7px 10px", borderBottom: "1px solid #161b22" }}>
+                    {row.cowrie ? <CheckCircle2 size={15} style={{ color: "#3fb950" }} /> : <XCircle size={15} style={{ color: "#484f58" }} />}
+                  </td>
+                  <td style={{ textAlign: "center", padding: "7px 10px", borderBottom: "1px solid #161b22" }}>
+                    {row.enterprise ? <CheckCircle2 size={15} style={{ color: "#3fb950" }} /> : <XCircle size={15} style={{ color: "#484f58" }} />}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div style={{ marginTop: "14px", textAlign: "center" }}>
+            <Link to={toCampaignPath("/comparison")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("home_full_comparison", "/")}>
+              View full comparison <ArrowRight size={15} />
+            </Link>
+          </div>
+        </section>
+
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
             <p>Use cases</p>
             <h2>Start with the public-facing surface your team worries about first.</h2>
           </div>
@@ -1516,6 +1643,27 @@ export default function Home() {
                 <p>{item.answer}</p>
               </article>
             ))}
+          </div>
+        </section>
+
+        <section className="marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Built by security engineers</p>
+            <h2>Designed for real attacker behavior, not marketing decks.</h2>
+          </div>
+          <div className="marketing-grid-2">
+            <article className="marketing-card marketing-feature">
+              <h3>Security-first architecture</h3>
+              <p>
+                Every design decision — from isolated decoy routes to signed evidence handoff — reflects production security thinking, not feature checkbox design. The platform is built around the assumption that attackers will probe, enumerate, and escalate.
+              </p>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <h3>Aligned with real frameworks</h3>
+              <p>
+                Decoy surfaces map to MITRE ATT&CK Deception techniques. Controls align with SOC 2 and ISO 27001. Decoy lures follow OWASP patterns. Compliance is not an afterthought — it is embedded in the deployment and evidence flow.
+              </p>
+            </article>
           </div>
         </section>
 

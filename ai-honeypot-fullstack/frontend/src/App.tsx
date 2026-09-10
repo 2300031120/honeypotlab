@@ -21,6 +21,7 @@ const UseCases = lazy(() => import("./UseCases"));
 const PrivacyPolicy = lazy(() => import("./PrivacyPolicy"));
 const TermsOfService = lazy(() => import("./TermsOfService"));
 const SecurityDisclosure = lazy(() => import("./SecurityDisclosure"));
+const Comparison = lazy(() => import("./Comparison"));
 const AIAssistant = lazy(() => import("./AIAssistant"));
 const MainLayout = lazy(() => import("./MainLayout"));
 const ProtectedPageOutlet = lazy(() => import("./ProtectedPageOutlet"));
@@ -160,6 +161,7 @@ export function AppShell({ authChecked, authenticated, isSsr = false }: AppShell
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/security" element={<SecurityDisclosure />} />
+          <Route path="/comparison" element={<Comparison />} />
 
           {/* Protected Routes inside MainLayout */}
           <Route
