@@ -23,6 +23,7 @@ export const PUBLIC_ROUTE_ENTRIES: RouteEntry[] = [
   { path: "/screenshots", title: "Screenshots", changefreq: "weekly", priority: "0.7" },
   { path: "/architecture", title: "Architecture", changefreq: "monthly", priority: "0.7" },
   { path: "/use-cases", title: "Use Cases", changefreq: "monthly", priority: "0.7" },
+  { path: "/comparison", title: "Comparison", changefreq: "monthly", priority: "0.7" },
   { path: "/security", title: "Security", changefreq: "monthly", priority: "0.6" },
   { path: "/privacy", title: "Privacy", changefreq: "yearly", priority: "0.3" },
   { path: "/terms", title: "Terms", changefreq: "yearly", priority: "0.3" },
