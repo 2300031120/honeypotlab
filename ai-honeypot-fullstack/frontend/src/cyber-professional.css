@@ -263,50 +263,6 @@ body {
   line-height: 1.5;
 }
 
-/* Hero video placeholder */
-.marketing-hero-video {
-  margin-top: 16px;
-}
-
-.marketing-hero-video-frame {
-  border: 1px solid var(--cp-border-2);
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.marketing-hero-video-placeholder {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 28px 20px;
-  text-align: center;
-  cursor: pointer;
-  transition: background 200ms var(--cp-ease);
-}
-
-.marketing-hero-video-placeholder:hover {
-  background: rgba(255, 255, 255, 0.04);
-}
-
-.marketing-hero-video-placeholder svg {
-  color: var(--cp-accent);
-  opacity: 0.9;
-}
-
-.marketing-hero-video-placeholder span {
-  color: var(--cp-text);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.marketing-hero-video-placeholder small {
-  color: var(--cp-muted);
-  font-size: 12px;
-}
-
 /* Social proof stats strip */
 .marketing-home-social-proof {
   padding: 18px 0;

@@ -975,6 +975,13 @@ export default function Home() {
   const publicHealthUrl = "/api/health";
   const publicSnapshotUrl = "/api/v1/public/telemetry/snapshot";
 
+  const proofCounters = [
+    { value: String(displaySnapshot.activeDecoys), label: "Active decoy surfaces" },
+    { value: String(displaySnapshot.totalAttacks), label: "Event records captured" },
+    { value: String(displaySnapshot.uniqueIps), label: "Unique source IPs" },
+    { value: `${displaySnapshot.threatScore}/100`, label: "Threat confidence" },
+  ];
+
   const homeConsoleFeed = displayTimeline.slice(0, 4);
   const heroPreviewEvents = (homeConsoleFeed.length ? homeConsoleFeed : PREVIEW_ATTACK_TIMELINE).slice(0, 2);
   const socTerminalFeed = (
@@ -1130,15 +1137,6 @@ export default function Home() {
               ))}
             </div>
 
-            <div className="marketing-hero-video" aria-label="Product walkthrough video">
-              <div className="marketing-hero-video-frame">
-                <div className="marketing-hero-video-placeholder">
-                  <Play size={32} />
-                  <span>Watch 2-min product walkthrough</span>
-                  <small>See decoy deployment, attacker capture, and analyst brief in action</small>
-                </div>
-              </div>
-            </div>
           </article>
 
           <aside className="marketing-home-cinematic-visual" aria-label="Hero proof visual">
@@ -1188,14 +1186,9 @@ export default function Home() {
           </aside>
         </section>
 
-        <section className="marketing-home-social-proof marketing-lazy-section" aria-label="Social proof">
+        <section className="marketing-home-social-proof marketing-lazy-section" aria-label="Live pilot counters">
           <div className="marketing-home-social-proof-inner">
-            {[
-              { value: "8", label: "Active decoy surfaces" },
-              { value: "37", label: "Event records captured" },
-              { value: "< 3 sec", label: "AI summary generation" },
-              { value: "0", label: "False positives on decoy touch" },
-            ].map((stat) => (
+            {proofCounters.map((stat) => (
               <div key={stat.label} className="marketing-home-social-proof-stat">
                 <strong>{stat.value}</strong>
                 <span>{stat.label}</span>
@@ -1529,36 +1522,96 @@ export default function Home() {
         </section>
         <section className="marketing-section marketing-lazy-section">
           <div className="marketing-section-head">
-            <p>Trusted by security teams</p>
-            <h2>What teams say after running CyberSentil in production.</h2>
+            <p>Proof over promises</p>
+            <h2>Verifiable product artifacts, not placeholder quotes.</h2>
           </div>
           <div className="marketing-grid-3">
-            {[
-              {
-                quote: "We caught a credential spray on our admin portal in the first 48 hours — something our SIEM had missed for months.",
-                name: "Ravi K.",
-                role: "Head of Security, SaaS Startup",
-              },
-              {
-                quote: "The analyst brief saved us hours of log correlation. We handed the incident report straight to the response team.",
-                name: "Priya M.",
-                role: "SOC Lead, MSSP",
-              },
-              {
-                quote: "Deployment took less than a day. We armed decoy routes on our customer portal and had live telemetry by end of week.",
-                name: "Arjun S.",
-                role: "Platform Engineer, Fintech",
-              },
-            ].map((item) => (
-              <article key={item.name} className="marketing-card marketing-feature">
-                <p style={{ fontStyle: "italic", marginBottom: "12px" }}>&ldquo;{item.quote}&rdquo;</p>
-                <div>
-                  <strong>{item.name}</strong>
-                  <br />
-                  <small style={{ opacity: 0.7 }}>{item.role}</small>
-                </div>
-              </article>
-            ))}
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-impact-head">
+                <span className="marketing-impact-signal">Event console</span>
+              </div>
+              <h3>Watch captured events as they arrive</h3>
+              <p>
+                When a decoy surface is armed, the console streams real events with path, severity, source IP, and score. The same records power the public snapshot endpoint.
+              </p>
+              <a href={publicSnapshotUrl} target="_blank" rel="noreferrer" className="marketing-btn marketing-btn-secondary">
+                Open the live snapshot
+              </a>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-impact-head">
+                <span className="marketing-impact-signal">Incident walkthrough</span>
+              </div>
+              <h3>Follow one probe from first touch to analyst brief</h3>
+              <p>
+                The incident walkthrough transcribes one real attack path end to end: route order, severity, and the readable brief a response team receives.
+              </p>
+              <Link to={toCampaignPath("/case-study")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("home_proof_case_study", "/")}>
+                Read the walkthrough
+              </Link>
+            </article>
+            <article className="marketing-card marketing-feature">
+              <div className="marketing-impact-head">
+                <span className="marketing-impact-signal">Evidence artifact</span>
+              </div>
+              <h3>Download the preserved incident report</h3>
+              <p>
+                The walkthrough session is preserved as a downloadable incident report with the attacker path and key evidence intact.
+              </p>
+              <a href="/incident-report.md" download className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("home_proof_incident_report", "/")}>
+                Download incident report
+              </a>
+            </article>
+          </div>
+        </section>
+
+        <section className="marketing-card marketing-section marketing-lazy-section">
+          <div className="marketing-section-head">
+            <p>Record structure</p>
+            <h2>What a captured event looks like on the wire.</h2>
+          </div>
+          <div className="marketing-grid-2">
+            <pre
+              style={{
+                margin: 0,
+                padding: "18px 20px",
+                borderRadius: 12,
+                background: "#0d1117",
+                border: "1px solid #21262d",
+                fontSize: "0.78rem",
+                lineHeight: 1.6,
+                color: "#c9d1d9",
+                overflowX: "auto",
+              }}
+            >
+{`{
+  "id": "hax-4f7c2a11",
+  "ts": "2026-09-10T19:14:36.423897+00:00",
+  "path": "/admin/login-shadow",
+  "severity": "high",
+  "score": 87,
+  "event_type": "http_probe",
+  "ip": "203.0.113.24"
+}`}
+            </pre>
+            <div>
+              <p style={{ marginTop: 0 }}>
+                Every record returned by the telemetry API carries the same core fields: the decoy path hit, the severity and confidence score, the
+                probe type, the source IP, and a stable event id. That is the raw material your team turns into an analyst brief.
+              </p>
+              <p>
+                The public endpoint returns the same schema for a recent window — inspect it directly, or arm a decoy surface and watch records arrive
+                in the console above.
+              </p>
+              <div className="marketing-actions">
+                <a href={publicSnapshotUrl} target="_blank" rel="noreferrer" className="marketing-btn marketing-btn-secondary">
+                  Inspect the schema
+                </a>
+                <Link to={toCampaignPath("/screenshots")} className="marketing-btn marketing-btn-secondary" onClick={() => trackCtaClick("home_record_screenshots", "/")}>
+                  See operator screens
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
