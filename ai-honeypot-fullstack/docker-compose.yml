@@ -397,9 +397,8 @@ services:
       - cloudflare
     restart: unless-stopped
     depends_on:
-      - frontend
-    networks:
-      - dmz-tier
+      - backend
+    network_mode: service:backend
     command: tunnel --no-autoupdate run --protocol http2 --token ${CLOUDFLARE_TUNNEL_TOKEN:-}
 
   cloudflared-quick:

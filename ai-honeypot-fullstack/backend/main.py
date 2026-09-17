@@ -46,7 +46,7 @@ from core.metrics import metrics_collector
 from routers.auth import router as auth_router
 from routers.leads import router as leads_router
 from routers.sites import router as sites_router
-from routers.telemetry import router as telemetry_router
+from routers.telemetry import router as telemetry_router, ws_router
 from routers.consent import router as consent_router
 from routers.ai import router as ai_router
 from routers.decoy import router as decoy_router
@@ -276,6 +276,7 @@ API_V1_PREFIX = "/api/v1"
 app.include_router(auth_router, prefix=API_V1_PREFIX, tags=["v1-auth"])
 app.include_router(sites_router, prefix=API_V1_PREFIX, tags=["v1-sites"])
 app.include_router(telemetry_router, prefix=API_V1_PREFIX, tags=["v1-telemetry"])
+app.include_router(ws_router)
 app.include_router(leads_router, prefix=API_V1_PREFIX, tags=["v1-leads"])
 app.include_router(consent_router, prefix=API_V1_PREFIX, tags=["v1-consent"])
 app.include_router(ai_router, prefix=API_V1_PREFIX, tags=["v1-ai"])

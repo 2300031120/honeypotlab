@@ -121,6 +121,7 @@ from schemas import (
 
 
 router = APIRouter()
+ws_router = APIRouter()
 logger = logging.getLogger(__name__)
 ROUTER_STARTED_AT = utc_now()
 AUDIT_LOG_SOURCES = {"all", "incident", "response", "operator"}
@@ -6641,7 +6642,7 @@ def analytics_event(payload: dict[str, Any], request: Request) -> dict[str, Any]
     }
 
 
-@router.websocket("/ws/incidents")
+@ws_router.websocket("/ws/incidents")
 async def ws_incidents(websocket: WebSocket) -> None:
     await secure_websocket_accept(websocket)
     try:
@@ -6686,7 +6687,7 @@ async def _websocket_wait_for_disconnect(websocket: WebSocket, timeout_seconds: 
     return str(message.get("type") or "") == "websocket.disconnect"
 
 
-@router.websocket("/ws/system")
+@ws_router.websocket("/ws/system")
 async def ws_system(websocket: WebSocket) -> None:
     await secure_websocket_accept(websocket)
     try:
